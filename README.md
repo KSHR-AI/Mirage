@@ -2,7 +2,8 @@
 
 Mirage began with a premise: describe a 3D world, then step inside it. Bay City
 is a browser-native open-world San Francisco built to test how far a coding
-model can take that original vision.
+model can take that original vision. The public project is a showcase for
+AI-created, in-browser 3D games built with Three.js.
 
 ## Run
 
