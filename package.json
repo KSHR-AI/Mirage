@@ -3,15 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.7.0",
   "engines": {
-    "node": ">=24.0.0"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "format:check": "prettier --check app/game .github eslint.config.mjs vitest.config.ts package.json pnpm-workspace.yaml public/game-assets/manifest.json",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:run && pnpm build"
   },
   "dependencies": {
     "@react-three/drei": "10.7.7",
@@ -24,10 +29,15 @@
     "three": "0.185.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.55.0",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@types/three": "0.185.1",
+    "eslint": "9.39.1",
+    "eslint-config-next": "16.2.6",
+    "prettier": "3.8.2",
+    "vitest": "4.0.18",
     "typescript": "5.9.3"
   }
 }

@@ -566,7 +566,7 @@ function StreetFurniture() {
         </group>
       ))}
       {ROAD_LINES.flatMap((road, roadIndex) =>
-        [-82, -54, -26, 2, 30, 58, 86].map((z, index) => (
+        [-82, -54, -26, 2, 30, 58, 86].map((z) => (
           <group key={`${road}-${z}`} position={[road + 6.2, 0.3, z]}>
             <mesh castShadow position={[0, 2.7, 0]}>
               <cylinderGeometry args={[0.07, 0.1, 5.4, 7]} />

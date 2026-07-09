@@ -23,9 +23,9 @@ import {
   Suspense,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
@@ -59,6 +59,24 @@ const INITIAL_TELEMETRY: Telemetry = {
   nearVehicle: true,
   mode: "foot",
 };
+
+function getTouchSnapshot() {
+  return window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 760;
+}
+
+function getServerTouchSnapshot() {
+  return false;
+}
+
+function subscribeToTouchControls(onStoreChange: () => void) {
+  const pointerQuery = window.matchMedia("(pointer: coarse)");
+  pointerQuery.addEventListener("change", onStoreChange);
+  window.addEventListener("resize", onStoreChange);
+  return () => {
+    pointerQuery.removeEventListener("change", onStoreChange);
+    window.removeEventListener("resize", onStoreChange);
+  };
+}
 
 function track(event: string, value?: string) {
   const payload = JSON.stringify({ event, value });
@@ -189,7 +207,6 @@ export function BayCityGame() {
   const [cash, setCash] = useState(0);
   const [health, setHealth] = useState(100);
   const [muted, setMuted] = useState(false);
-  const [touch, setTouch] = useState(false);
   const [showVision, setShowVision] = useState(false);
   const [sceneKey, setSceneKey] = useState(0);
   const [notification, setNotification] = useState("World 01 is live.");
@@ -197,15 +214,17 @@ export function BayCityGame() {
   const controlsRef = useRef<ControlState>({ ...EMPTY_CONTROLS });
   const pointerRef = useRef<{ id: number; x: number; y: number } | null>(null);
   const completedMissionsRef = useRef(new Set<number>());
+  const touch = useSyncExternalStore(
+    subscribeToTouchControls,
+    getTouchSnapshot,
+    getServerTouchSnapshot,
+  );
   const wanted = completed ? 0 : (MISSIONS[missionIndex]?.wanted ?? 0);
   const currentMission = MISSIONS[missionIndex];
   const { start: startAudio, sting } = useBayAudio(muted, telemetry.speed, wanted);
 
   useEffect(() => {
     document.body.classList.add("bay-city-active");
-    setTouch(
-      window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 760,
-    );
     return () => document.body.classList.remove("bay-city-active");
   }, []);
 
