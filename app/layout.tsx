@@ -13,26 +13,26 @@ export async function generateMetadata(): Promise<Metadata> {
   const image = new URL("/og.png", origin).toString();
 
   return {
-    title: "Mirage",
-    description: "Enter a world that changes as you play.",
+    title: "Mirage: Bay City",
+    description: "A playable open-world San Francisco, built by a coding model.",
     openGraph: {
       type: "website",
       url: origin,
-      title: "Mirage",
-      description: "Enter a world that changes as you play.",
+      title: "Mirage: Bay City",
+      description: "A playable open-world San Francisco, built by a coding model.",
       images: [
         {
           url: image,
-          width: 1731,
-          height: 909,
-          alt: "Mirage, a world that changes as you play",
+          width: 1440,
+          height: 900,
+          alt: "Mirage: Bay City, a playable San Francisco",
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Mirage",
-      description: "Enter a world that changes as you play.",
+      title: "Mirage: Bay City",
+      description: "A playable open-world San Francisco, built by a coding model.",
       images: [image],
     },
   };

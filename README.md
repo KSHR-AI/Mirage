@@ -1,6 +1,8 @@
-# Mirage
+# Mirage: Bay City
 
-A playable 3D world that changes as you explore it.
+Mirage began with a premise: describe a 3D world, then step inside it. Bay City
+is a browser-native open-world San Francisco built to test how far a coding
+model can take that original vision.
 
 ## Run
 
@@ -13,22 +15,16 @@ Open `http://localhost:3000` and enter the world.
 
 ## Play
 
-Find three echoes. Each echo lets you remix the persistent 3D world. Complete
-the world and share its deterministic seed.
+- Explore San Francisco on foot or by car.
+- Run four missions from SoMa to the Golden Gate.
+- Evade a rising police pursuit through a living city.
+- Play on desktop or mobile with no account, API key, or payment gate.
 
-The earlier LingBot experiment remains available at `/labs/lingbot`.
+## Stack
 
-## Env
+- Next.js
+- React Three Fiber and Three.js
+- Rapier physics
+- Vercel
 
-Required server-side env vars:
-
-- `REACTOR_API_KEY`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_PRICE_ID`
-- `STRIPE_WEBHOOK_SECRET`
-- `MIRAGE_SUPABASE_URL` or `SUPABASE_PROJECT_URL`
-- `MIRAGE_SUPABASE_PUBLISHABLE_KEY` or `SUPABASE_PUBLISHABLE_KEY`
-- `MIRAGE_DATABASE_URL`, `SUPABASE_POOLER_URL`, or `SUPABASE_DB_URL`
-
-`app/api/reactor/token/route.ts` requires an authenticated user with an active
-subscription before minting a short-lived Reactor JWT.
+No environment variables are required for the game.

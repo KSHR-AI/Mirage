@@ -1,5 +1,5 @@
-import { MirageWorld } from "./components/MirageWorld";
+import { BayCityGame } from "./components/BayCityGame";
 
 export default function Page() {
-  return <MirageWorld />;
+  return <BayCityGame />;
 }
