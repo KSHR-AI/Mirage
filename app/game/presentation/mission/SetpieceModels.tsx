@@ -76,62 +76,213 @@ function HazardStripe({
 
 function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
   const shadows = plan.quality.quality !== "low";
+  const decorated = plan.quality.decorationLevel > 0;
+  const premiumDetail = plan.quality.decorationLevel > 1;
+
   return (
     <group name="afterlight-boost-yard">
       <group position={plan.anchor}>
         <mesh position={[0, -0.48, 0]} receiveShadow>
-          <boxGeometry args={[13.5, 0.16, 11]} />
-          <StandardMaterial color="#222b2d" metalness={0.16} roughness={0.86} />
+          <boxGeometry args={[14.2, 0.16, 11.8]} />
+          <StandardMaterial color="#20282a" metalness={0.14} roughness={0.9} />
         </mesh>
+
+        <mesh position={[0, -0.36, -0.1]} receiveShadow>
+          <boxGeometry args={[6.15, 0.08, 8.5]} />
+          <StandardMaterial color="#303a3c" metalness={0.3} roughness={0.68} />
+        </mesh>
+
+        {[-1, 1].map((side) => (
+          <group key={`boost-yard-edge-${side}`}>
+            <mesh position={[side * 6.72, -0.31, 0]}>
+              <boxGeometry args={[0.34, 0.26, 10.8]} />
+              <StandardMaterial
+                color="#4b5556"
+                metalness={0.28}
+                roughness={0.72}
+              />
+            </mesh>
+            <HazardStripe
+              color="#899493"
+              position={[side * 2.82, -0.3, -0.1]}
+              scale={[0.07, 0.025, 8.45]}
+            />
+          </group>
+        ))}
+
+        {[-1, 1].map((side) => (
+          <mesh
+            castShadow={shadows}
+            key={`boost-canopy-post-${side}`}
+            position={[side * 4.92, 1.82, -3.65]}
+          >
+            <boxGeometry args={[0.32, 4.5, 0.32]} />
+            <StandardMaterial
+              color="#3d484a"
+              metalness={0.62}
+              roughness={0.38}
+            />
+          </mesh>
+        ))}
+
+        {[-3.65, 3.65].map((z) => (
+          <mesh castShadow={shadows} key={z} position={[0, 4.06, z]}>
+            <boxGeometry args={[10.16, 0.34, 0.4]} />
+            <StandardMaterial
+              color="#333e40"
+              metalness={0.66}
+              roughness={0.34}
+            />
+          </mesh>
+        ))}
+
+        {[-1, 1].map((side) => (
+          <mesh
+            castShadow={shadows}
+            key={`boost-canopy-rail-${side}`}
+            position={[side * 4.92, 4.06, 0]}
+          >
+            <boxGeometry args={[0.4, 0.34, 7.3]} />
+            <StandardMaterial
+              color="#333e40"
+              metalness={0.66}
+              roughness={0.34}
+            />
+          </mesh>
+        ))}
+
+        {[-1, 1].map((side) => (
+          <group key={`boost-practical-${side}`}>
+            <mesh position={[side * 2.15, 3.84, -0.25]}>
+              <boxGeometry args={[2.75, 0.08, 0.24]} />
+              <StandardMaterial
+                color="#f0eee5"
+                emissive="#fff1c7"
+                emissiveIntensity={0.9}
+                metalness={0.18}
+                roughness={0.24}
+              />
+            </mesh>
+            <mesh position={[side * 4.93, 2.9, 3.4]}>
+              <boxGeometry args={[0.035, 0.28, 0.12]} />
+              <meshBasicMaterial
+                color={
+                  side < 0 ? INTERACTION_COLORS.coral : INTERACTION_COLORS.lime
+                }
+                toneMapped={false}
+              />
+            </mesh>
+          </group>
+        ))}
+
         <mesh castShadow={shadows} position={[-5.8, 1.7, -4.1]}>
           <boxGeometry args={[1.9, 3.5, 2.2]} />
-          <StandardMaterial color="#39484c" metalness={0.34} roughness={0.55} />
+          <StandardMaterial color="#354144" metalness={0.42} roughness={0.5} />
         </mesh>
         <mesh position={[-5.8, 2.05, -2.98]}>
           <boxGeometry args={[1.35, 0.82, 0.04]} />
           <StandardMaterial
-            color="#183036"
+            color="#122428"
             emissive={INTERACTION_COLORS.white}
-            emissiveIntensity={0.2}
-            metalness={0.45}
-            roughness={0.22}
+            emissiveIntensity={0.34}
+            metalness={0.48}
+            roughness={0.2}
           />
         </mesh>
+
         {[-1, 1].map((side) => (
           <mesh
             castShadow={shadows}
-            key={side}
-            position={[side * 5.25, 0.55, 3.9]}
+            key={`boost-bollard-${side}`}
+            position={[side * 5.25, 0.55, -4.8]}
           >
             <cylinderGeometry args={[0.18, 0.22, 2, 8]} />
             <StandardMaterial
-              color="#d7d9d5"
-              metalness={0.35}
-              roughness={0.52}
+              color="#aeb6b3"
+              metalness={0.52}
+              roughness={0.4}
             />
           </mesh>
         ))}
+
         <HazardStripe
           color={INTERACTION_COLORS.lime}
           position={[0, -0.37, 4.15]}
           scale={[8.5, 0.035, 0.13]}
         />
-        {plan.quality.decorationLevel > 0 ? (
+
+        {decorated ? (
           <>
-            {[-3.7, 3.7].map((x) => (
-              <mesh castShadow={shadows} key={x} position={[x, 0.02, -4.2]}>
-                <boxGeometry args={[1.2, 0.82, 1.2]} />
-                <StandardMaterial color="#6c5b47" roughness={0.84} />
+            {[-2.4, 0, 2.4].map((z) => (
+              <mesh castShadow={shadows} key={z} position={[0, 3.98, z]}>
+                <boxGeometry args={[9.5, 0.16, 0.24]} />
+                <StandardMaterial
+                  color="#556063"
+                  metalness={0.58}
+                  roughness={0.4}
+                />
               </mesh>
             ))}
+
+            {[-1, 1].map((side) => (
+              <mesh
+                castShadow={shadows}
+                key={`boost-service-case-${side}`}
+                position={[side * 5.72, 0.08, -3.92]}
+              >
+                <boxGeometry args={[1.05, 0.88, 1.25]} />
+                <StandardMaterial
+                  color={side < 0 ? "#4d4540" : "#465456"}
+                  metalness={0.38}
+                  roughness={0.62}
+                />
+              </mesh>
+            ))}
+
             <mesh position={[4.7, 2.2, -4.1]}>
               <boxGeometry args={[0.18, 4.4, 0.18]} />
               <StandardMaterial
-                color="#aeb7b5"
-                metalness={0.56}
-                roughness={0.4}
+                color="#788281"
+                metalness={0.64}
+                roughness={0.34}
               />
             </mesh>
+          </>
+        ) : null}
+
+        {premiumDetail ? (
+          <>
+            {[-1, 1].flatMap((side) =>
+              [-2.45, -0.8, 0.85, 2.5].map((z) => (
+                <mesh
+                  key={`boost-lane-marker-${side}-${z}`}
+                  position={[side * 3.18, -0.25, z]}
+                >
+                  <boxGeometry args={[0.16, 0.055, 0.34]} />
+                  <StandardMaterial
+                    color="#d7ddd8"
+                    emissive={INTERACTION_COLORS.white}
+                    emissiveIntensity={0.36}
+                    metalness={0.32}
+                    roughness={0.26}
+                  />
+                </mesh>
+              )),
+            )}
+            {[-1, 1].map((side) => (
+              <mesh
+                key={`boost-canopy-brace-${side}`}
+                position={[side * 4.76, 3.25, 0]}
+                rotation={[Math.PI / 4, 0, 0]}
+              >
+                <boxGeometry args={[0.12, 0.12, 1.8]} />
+                <StandardMaterial
+                  color="#697476"
+                  metalness={0.62}
+                  roughness={0.36}
+                />
+              </mesh>
+            ))}
           </>
         ) : null}
       </group>

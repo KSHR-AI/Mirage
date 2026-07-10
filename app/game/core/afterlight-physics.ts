@@ -5,6 +5,7 @@ import type {
 } from "../combat";
 import { CollisionLayer, layerBit } from "../physics/collision-layers";
 import { AFTERLIGHT_CHARACTER_HIT_CENTER_OFFSET } from "../world/afterlight-character-world";
+import { AFTERLIGHT_SPACE_COLLIDERS } from "../world/afterlight-space";
 import type {
   ActorState,
   EntityId,
@@ -20,33 +21,11 @@ export interface WorldCollisionBox {
 }
 
 export const AFTERLIGHT_MISSION_COVER: readonly WorldCollisionBox[] =
-  Object.freeze([
-    Object.freeze({
-      id: "boost-yard-office",
-      center: [58.2, 2.42, 45.9] as Vec3,
-      halfExtents: [0.95, 1.75, 1.1] as Vec3,
-    }),
-    Object.freeze({
-      id: "vault-shell",
-      center: [14, 3, -42] as Vec3,
-      halfExtents: [7, 3, 5] as Vec3,
-    }),
-    Object.freeze({
-      id: "substation-transformer-west",
-      center: [-76, 1.5, -45] as Vec3,
-      halfExtents: [2.2, 1.5, 3] as Vec3,
-    }),
-    Object.freeze({
-      id: "substation-transformer-east",
-      center: [-64, 1.5, -39] as Vec3,
-      halfExtents: [2.2, 1.5, 3] as Vec3,
-    }),
-    Object.freeze({
-      id: "safehouse-wall",
-      center: [7, 2.5, -232] as Vec3,
-      halfExtents: [5, 2.5, 1] as Vec3,
-    }),
-  ]);
+  Object.freeze(
+    AFTERLIGHT_SPACE_COLLIDERS.map(({ id, center, halfExtents }) =>
+      Object.freeze({ id, center, halfExtents }),
+    ),
+  );
 
 interface SphereCollider {
   readonly kind: "actor" | "vehicle";

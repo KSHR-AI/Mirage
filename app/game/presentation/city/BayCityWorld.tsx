@@ -56,8 +56,7 @@ export const BayCityWorld = memo(function BayCityWorld({
   );
   const resolvedQuality = resolvedLayout.quality;
   const resolvedShadows = shadows ?? resolvedQuality === "desktop";
-  const useAuthoredDowntown =
-    resolvedQuality === "desktop" && authoredDowntownReady;
+  const useAuthoredDowntown = authoredDowntownReady;
   const resolvedPowerState = useMemo(
     () =>
       powerState ??
@@ -94,15 +93,13 @@ export const BayCityWorld = memo(function BayCityWorld({
           powerState={resolvedPowerState}
           shadows={resolvedShadows}
         />
-        {resolvedQuality === "desktop" ? (
-          <ModelAssetBoundary fallback={null}>
-            <AuthoredDowntownBuildings
-              onReady={markAuthoredDowntownReady}
-              powerState={resolvedPowerState}
-              shadows={resolvedShadows}
-            />
-          </ModelAssetBoundary>
-        ) : null}
+        <ModelAssetBoundary fallback={null}>
+          <AuthoredDowntownBuildings
+            onReady={markAuthoredDowntownReady}
+            powerState={resolvedPowerState}
+            shadows={resolvedShadows}
+          />
+        </ModelAssetBoundary>
         <CityLandmarks
           activeZone={activeZone}
           missionProgress={missionProgress}

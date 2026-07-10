@@ -17,8 +17,8 @@ import {
 function cityRoute(): RoadRoute {
   const route = findRoute(
     BAY_CITY_ROAD_GRAPH,
-    getLaneNodeId(getIntersectionId(-70, 70), "east", "outgoing"),
-    getLaneNodeId(getIntersectionId(14, 70), "east", "incoming"),
+    getLaneNodeId(getIntersectionId(-84, 84), "east", "outgoing"),
+    getLaneNodeId(getIntersectionId(0, 84), "east", "incoming"),
     { mode: "vehicle", seed: "route-progress-test" },
   );
   if (!route) throw new Error("Expected test route");
@@ -90,7 +90,7 @@ describe("traffic route progress", () => {
 
   it("supports a zero-edge route and rejects invalid distances or edge ids", () => {
     const nodeId = getLaneNodeId(
-      getIntersectionId(-70, 70),
+      getIntersectionId(-84, 84),
       "east",
       "outgoing",
     );

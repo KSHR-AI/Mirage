@@ -185,7 +185,10 @@ export const MissionInteractionCues = memo(function MissionInteractionCues({
   reducedMotion,
 }: MissionInteractionCuesProps) {
   return (
-    <group name="afterlight-interaction-cues">
+    <group
+      name="afterlight-interaction-cues"
+      userData={{ cameraCollision: false }}
+    >
       {cues.map((cue) => {
         const color = INTERACTION_COLORS[cue.tone];
         if (cue.kind === "target") {

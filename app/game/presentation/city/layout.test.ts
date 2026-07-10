@@ -1,7 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  BLOCK_CENTERS,
+  BRIDGE_END,
+  CITY_MAX,
+  CITY_MIN,
+  ROAD_LINES,
+} from "../../../components/bay-city-data";
+import { WORLD_LAYOUT } from "../../world/world-layout";
+import {
+  CITY_BLOCK_CENTERS,
   CITY_DETAIL_LIMITS,
+  CITY_EXTENTS,
   CITY_MISSION_ZONES,
+  CITY_ROAD_LINES,
+  CITY_STREET_FEATURE_CLEARANCES,
   cityLayoutCounts,
   cityLayoutFingerprint,
   cityMissionZone,
@@ -13,6 +25,46 @@ afterEach(() => {
 });
 
 describe("createBayCityLayout", () => {
+  it("derives presentation and legacy exports from the world layout contract", () => {
+    expect(CITY_ROAD_LINES).toBe(WORLD_LAYOUT.roadLines);
+    expect(CITY_BLOCK_CENTERS).toBe(WORLD_LAYOUT.blockCenters);
+    expect(CITY_EXTENTS).toBe(WORLD_LAYOUT.extents);
+    expect(ROAD_LINES).toBe(WORLD_LAYOUT.roadLines);
+    expect(BLOCK_CENTERS).toBe(WORLD_LAYOUT.blockCenters);
+    expect(CITY_MIN).toBe(WORLD_LAYOUT.extents.landMin);
+    expect(CITY_MAX).toBe(WORLD_LAYOUT.extents.landMax);
+    expect(BRIDGE_END).toBe(WORLD_LAYOUT.extents.bridgeEndZ);
+
+    expect(CITY_BLOCK_CENTERS).toEqual(
+      CITY_ROAD_LINES.slice(0, -1).map(
+        (line, index) => (line + (CITY_ROAD_LINES[index + 1] as number)) / 2,
+      ),
+    );
+  });
+
+  it("centers every rendered road on a canonical road line", () => {
+    const layout = createBayCityLayout({ seed: "road-contract" });
+    const verticalRoads = layout.roads.filter((road) =>
+      road.id.startsWith("road-v-"),
+    );
+    const horizontalRoads = layout.roads.filter((road) =>
+      road.id.startsWith("road-h-"),
+    );
+
+    expect(verticalRoads.map((road) => road.position[0])).toEqual(
+      WORLD_LAYOUT.roadLines,
+    );
+    expect(horizontalRoads.map((road) => road.position[2])).toEqual(
+      WORLD_LAYOUT.roadLines,
+    );
+    expect(
+      verticalRoads.every((road) => road.scale[0] === WORLD_LAYOUT.roadWidth),
+    ).toBe(true);
+    expect(
+      horizontalRoads.every((road) => road.scale[2] === WORLD_LAYOUT.roadWidth),
+    ).toBe(true);
+  });
+
   it("reproduces the same city for a seed", () => {
     const first = createBayCityLayout({
       quality: "desktop",
@@ -84,6 +136,31 @@ describe("createBayCityLayout", () => {
         expect(distance, `${building.id} overlaps ${zone.id}`).toBeGreaterThan(
           zone.radius + halfDiagonal,
         );
+      }
+    }
+  });
+
+  it("keeps traversal and camera clear around critical approaches", () => {
+    for (const quality of ["desktop", "mobile"] as const) {
+      const layout = createBayCityLayout({ quality, seed: 2407 });
+      const features = [
+        ...layout.streetlights,
+        ...layout.trafficSignals,
+        ...layout.props,
+        ...layout.trees,
+      ];
+
+      for (const clearance of CITY_STREET_FEATURE_CLEARANCES) {
+        for (const feature of features) {
+          const distance = Math.hypot(
+            feature.position[0] - clearance.position[0],
+            feature.position[2] - clearance.position[1],
+          );
+          expect(
+            distance,
+            `${feature.id} blocks ${clearance.id}`,
+          ).toBeGreaterThan(clearance.radius);
+        }
       }
     }
   });

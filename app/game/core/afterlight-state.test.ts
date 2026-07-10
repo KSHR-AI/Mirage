@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SIGNAL_9_SPEC } from "../combat";
 import {
   AFTERLIGHT_CHECKPOINT_IDS,
+  AFTERLIGHT_ENCOUNTER_VARIANTS,
   AFTERLIGHT_JOB_ID,
 } from "../missions/afterlight-job";
 import {
@@ -55,6 +56,17 @@ describe("initial Afterlight state", () => {
     expect(stableHash(first)).toBe(stableHash(second));
     expect(first.seed).not.toBe(other.seed);
     expect(stableHash(first)).not.toBe(stableHash(other));
+  });
+
+  it("seeds the simulated courier from every selected encounter", () => {
+    AFTERLIGHT_ENCOUNTER_VARIANTS.forEach((encounter, seed) => {
+      const courier = createInitialAfterlightState(seed).vehicles.get(
+        AFTERLIGHT_ENTITY_IDS.courier,
+      );
+
+      expect(courier?.pose.position).toEqual(encounter.courierSpawn);
+      expect(courier?.routeId).toBe(encounter.courierRouteId);
+    });
   });
 
   it("defines every progression checkpoint and falls back to start", () => {

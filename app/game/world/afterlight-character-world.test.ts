@@ -13,6 +13,7 @@ import {
   createAfterlightVehicleObstacles,
   sampleAfterlightCharacterGround,
 } from "./afterlight-character-world";
+import { AFTERLIGHT_SPACE_COLLIDERS } from "./afterlight-space";
 
 describe("Afterlight character world", () => {
   it("matches the authored road, sidewalk, bridge, and ramp elevations", () => {
@@ -52,7 +53,8 @@ describe("Afterlight character world", () => {
     expect(world.obstacles).toHaveLength(
       layout.buildings.length -
         replacedBuildingCount +
-        AUTHORED_DOWNTOWN_PLACEMENTS.length,
+        AUTHORED_DOWNTOWN_PLACEMENTS.length +
+        AFTERLIGHT_SPACE_COLLIDERS.length,
     );
     expect(obstacle).toEqual({
       id: building.id,

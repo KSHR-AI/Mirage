@@ -1,9 +1,5 @@
-import {
-  BRIDGE_END,
-  CITY_MIN,
-  ROAD_LINES,
-} from "../../components/bay-city-data";
 import { deriveSeed, type RngSeed } from "../core/rng";
+import { WORLD_LAYOUT } from "./world-layout";
 
 export type RoadTravelMode = "vehicle" | "pedestrian";
 export type CardinalDirection = "north" | "east" | "south" | "west";
@@ -583,7 +579,7 @@ function normalizeBuildOptions(
     ? { roadLines: optionsOrRoadLines }
     : optionsOrRoadLines;
   const roadLines = uniqueSortedNumbers(
-    options.roadLines ?? ROAD_LINES,
+    options.roadLines ?? WORLD_LAYOUT.roadLines,
     "roadLines",
   );
   const laneOffset = requirePositiveFinite(
@@ -603,8 +599,8 @@ function normalizeBuildOptions(
     options.bridgeSidewalkOffset ?? ROAD_GRAPH_BRIDGE_SIDEWALK_OFFSET,
   );
   const bridgeGatewayX = options.bridgeGatewayX ?? 0;
-  const bridgeEntryZ = options.bridgeEntryZ ?? CITY_MIN;
-  const bridgeEndZ = options.bridgeEndZ ?? BRIDGE_END;
+  const bridgeEntryZ = options.bridgeEntryZ ?? WORLD_LAYOUT.extents.landMin;
+  const bridgeEndZ = options.bridgeEndZ ?? WORLD_LAYOUT.extents.bridgeEndZ;
   const northRoad = roadLines[0] as number;
   if (
     !Number.isFinite(bridgeGatewayX) ||

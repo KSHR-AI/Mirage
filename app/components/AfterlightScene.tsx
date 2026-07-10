@@ -31,6 +31,7 @@ import {
   resolveCityPowerState,
 } from "../game/presentation/city";
 import { AfterlightMissionSetpieces } from "../game/presentation/mission";
+import { withAfterlightCourierPosition } from "../game/presentation/mission/plan";
 import {
   CivilianModel,
   GuardModel,
@@ -393,6 +394,17 @@ export const AfterlightScene = memo(function AfterlightScene({
   const hero =
     vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe) ??
     state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+  const courier =
+    vehicles.get(AFTERLIGHT_ENTITY_IDS.courier) ??
+    state.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier);
+  const presentationEncounter = useMemo(
+    () =>
+      withAfterlightCourierPosition(
+        definition.encounter,
+        courier?.pose.position,
+      ),
+    [courier?.pose.position, definition.encounter],
+  );
   const blackoutActive = state.inventory.has(BLACKOUT_MARKER);
   const [blackoutStartTick, setBlackoutStartTick] = useState<number | null>(
     null,
@@ -481,7 +493,7 @@ export const AfterlightScene = memo(function AfterlightScene({
       <AfterlightMissionSetpieces
         blackout={blackoutActive}
         completedObjectiveIds={state.mission.completedObjectiveIds}
-        encounterVariant={definition.encounter}
+        encounterVariant={presentationEncounter}
         inventory={state.inventory}
         interactionCuesVisible={started}
         phaseId={phaseId}

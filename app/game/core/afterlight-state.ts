@@ -3,6 +3,8 @@ import {
   AFTERLIGHT_CHECKPOINT_IDS,
   AFTERLIGHT_DEFAULT_SEED,
   createAfterlightJob,
+  selectAfterlightEncounter,
+  type AfterlightEncounterVariant,
 } from "../missions/afterlight-job";
 import { createMissionProgress } from "../missions/reducer";
 import { createHeatState } from "../ai/police/heat";
@@ -52,7 +54,7 @@ export const AFTERLIGHT_CHECKPOINTS: Readonly<
       rotationY: Math.PI,
     }),
     vehiclePose: Object.freeze({
-      position: [60.5, 0.72, 51] as Vec3,
+      position: [61.3, 0.72, 51] as Vec3,
       rotationY: Math.PI,
     }),
   }),
@@ -114,7 +116,7 @@ export const AFTERLIGHT_CHECKPOINTS: Readonly<
 });
 
 export const AFTERLIGHT_LANDMARKS = Object.freeze({
-  boostYard: [60.5, 0.72, 51] as Vec3,
+  boostYard: [61.3, 0.72, 51] as Vec3,
   missionIntercept: [70, 1.15, 42] as Vec3,
   courierRouteStart: [70, 0.72, 42] as Vec3,
   vaultReader: [14, 1.15, -42] as Vec3,
@@ -263,10 +265,11 @@ export function createInitialAfterlightActors(): ReadonlyMap<
   ]);
 }
 
-export function createInitialAfterlightVehicles(): ReadonlyMap<
-  EntityId,
-  VehicleState
-> {
+export function createInitialAfterlightVehicles(
+  encounter: AfterlightEncounterVariant = selectAfterlightEncounter(
+    AFTERLIGHT_DEFAULT_SEED,
+  ),
+): ReadonlyMap<EntityId, VehicleState> {
   const ids = AFTERLIGHT_ENTITY_IDS;
   return new Map([
     [
@@ -284,10 +287,10 @@ export function createInitialAfterlightVehicles(): ReadonlyMap<
       vehicle(
         ids.courier,
         "courier",
-        [70, 0.72, 42],
+        encounter.courierSpawn,
         Math.PI,
         120,
-        "courier-embarcadero",
+        encounter.courierRouteId,
       ),
     ],
   ]);
@@ -305,7 +308,7 @@ export function createInitialAfterlightState(
     paused: false,
     playerId: AFTERLIGHT_ENTITY_IDS.player,
     actors: createInitialAfterlightActors(),
-    vehicles: createInitialAfterlightVehicles(),
+    vehicles: createInitialAfterlightVehicles(definition.encounter),
     weapons: new Map([[SIGNAL_9_SPEC.id, createSignal9State()]]),
     inventory: new Set(),
     heat: createHeatState(),

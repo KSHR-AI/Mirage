@@ -1,3 +1,4 @@
+import { WORLD_LAYOUT } from "../../world/world-layout";
 import { createCityRng, hashCitySeed, stableCityOrder } from "./seed";
 import type {
   BoxInstance,
@@ -7,19 +8,15 @@ import type {
   CityLayout,
   CityMissionZoneId,
   CityQuality,
+  CityVec3,
   MissionZone,
   PointFeature,
   StreetProp,
 } from "./types";
 
-export const CITY_ROAD_LINES = [-84, -56, -28, 0, 28, 56, 84] as const;
-export const CITY_BLOCK_CENTERS = [-70, -42, -14, 14, 42, 70] as const;
-export const CITY_EXTENTS = {
-  bridgeEndZ: -238,
-  landMax: 104,
-  landMin: -104,
-  waterfrontX: 106,
-} as const;
+export const CITY_ROAD_LINES = WORLD_LAYOUT.roadLines;
+export const CITY_BLOCK_CENTERS = WORLD_LAYOUT.blockCenters;
+export const CITY_EXTENTS = WORLD_LAYOUT.extents;
 
 export const CITY_MISSION_ZONES: readonly MissionZone[] = [
   {
@@ -114,6 +111,49 @@ type LayoutOptions = {
   quality?: CityQuality;
   seed?: number | string;
 };
+
+export const CITY_STREET_FEATURE_CLEARANCES = Object.freeze([
+  Object.freeze({
+    id: "opening-spawn",
+    position: [64, 56] as const,
+    radius: 7,
+  }),
+  Object.freeze({
+    id: "boost-coupe",
+    position: [61.3, 51] as const,
+    radius: 5.5,
+  }),
+  Object.freeze({
+    id: "courier-checkpoint",
+    position: [70, 48] as const,
+    radius: 5,
+  }),
+  Object.freeze({
+    id: "vault-entry",
+    position: [14, -32] as const,
+    radius: 5.5,
+  }),
+  Object.freeze({
+    id: "substation-entry",
+    position: [-64, -36] as const,
+    radius: 5,
+  }),
+  Object.freeze({
+    id: "bridge-entry",
+    position: [0, -106] as const,
+    radius: 7,
+  }),
+]);
+
+function outsideStreetFeatureClearances<T extends { position: CityVec3 }>(
+  feature: T,
+): boolean {
+  return CITY_STREET_FEATURE_CLEARANCES.every((clearance) => {
+    const dx = feature.position[0] - clearance.position[0];
+    const dz = feature.position[2] - clearance.position[1];
+    return dx * dx + dz * dz > clearance.radius * clearance.radius;
+  });
+}
 
 function box(
   id: string,
@@ -272,8 +312,18 @@ function buildSurfaces(seed: number, quality: CityQuality) {
 
   for (const line of CITY_ROAD_LINES) {
     roads.push(
-      box(`road-v-${line}`, [line, 0.08, 0], [9.6, 0.16, 208], "#17262d"),
-      box(`road-h-${line}`, [0, 0.085, line], [208, 0.17, 9.6], "#17262d"),
+      box(
+        `road-v-${line}`,
+        [line, 0.08, 0],
+        [WORLD_LAYOUT.roadWidth, 0.16, 208],
+        "#17262d",
+      ),
+      box(
+        `road-h-${line}`,
+        [0, 0.085, line],
+        [208, 0.17, WORLD_LAYOUT.roadWidth],
+        "#17262d",
+      ),
     );
   }
 
@@ -473,10 +523,18 @@ function buildStreetFeatures(seed: number, quality: CityQuality) {
 
   return {
     neonSigns: byStableId(neonSigns).slice(0, limits.neonSigns),
-    props: byStableId(props).slice(0, limits.props),
-    streetlights: byStableId(streetlights).slice(0, limits.streetlights),
-    trafficSignals: byStableId(trafficSignals).slice(0, limits.trafficSignals),
-    trees: byStableId(trees).slice(0, limits.trees),
+    props: byStableId(props)
+      .filter(outsideStreetFeatureClearances)
+      .slice(0, limits.props),
+    streetlights: byStableId(streetlights)
+      .filter(outsideStreetFeatureClearances)
+      .slice(0, limits.streetlights),
+    trafficSignals: byStableId(trafficSignals)
+      .filter(outsideStreetFeatureClearances)
+      .slice(0, limits.trafficSignals),
+    trees: byStableId(trees)
+      .filter(outsideStreetFeatureClearances)
+      .slice(0, limits.trees),
   };
 }
 

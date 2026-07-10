@@ -529,12 +529,12 @@ describe("Afterlight step", () => {
     expect(runShot(-14)).toBe(56);
   });
 
-  it("keeps a vault guard from crossing or shooting through the vault shell", () => {
+  it("keeps a vault guard from crossing or shooting through a vault wall", () => {
     const scenario = new AfterlightScenario();
     const ids = AFTERLIGHT_ENTITY_IDS;
     scenario.setPhase(AFTERLIGHT_PHASE_IDS.vault);
-    scenario.placeActor(ids.player, [14, 1.15, -30], 0);
-    scenario.placeActor(ids.vaultGuardA, [14, 1.15, -52], 0);
+    scenario.placeActor(ids.player, [8.1, 1.15, -30], 0);
+    scenario.placeActor(ids.vaultGuardA, [8.1, 1.15, -52], 0);
     scenario.placeActor(ids.vaultGuardB, [40, 1.15, -80], 0, {
       life: "down",
       health: 0,
@@ -556,7 +556,7 @@ describe("Afterlight step", () => {
     const player = scenario.state.actors.get(ids.player);
     if (!guard || !player) throw new Error("missing vault guard or player");
 
-    expect(guard.pose.position[2]).toBeLessThanOrEqual(-47.4);
+    expect(guard.pose.position[2]).toBeLessThan(-50.4);
     expect(player.health).toBe(100);
   });
 

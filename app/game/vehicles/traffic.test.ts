@@ -100,7 +100,7 @@ function signature(state: TrafficPopulationState) {
 
 describe("lane-following traffic", () => {
   it("maintains a braking lead gap on the same directed edge", () => {
-    const roadRoute = route([-70, 70], [14, 70], "east", "incoming");
+    const roadRoute = route([-84, 84], [0, 84], "east", "incoming");
     const follower = agent(1, roadRoute, 8, 5);
     const leader = agent(2, roadRoute, 12, 2);
     const agents = mapOf(follower, leader);
@@ -120,8 +120,8 @@ describe("lane-following traffic", () => {
   });
 
   it("grants one deterministic reservation per intersection", () => {
-    const westRoute = route([-14, 14], [14, 14], "east");
-    const northRoute = route([14, -14], [14, 14], "south");
+    const westRoute = route([-28, 0], [0, 0], "east");
+    const northRoute = route([0, -28], [0, 0], "south");
     const westEdge = westRoute.edges[0];
     const northEdge = northRoute.edges[0];
     if (!westEdge || !northEdge) throw new Error("Expected approach edges");
@@ -137,7 +137,7 @@ describe("lane-following traffic", () => {
 
     expect(reservations.size).toBe(1);
     expect([...reservations.values()][0]).toMatchObject({
-      intersectionId: getIntersectionId(14, 14),
+      intersectionId: getIntersectionId(0, 0),
       vehicleId: 1,
       grantedAtTick: 50,
     });
@@ -147,9 +147,9 @@ describe("lane-following traffic", () => {
       agents,
       new Map([
         [
-          getIntersectionId(14, 14),
+          getIntersectionId(0, 0),
           {
-            intersectionId: getIntersectionId(14, 14),
+            intersectionId: getIntersectionId(0, 0),
             vehicleId: 2,
             grantedAtTick: 40,
             expiresAtTick: 100,
@@ -162,8 +162,8 @@ describe("lane-following traffic", () => {
   });
 
   it("holds a loser at the stop line while the owner enters", () => {
-    const westRoute = route([-14, 14], [14, 14], "east");
-    const northRoute = route([14, -14], [14, 14], "south");
+    const westRoute = route([-28, 0], [0, 0], "east");
+    const northRoute = route([0, -28], [0, 0], "south");
     const westEdge = westRoute.edges[0];
     const northEdge = northRoute.edges[0];
     if (!westEdge || !northEdge) throw new Error("Expected approach edges");
@@ -201,7 +201,7 @@ describe("lane-following traffic", () => {
   });
 
   it("follows graph speed limits and route poses over repeated fixed steps", () => {
-    const roadRoute = route([-70, 70], [70, 70], "east", "incoming");
+    const roadRoute = route([-84, 84], [84, 84], "east", "incoming");
     let current = agent(10, roadRoute);
     let reservations = new Map();
     let maximumSpeed = 0;
@@ -264,7 +264,7 @@ describe("traffic population", () => {
   });
 
   it("allocates new ids above seeded agents and rejects an overlapping range", () => {
-    const roadRoute = route([-70, 70], [14, 70], "east", "incoming");
+    const roadRoute = route([-84, 84], [0, 84], "east", "incoming");
     const existing = agent(1_004, roadRoute);
     expect(
       createTrafficPopulation(1, {
@@ -283,7 +283,7 @@ describe("traffic population", () => {
     expect(TRAFFIC_POPULATION_BUDGETS.desktop.maxVehicles).toBeGreaterThan(
       TRAFFIC_POPULATION_BUDGETS.mobile.maxVehicles,
     );
-    const roadRoute = route([-70, 70], [14, 70], "east", "incoming");
+    const roadRoute = route([-84, 84], [0, 84], "east", "incoming");
     const entries = Array.from({ length: 15 }, (_, index) => {
       const value = agent(100 + index, roadRoute);
       return [value.vehicle.id, value] as const;
@@ -311,7 +311,7 @@ describe("traffic population", () => {
   });
 
   it("despawns completed or distant ambient traffic deterministically", () => {
-    const roadRoute = route([-70, 70], [14, 70], "east", "incoming");
+    const roadRoute = route([-84, 84], [0, 84], "east", "incoming");
     const nearby = agent(1, roadRoute);
     const initial = createTrafficPopulation(7, {
       agents: [[nearby.vehicle.id, nearby]],
@@ -329,7 +329,7 @@ describe("traffic population", () => {
   });
 
   it("recovers a blocked agent by seeded rerouting after the stuck threshold", () => {
-    const roadRoute = route([-14, 14], [14, 14], "east");
+    const roadRoute = route([-28, 0], [0, 0], "east");
     const blocked = {
       ...agent(1, roadRoute, 4, 0),
       stuckTicks: 2,

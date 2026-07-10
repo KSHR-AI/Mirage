@@ -1,3 +1,5 @@
+import { WORLD_LAYOUT } from "../game/world/world-layout";
+
 export type Vec3 = [number, number, number];
 
 export type Mission = {
@@ -21,13 +23,13 @@ export type Building = {
   style: "tower" | "terrace" | "office";
 };
 
-export const ROAD_LINES = [-70, -42, -14, 14, 42, 70];
-export const BLOCK_CENTERS = [-56, -28, 0, 28, 56];
+export const ROAD_LINES = WORLD_LAYOUT.roadLines;
+export const BLOCK_CENTERS = WORLD_LAYOUT.blockCenters;
 export const CAR_SPAWN: Vec3 = [14, 1.35, 72];
 export const PLAYER_SPAWN: Vec3 = [10, 1.1, 74];
-export const CITY_MIN = -96;
-export const CITY_MAX = 96;
-export const BRIDGE_END = -194;
+export const CITY_MIN = WORLD_LAYOUT.extents.landMin;
+export const CITY_MAX = WORLD_LAYOUT.extents.landMax;
+export const BRIDGE_END = WORLD_LAYOUT.extents.bridgeEndZ;
 
 export const MISSIONS: Mission[] = [
   {

@@ -326,6 +326,37 @@ function AuroraVault({
   quality: CityQuality;
   shadows: boolean;
 }) {
+  const walls = useMemo<BoxInstance[]>(
+    () => [
+      cityBox("vault-west-wall", [4.85, 3.6, -42], [0.7, 7.2, 17], "#47585c"),
+      cityBox("vault-east-wall", [23.15, 3.6, -42], [0.7, 7.2, 17], "#47585c"),
+      cityBox(
+        "vault-north-west",
+        [8.1, 3.6, -33.85],
+        [5.8, 7.2, 0.7],
+        "#47585c",
+      ),
+      cityBox(
+        "vault-north-east",
+        [19.9, 3.6, -33.85],
+        [5.8, 7.2, 0.7],
+        "#47585c",
+      ),
+      cityBox(
+        "vault-south-west",
+        [8.1, 3.6, -50.15],
+        [5.8, 7.2, 0.7],
+        "#47585c",
+      ),
+      cityBox(
+        "vault-south-east",
+        [19.9, 3.6, -50.15],
+        [5.8, 7.2, 0.7],
+        "#47585c",
+      ),
+    ],
+    [],
+  );
   const fins = useMemo<BoxInstance[]>(
     () =>
       Array.from({ length: quality === "desktop" ? 9 : 5 }, (_, index) =>
@@ -345,14 +376,21 @@ function AuroraVault({
   );
   return (
     <group name="aurora-exchange-vault">
-      <mesh castShadow={shadows} position={[14, 3.6, -42]} receiveShadow>
-        <boxGeometry args={[19, 7.2, 17]} />
+      <mesh position={[14, 0.34, -42]} receiveShadow>
+        <boxGeometry args={[18.3, 0.08, 16.3]} />
         <meshStandardMaterial
-          color="#47585c"
-          metalness={0.18}
-          roughness={0.62}
+          color="#26373a"
+          metalness={0.3}
+          roughness={0.68}
         />
       </mesh>
+      <InstancedPrimitives
+        castShadow={shadows}
+        instances={walls}
+        metalness={0.18}
+        receiveShadow
+        roughness={0.62}
+      />
       <mesh position={[14, 7.5, -42]}>
         <boxGeometry args={[16.5, 0.65, 14.5]} />
         <meshStandardMaterial
@@ -360,6 +398,18 @@ function AuroraVault({
           metalness={0.55}
           roughness={0.4}
         />
+      </mesh>
+      <mesh position={[14, 2.25, -42]}>
+        <cylinderGeometry args={[1.45, 1.7, 3.8, 12]} />
+        <meshStandardMaterial
+          color="#23383d"
+          metalness={0.62}
+          roughness={0.3}
+        />
+      </mesh>
+      <mesh position={[14, 4.2, -42]}>
+        <cylinderGeometry args={[0.76, 1.2, 0.22, 24]} />
+        <meshBasicMaterial color="#71e6f2" toneMapped={false} />
       </mesh>
       <InstancedPrimitives instances={fins} metalness={0.22} roughness={0.54} />
       <mesh position={[14, 3.35, -50.58]} rotation={[Math.PI / 2, 0, 0]}>
@@ -371,10 +421,16 @@ function AuroraVault({
         />
       </mesh>
       {poweredPortal ? (
-        <mesh position={[14, 3.35, -50.78]}>
-          <torusGeometry args={[2.15, 0.18, 10, 36]} />
-          <meshBasicMaterial color="#71e6f2" toneMapped={false} />
-        </mesh>
+        <>
+          <mesh position={[14, 3.35, -50.78]}>
+            <torusGeometry args={[2.15, 0.18, 10, 36]} />
+            <meshBasicMaterial color="#71e6f2" toneMapped={false} />
+          </mesh>
+          <mesh position={[14, 3.35, -33.48]}>
+            <boxGeometry args={[4.7, 0.12, 0.08]} />
+            <meshBasicMaterial color="#71e6f2" toneMapped={false} />
+          </mesh>
+        </>
       ) : null}
       {quality === "desktop" && poweredPortal ? (
         <pointLight
@@ -844,6 +900,7 @@ function MissionZoneBeacon({
       name={`mission-zone-${zone.id}`}
       position={zone.position}
       ref={groupRef}
+      userData={{ cameraCollision: false }}
     >
       <mesh position={[0, 0.14, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[zone.radius * 0.72, zone.radius * 0.78, 64]} />

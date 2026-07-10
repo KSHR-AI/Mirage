@@ -185,6 +185,14 @@ export function resolveAfterlightEncounterVariant(
   );
 }
 
+export function withAfterlightCourierPosition(
+  encounter: AfterlightEncounterVariant,
+  courierPosition: Vec3 | undefined,
+): AfterlightEncounterVariant {
+  if (!courierPosition) return encounter;
+  return Object.freeze({ ...encounter, courierSpawn: courierPosition });
+}
+
 function createBoostPlan(
   options: CreateAfterlightSetpiecePlanOptions,
   encounter: AfterlightEncounterVariant,

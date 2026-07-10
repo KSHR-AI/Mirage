@@ -69,9 +69,11 @@ describe("AfterlightPhysicsQuery", () => {
 
   it("selects vehicles independently from actors", () => {
     const state = createInitialAfterlightState();
+    const courier = state.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier);
+    if (!courier) throw new Error("missing courier fixture");
     const physics = new AfterlightPhysicsQuery(state, []);
     const hit = physics.raycast({
-      origin: [68, 1.5, 60],
+      origin: [courier.pose.position[0], 1.5, courier.pose.position[2] + 10],
       direction: [0, 0, -1],
       maxDistance: 20,
       collisionMask: layerMask(CollisionLayer.Vehicle),

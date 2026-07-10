@@ -16,6 +16,7 @@ import {
   SETPIECE_QUALITY_BUDGETS,
   createAfterlightSetpiecePlan,
   resolveAfterlightEncounterVariant,
+  withAfterlightCourierPosition,
 } from "./plan";
 import type {
   AfterlightMissionSetpiecePlan,
@@ -141,19 +142,35 @@ describe("afterlight mission setpiece plan", () => {
   });
 
   it.each(AFTERLIGHT_ENCOUNTER_VARIANTS)(
-    "uses the $id courier spawn and encounter dressing",
+    "uses the authoritative runtime courier position for $id",
     (encounter: AfterlightEncounterVariant) => {
+      const runtimePosition = [
+        encounter.courierSpawn[0] + 3.25,
+        encounter.courierSpawn[1],
+        encounter.courierSpawn[2] - 5.5,
+      ] as const;
+      const presentationEncounter = withAfterlightCourierPosition(
+        encounter,
+        runtimePosition,
+      );
       const plan = planFor(AFTERLIGHT_PHASE_IDS.keyholder, {
-        encounterVariant: encounter.id,
+        encounterVariant: presentationEncounter,
       });
       if (plan.kind !== "courier") throw new Error("expected courier plan");
       expect(plan.anchor).toBe(AFTERLIGHT_SETPIECE_ANCHORS.courierYard);
-      expect(plan.courierPosition).toBe(encounter.courierSpawn);
+      expect(plan.courierPosition).toBe(runtimePosition);
+      expect(plan.encounter.courierRouteId).toBe(encounter.courierRouteId);
       expect(plan.dressing).toBe(encounter.id);
       expect(plan.cues[0]).toMatchObject({
         kind: "target",
+        position: runtimePosition,
         tone: "coral",
       });
+      expect(plan.lights[0]?.position).toEqual([
+        runtimePosition[0] - 3.8,
+        runtimePosition[1] + 4.6,
+        runtimePosition[2] - 2.5,
+      ]);
     },
   );
 

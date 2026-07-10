@@ -14,6 +14,7 @@ import type {
   CharacterObstacle,
   CharacterWorld,
 } from "./character-controller";
+import { afterlightSpaceCharacterObstacles } from "./afterlight-space";
 
 export const AFTERLIGHT_CHARACTER_CENTER_TO_FEET = 1;
 export const AFTERLIGHT_CHARACTER_HIT_CENTER_OFFSET = 0.25;
@@ -134,6 +135,7 @@ export function createAfterlightCharacterWorld(seed: number): CharacterWorld {
         .filter((building) => !belongsToAuthoredDowntownBlock(building.id))
         .map(buildingObstacle)
         .concat(AUTHORED_DOWNTOWN_OBSTACLES)
+        .concat(afterlightSpaceCharacterObstacles())
         .toSorted((left, right) => left.id.localeCompare(right.id)),
     ),
     sampleGround: sampleAfterlightCharacterGround,

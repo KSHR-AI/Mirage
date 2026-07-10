@@ -105,6 +105,7 @@ const HOSTILE_ACTOR_DAMAGE = Object.freeze({
   police: 7,
   guard: 9,
 } as const);
+const COURIER_ROUTE_SNAP_DISTANCE = 24;
 
 const COURIER_ROUTE_DESTINATIONS: Readonly<Record<string, Vec3>> =
   Object.freeze({
@@ -527,7 +528,7 @@ function createMissionCoverAnchors(world: CharacterWorld) {
           position: [face.position[0], height, face.position[2]] as Vec3,
           normal: face.normal,
           peekPositions: [[face.peek[0], height + 1.55, face.peek[2]] as Vec3],
-          quality: box.id === "vault-shell" ? 2 : 1,
+          quality: box.id.startsWith("vault-") ? 2 : 1,
         });
       });
     }),
@@ -1067,7 +1068,7 @@ export class AfterlightStepController {
         destination,
         {
           mode: "vehicle",
-          maxSnapDistance: 12,
+          maxSnapDistance: COURIER_ROUTE_SNAP_DISTANCE,
           seed: deriveSeed(seed, `afterlight-courier-route:${routeId}`),
         },
       );

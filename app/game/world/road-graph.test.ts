@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { BRIDGE_END, ROAD_LINES } from "../../components/bay-city-data";
+import {
+  BLOCK_CENTERS,
+  BRIDGE_END,
+  ROAD_LINES,
+} from "../../components/bay-city-data";
+import {
+  CITY_ROAD_LINES,
+  createBayCityLayout,
+} from "../presentation/city/city-layout";
+import { WORLD_LAYOUT } from "./world-layout";
 import {
   BAY_CITY_ROAD_GRAPH,
   ROAD_GRAPH_SPEED_LIMITS,
@@ -39,6 +48,28 @@ function graphSignature(graph: RoadGraph) {
   };
 }
 
+function distanceToSegment(
+  point: readonly [number, number],
+  start: readonly [number, number],
+  end: readonly [number, number],
+) {
+  const segmentX = end[0] - start[0];
+  const segmentZ = end[1] - start[1];
+  const lengthSquared = segmentX ** 2 + segmentZ ** 2;
+  const projection = Math.max(
+    0,
+    Math.min(
+      1,
+      ((point[0] - start[0]) * segmentX + (point[1] - start[1]) * segmentZ) /
+        lengthSquared,
+    ),
+  );
+  return Math.hypot(
+    point[0] - (start[0] + segmentX * projection),
+    point[1] - (start[1] + segmentZ * projection),
+  );
+}
+
 describe("Bay City road graph", () => {
   it("builds the same directed topology from ROAD_LINES every time", () => {
     const first = createRoadGraph();
@@ -46,7 +77,7 @@ describe("Bay City road graph", () => {
 
     expect(graphSignature(second)).toEqual(graphSignature(first));
     expect(first.roadLines).toEqual(ROAD_LINES);
-    expect(first.intersections).toHaveLength(ROAD_LINES.length ** 2 + 1);
+    expect(first.intersections).toHaveLength(ROAD_LINES.length ** 2);
     expect(first.nodes.size).toBeGreaterThan(400);
     expect(first.edges.length).toBeGreaterThan(first.nodes.size);
     expect(validateRoadGraph(first)).toEqual(
@@ -58,9 +89,57 @@ describe("Bay City road graph", () => {
     );
   });
 
+  it("keeps every city vehicle edge on rendered roads and off block centers", () => {
+    const graph = BAY_CITY_ROAD_GRAPH;
+    const renderedRoads = createBayCityLayout({ seed: "road-contract" }).roads;
+    const cityVehicleEdges = graph.edges.filter(
+      (edge) => edge.mode === "vehicle" && edge.surface === "city",
+    );
+
+    expect(ROAD_LINES).toBe(WORLD_LAYOUT.roadLines);
+    expect(CITY_ROAD_LINES).toBe(WORLD_LAYOUT.roadLines);
+    expect(graph.roadLines).toEqual(WORLD_LAYOUT.roadLines);
+    expect(graph.roadLines.some((line) => BLOCK_CENTERS.includes(line))).toBe(
+      false,
+    );
+
+    for (const edge of cityVehicleEdges) {
+      const from = graph.nodes.get(edge.from);
+      const to = graph.nodes.get(edge.to);
+      expect(from).toBeDefined();
+      expect(to).toBeDefined();
+      if (!from || !to) continue;
+
+      const containedByRenderedRoad = renderedRoads.some((road) => {
+        const contains = (x: number, z: number) => {
+          const halfWidth = road.scale[0] / 2;
+          const halfDepth = road.scale[2] / 2;
+          return (
+            Math.abs(x - road.position[0]) <= halfWidth + 1e-9 &&
+            Math.abs(z - road.position[2]) <= halfDepth + 1e-9
+          );
+        };
+        return contains(from.x, from.z) && contains(to.x, to.z);
+      });
+      expect(
+        containedByRenderedRoad,
+        `${edge.id} leaves rendered asphalt`,
+      ).toBe(true);
+
+      for (const blockX of BLOCK_CENTERS) {
+        for (const blockZ of BLOCK_CENTERS) {
+          expect(
+            distanceToSegment([blockX, blockZ], [from.x, from.z], [to.x, to.z]),
+            `${edge.id} crosses block center ${blockX},${blockZ}`,
+          ).toBeGreaterThan(1e-9);
+        }
+      }
+    }
+  });
+
   it("offsets opposing lanes and separates approaches from departures", () => {
     const graph = BAY_CITY_ROAD_GRAPH;
-    const intersectionId = getIntersectionId(14, 14);
+    const intersectionId = getIntersectionId(0, 0);
     const eastOutId = getLaneNodeId(intersectionId, "east", "outgoing");
     const eastInId = getLaneNodeId(intersectionId, "east", "incoming");
     const westOutId = getLaneNodeId(intersectionId, "west", "outgoing");
@@ -68,11 +147,11 @@ describe("Bay City road graph", () => {
     const eastIn = graph.nodes.get(eastInId);
     const westOut = graph.nodes.get(westOutId);
 
-    expect(eastOut?.position).toEqual([18.5, 0, 16.5]);
-    expect(eastIn?.position).toEqual([9.5, 0, 16.5]);
-    expect(westOut?.position).toEqual([9.5, 0, 11.5]);
+    expect(eastOut?.position).toEqual([4.5, 0, 2.5]);
+    expect(eastIn?.position).toEqual([-4.5, 0, 2.5]);
+    expect(westOut?.position).toEqual([-4.5, 0, -2.5]);
 
-    const nextIntersection = getIntersectionId(42, 14);
+    const nextIntersection = getIntersectionId(28, 0);
     const eastLane = edgeTo(
       getOutgoingEdges(graph, eastOutId),
       getLaneNodeId(nextIntersection, "east", "incoming"),
@@ -90,7 +169,7 @@ describe("Bay City road graph", () => {
 
   it("connects only straight, left, and right movements inside intersections", () => {
     const graph = BAY_CITY_ROAD_GRAPH;
-    const intersectionId = getIntersectionId(14, 14);
+    const intersectionId = getIntersectionId(0, 0);
     const eastInId = getLaneNodeId(intersectionId, "east", "incoming");
     const outgoing = getOutgoingEdges(graph, eastInId);
 
@@ -147,8 +226,8 @@ describe("Bay City road graph", () => {
 
   it("links sidewalk corners along blocks and through explicit crosswalks", () => {
     const graph = BAY_CITY_ROAD_GRAPH;
-    const westIntersection = getIntersectionId(14, 14);
-    const eastIntersection = getIntersectionId(42, 14);
+    const westIntersection = getIntersectionId(0, 0);
+    const eastIntersection = getIntersectionId(28, 0);
     const westNorthEast = getSidewalkNodeId(westIntersection, "ne");
     const eastNorthWest = getSidewalkNodeId(eastIntersection, "nw");
     const westNorthWest = getSidewalkNodeId(westIntersection, "nw");
@@ -170,20 +249,18 @@ describe("Bay City road graph", () => {
 
   it("finds the nearest compatible node with deterministic ties and bounds", () => {
     const graph = BAY_CITY_ROAD_GRAPH;
-    const road = findNearestRoadNode(graph, [18.4, 16.4], {
+    const road = findNearestRoadNode(graph, [4.4, 2.4], {
       direction: "east",
       phase: "outgoing",
     });
     expect(road?.id).toBe(
-      getLaneNodeId(getIntersectionId(14, 14), "east", "outgoing"),
+      getLaneNodeId(getIntersectionId(0, 0), "east", "outgoing"),
     );
 
-    const sidewalk = findNearestSidewalkNode(graph, [20.5, 99, 20.5]);
-    expect(sidewalk?.id).toBe(
-      getSidewalkNodeId(getIntersectionId(14, 14), "se"),
-    );
+    const sidewalk = findNearestSidewalkNode(graph, [6.5, 99, 6.5]);
+    expect(sidewalk?.id).toBe(getSidewalkNodeId(getIntersectionId(0, 0), "se"));
     expect(
-      findNearestRoadNode(graph, [18.4, 16.4], {
+      findNearestRoadNode(graph, [4.4, 2.4], {
         direction: "east",
         phase: "outgoing",
         maxDistance: 0.05,
@@ -193,8 +270,8 @@ describe("Bay City road graph", () => {
 
   it("finds continuous A* routes and respects the visited-node bound", () => {
     const graph = BAY_CITY_ROAD_GRAPH;
-    const start = getLaneNodeId(getIntersectionId(-70, 70), "east", "outgoing");
-    const goal = getLaneNodeId(getIntersectionId(70, -70), "east", "incoming");
+    const start = getLaneNodeId(getIntersectionId(-84, 84), "east", "outgoing");
+    const goal = getLaneNodeId(getIntersectionId(84, -84), "east", "incoming");
     const route = findRoute(graph, start, goal, {
       mode: "vehicle",
       seed: "traffic-12",
@@ -223,8 +300,8 @@ describe("Bay City road graph", () => {
 
   it("replays seeded choices while allowing equal-cost alternatives", () => {
     const graph = BAY_CITY_ROAD_GRAPH;
-    const start = getLaneNodeId(getIntersectionId(-70, 70), "east", "outgoing");
-    const goal = getLaneNodeId(getIntersectionId(70, -70), "east", "incoming");
+    const start = getLaneNodeId(getIntersectionId(-84, 84), "east", "outgoing");
+    const goal = getLaneNodeId(getIntersectionId(84, -84), "east", "incoming");
     const first = findSeededRoute(graph, start, goal, "civilian-7");
     const replay = findSeededRoute(graph, start, goal, "civilian-7");
     const alternatives = new Set(
@@ -241,13 +318,13 @@ describe("Bay City road graph", () => {
     const graph = BAY_CITY_ROAD_GRAPH;
     const vehicleRoute = findRouteBetween(
       graph,
-      [14, 72],
+      [0, 86],
       [0, 0, BRIDGE_END + 8],
       { mode: "vehicle", seed: "bridge-run" },
     );
     const pedestrianRoute = findRouteBetween(
       graph,
-      [20.5, 20.5],
+      [6.5, 6.5],
       [-7, BRIDGE_END],
       { mode: "pedestrian", cost: "distance", seed: "walker" },
     );
