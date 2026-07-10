@@ -27,6 +27,18 @@ describe("initial Afterlight state", () => {
     expect(state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe)?.kind).toBe(
       "hero",
     );
+    const player = state.actors.get(state.playerId);
+    const hero = state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    if (!player || !hero) throw new Error("missing opening fixtures");
+    expect(
+      Math.hypot(
+        player.pose.position[0] - hero.pose.position[0],
+        player.pose.position[2] - hero.pose.position[2],
+      ),
+    ).toBeLessThanOrEqual(7);
+    expect(
+      Math.abs(player.pose.position[0] - hero.pose.position[0]),
+    ).toBeGreaterThan(2.2 + 0.46);
     expect(state.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier)?.kind).toBe(
       "courier",
     );

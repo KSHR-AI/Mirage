@@ -45,7 +45,7 @@ export const AUTHORED_AGENT_CLIP_CANDIDATES: Readonly<
   idle: Object.freeze(["Idle_Neutral", "Idle"]),
   walk: Object.freeze(["Walk"]),
   run: Object.freeze(["Run"]),
-  jump: Object.freeze(["Roll", "Run"]),
+  jump: Object.freeze(["Run", "Idle_Neutral"]),
   aim: Object.freeze(["Idle_Gun_Pointing"]),
   fire: Object.freeze(["Idle_Gun_Shoot", "Gun_Shoot"]),
   cower: Object.freeze(["Idle"]),
@@ -53,14 +53,14 @@ export const AUTHORED_AGENT_CLIP_CANDIDATES: Readonly<
 });
 
 const CROSS_FADE_SECONDS = 0.18;
-const MODEL_CENTER_HEIGHT = 1;
-const WALK_SPEED = 5;
-const RUN_SPEED = 8.5;
-const RUN_THRESHOLD = WALK_SPEED * 1.15;
+const MODEL_FOOT_LIFT = 0.0026;
+const MODEL_EQUIPMENT_HEIGHT = 1;
+const WALK_CYCLE_DISTANCE = 1.76;
+const RUN_CYCLE_DISTANCE = 2.08;
+const RUN_THRESHOLD = 4.2;
 const MAX_AIM_YAW = 0.78;
 const MAX_AIM_PITCH = 0.55;
 const ONE_SHOT_STATES: ReadonlySet<AgentAnimationState> = new Set([
-  "jump",
   "fire",
   "down",
 ]);
@@ -141,8 +141,8 @@ export function getAuthoredAgentVariation(
   const hash = hashVisualId(entityId, `authored-agent:${role}`);
 
   return Object.freeze({
-    animationPhase: appearance.phase / (Math.PI * 2),
-    playbackRate: 0.96 + ((hash >>> 24) % 9) / 100,
+    animationPhase: role === "player" ? 0 : appearance.phase / (Math.PI * 2),
+    playbackRate: role === "player" ? 1 : 0.96 + ((hash >>> 24) % 9) / 100,
     scale: appearance.heightScale,
   });
 }
@@ -151,6 +151,8 @@ export function getAuthoredAgentTimeScale(
   animation: AgentAnimationState,
   speed: number | undefined,
   playbackRate = 1,
+  clipDuration = 1,
+  modelScale = 1,
 ): number {
   const resolvedSpeed = Math.max(0, finiteOr(speed, 0));
   const resolvedPlaybackRate = MathUtils.clamp(
@@ -158,12 +160,23 @@ export function getAuthoredAgentTimeScale(
     0.9,
     1.1,
   );
+  const resolvedDuration = Math.max(0.01, finiteOr(clipDuration, 1));
+  const resolvedScale = MathUtils.clamp(finiteOr(modelScale, 1), 0.5, 1.5);
   let locomotionRate = 1;
 
   if (animation === "walk") {
-    locomotionRate = MathUtils.clamp(resolvedSpeed / WALK_SPEED, 0.55, 1.8);
+    locomotionRate = MathUtils.clamp(
+      (resolvedSpeed * resolvedDuration) /
+        (WALK_CYCLE_DISTANCE * resolvedScale),
+      0.55,
+      3.2,
+    );
   } else if (animation === "run" || animation === "jump") {
-    locomotionRate = MathUtils.clamp(resolvedSpeed / RUN_SPEED, 0.65, 1.8);
+    locomotionRate = MathUtils.clamp(
+      (resolvedSpeed * resolvedDuration) / (RUN_CYCLE_DISTANCE * resolvedScale),
+      0.65,
+      3.2,
+    );
   }
 
   return locomotionRate * resolvedPlaybackRate;
@@ -191,7 +204,7 @@ function AuthoredAgentEquipment({
   if (role === "civilian") return null;
 
   return active ? (
-    <group position={[0.22, 0.2, 0.39]}>
+    <group position={[0.22, MODEL_EQUIPMENT_HEIGHT + 0.2, 0.39]}>
       <mesh castShadow={quality === "desktop"} position={[0, 0, 0.12]}>
         <boxGeometry args={[0.12, 0.14, 0.38]} />
         <meshStandardMaterial
@@ -227,7 +240,10 @@ function AuthoredAgentEquipment({
       />
     </group>
   ) : (
-    <group position={[0.42, -0.18, 0.02]} rotation={[0, 0, -0.1]}>
+    <group
+      position={[0.42, MODEL_EQUIPMENT_HEIGHT - 0.18, 0.02]}
+      rotation={[0, 0, -0.1]}
+    >
       <mesh castShadow={quality === "desktop"}>
         <boxGeometry args={[0.14, 0.34, 0.12]} />
         <meshStandardMaterial color="#151a1c" roughness={0.68} />
@@ -262,11 +278,6 @@ export function AuthoredAgentModel({
     aim,
     muzzleFlash,
   );
-  const timeScale = getAuthoredAgentTimeScale(
-    resolvedAnimation,
-    speed,
-    variation.playbackRate,
-  );
   const { actions, clips } = useAnimations(animations, clonedScene);
   const activeClipName = useMemo(
     () =>
@@ -279,6 +290,13 @@ export function AuthoredAgentModel({
   const activeClip = useMemo(
     () => clipForName(clips, activeClipName),
     [activeClipName, clips],
+  );
+  const timeScale = getAuthoredAgentTimeScale(
+    resolvedAnimation,
+    speed,
+    variation.playbackRate,
+    activeClip?.duration,
+    variation.scale,
   );
   const activeAction = activeClipName ? actions[activeClipName] : null;
   const activeActionRef = useRef<ActiveActionState | null>(null);
@@ -365,7 +383,7 @@ export function AuthoredAgentModel({
     <group {...groupProps}>
       <group rotation={[0, resolvedDirection, 0]}>
         <group
-          position={[0, MODEL_CENTER_HEIGHT * variation.scale, 0]}
+          position={[0, MODEL_FOOT_LIFT * variation.scale, 0]}
           rotation={[-resolvedAimPitch * 0.16, resolvedAimYaw, 0]}
           scale={variation.scale}
         >

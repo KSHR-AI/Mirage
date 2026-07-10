@@ -34,6 +34,24 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Start the job" }).click();
 
+  const decodedAudioDurations = await page.evaluate(async () => {
+    const context = new AudioContext();
+    const decode = async (path: string) => {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`${response.status} loading ${path}`);
+      return (await context.decodeAudioData(await response.arrayBuffer()))
+        .duration;
+    };
+    const durations = await Promise.all([
+      decode("/game-assets/audio/weapons/pistol-fire-01.ogg"),
+      decode("/game-assets/audio/ambience/urban-rain-loop.ogg"),
+    ]);
+    await context.close();
+    return durations;
+  });
+  expect(decodedAudioDurations[0]).toBeGreaterThan(0.1);
+  expect(decodedAudioDurations[1]).toBeGreaterThan(5);
+
   const shell = page.getByTestId("afterlight-game");
   const inputSurface = page.locator(".game-input-surface");
   const dispatchPointer = async (
@@ -82,6 +100,9 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
     .toBeLessThan(0.03);
 
   const yawBeforeLook = Number(await shell.getAttribute("data-player-yaw"));
+  const cameraYawBeforeLook = Number(
+    await shell.getAttribute("data-camera-yaw"),
+  );
   const magazineBeforeLook = Number(await shell.getAttribute("data-magazine"));
   await inputSurface.dispatchEvent("pointermove", {
     movementX: 140,
@@ -89,9 +110,15 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
     pointerId: 1,
     pointerType: "mouse",
   });
+  // Free-look moves the camera without snapping an idle actor's body.
+  await expect(shell).toHaveAttribute(
+    "data-player-yaw",
+    yawBeforeLook.toFixed(4),
+  );
   await expect
-    .poll(async () => Number(await shell.getAttribute("data-player-yaw")))
-    .not.toBe(yawBeforeLook);
+    .poll(async () => Number(await shell.getAttribute("data-camera-yaw")))
+    .not.toBe(cameraYawBeforeLook);
+  const walkingCameraYaw = Number(await shell.getAttribute("data-camera-yaw"));
   await expect(shell).toHaveAttribute(
     "data-magazine",
     String(magazineBeforeLook),
@@ -111,13 +138,52 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
     .toBeLessThan(magazineBeforeLook);
 
   const before = Number(await shell.getAttribute("data-player-z"));
+  const beforeX = Number(await shell.getAttribute("data-player-x"));
+  const strideStartTick = Number(await shell.getAttribute("data-tick"));
   await page.keyboard.down("w");
   await expect
-    .poll(async () => Number(await shell.getAttribute("data-player-z")), {
+    .poll(async () => Number(await shell.getAttribute("data-tick")), {
       timeout: 20_000,
     })
-    .not.toBe(before);
+    .toBeGreaterThanOrEqual(strideStartTick + 60);
   await page.keyboard.up("w");
+  const afterStride = Number(await shell.getAttribute("data-player-z"));
+  const afterStrideX = Number(await shell.getAttribute("data-player-x"));
+  const strideDistance = Math.hypot(
+    afterStrideX - beforeX,
+    afterStride - before,
+  );
+  const strideX = afterStrideX - beforeX;
+  const strideZ = afterStride - before;
+  const forwardTravel =
+    strideX * Math.sin(walkingCameraYaw) + strideZ * Math.cos(walkingCameraYaw);
+  const lateralTravel =
+    strideX * Math.cos(walkingCameraYaw) - strideZ * Math.sin(walkingCameraYaw);
+  expect(strideDistance).toBeGreaterThan(1.5);
+  expect(strideDistance).toBeLessThan(3.5);
+  expect(forwardTravel).toBeGreaterThan(1.5);
+  expect(Math.abs(lateralTravel)).toBeLessThan(0.35);
+
+  const restingYaw = Number(await shell.getAttribute("data-player-yaw"));
+  const restStartTick = Number(await shell.getAttribute("data-tick"));
+  await expect
+    .poll(async () => Number(await shell.getAttribute("data-tick")), {
+      timeout: 20_000,
+    })
+    .toBeGreaterThanOrEqual(restStartTick + 20);
+  expect(Number(await shell.getAttribute("data-player-yaw"))).toBeCloseTo(
+    restingYaw,
+    2,
+  );
+
+  const returnStartTick = Number(await shell.getAttribute("data-tick"));
+  await page.keyboard.down("s");
+  await expect
+    .poll(async () => Number(await shell.getAttribute("data-tick")), {
+      timeout: 20_000,
+    })
+    .toBeGreaterThanOrEqual(returnStartTick + 60);
+  await page.keyboard.up("s");
 
   await page.keyboard.press("e");
   await expect(shell).toHaveAttribute("data-mode", "car");

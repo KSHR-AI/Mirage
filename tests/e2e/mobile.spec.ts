@@ -59,12 +59,28 @@ test("exposes a complete playable touch control set", async ({ page }) => {
   await dispatchStick("Move", "pointerup", 0.5, 0.08);
 
   const yawBeforeLook = Number(await shell.getAttribute("data-player-yaw"));
+  const cameraYawBeforeLook = Number(
+    await shell.getAttribute("data-camera-yaw"),
+  );
   await dispatchStick("Look", "pointerdown", 0.92, 0.5);
+  await expect
+    .poll(
+      async () => Math.abs(Number(await shell.getAttribute("data-look-x"))),
+      {
+        timeout: 20_000,
+      },
+    )
+    .toBeGreaterThan(0.1);
   await expect
     .poll(async () => Number(await shell.getAttribute("data-player-yaw")), {
       timeout: 20_000,
     })
-    .not.toBe(yawBeforeLook);
+    .toBe(yawBeforeLook);
+  await expect
+    .poll(async () => Number(await shell.getAttribute("data-camera-yaw")), {
+      timeout: 20_000,
+    })
+    .not.toBe(cameraYawBeforeLook);
   await dispatchStick("Look", "pointerup", 0.92, 0.5);
 
   await page.getByRole("button", { name: "Fire", exact: true }).click();

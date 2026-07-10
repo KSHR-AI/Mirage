@@ -52,7 +52,7 @@ export const AFTERLIGHT_CHECKPOINTS: Readonly<
       rotationY: Math.PI,
     }),
     vehiclePose: Object.freeze({
-      position: [64, 0.72, 50] as Vec3,
+      position: [60.5, 0.72, 51] as Vec3,
       rotationY: Math.PI,
     }),
   }),
@@ -114,7 +114,7 @@ export const AFTERLIGHT_CHECKPOINTS: Readonly<
 });
 
 export const AFTERLIGHT_LANDMARKS = Object.freeze({
-  boostYard: [64, 0.72, 50] as Vec3,
+  boostYard: [60.5, 0.72, 51] as Vec3,
   missionIntercept: [70, 1.15, 42] as Vec3,
   courierRouteStart: [70, 0.72, 42] as Vec3,
   vaultReader: [14, 1.15, -42] as Vec3,
@@ -271,7 +271,13 @@ export function createInitialAfterlightVehicles(): ReadonlyMap<
   return new Map([
     [
       ids.heroCoupe,
-      vehicle(ids.heroCoupe, "hero", [64, 0.72, 50], Math.PI, 100),
+      vehicle(
+        ids.heroCoupe,
+        "hero",
+        AFTERLIGHT_LANDMARKS.boostYard,
+        Math.PI,
+        100,
+      ),
     ],
     [
       ids.courier,

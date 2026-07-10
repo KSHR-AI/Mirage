@@ -76,7 +76,11 @@ describe("grounded third-person locomotion", () => {
     );
 
     expect(result.intent.moveMagnitude).toBe(0.5);
-    expect(result.intent.horizontalVelocity).toEqual([2.5, 0, 0]);
+    expect(result.intent.horizontalVelocity).toEqual([
+      LOCOMOTION_TUNING.walkSpeed * 0.5,
+      0,
+      0,
+    ]);
   });
 
   it("rejects sprint while aiming, airborne, or stationary", () => {

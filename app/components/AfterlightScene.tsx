@@ -129,10 +129,11 @@ function animationForActor(
     actor.pose.position[0],
     actor.pose.position[2],
   );
-  if (ground && actor.pose.position[1] > ground.height + 0.08) return "jump";
+  // Curbs are 13.5 cm tall; avoid treating an ordinary curb descent as a jump.
+  if (ground && actor.pose.position[1] > ground.height + 0.22) return "jump";
   const speed = planarSpeed(actor.velocity);
   if (combatReady && speed < 0.3) return "aim";
-  if (speed > 5.8) return "run";
+  if (speed > 4.2) return "run";
   if (speed > 0.25) return "walk";
   return "idle";
 }

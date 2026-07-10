@@ -18,6 +18,7 @@ export interface SpatialAudioMix {
 
 export interface AfterlightAudioState {
   readonly mode: AudioTravelMode;
+  readonly grounded: boolean;
   readonly speedKph: number;
   readonly engineLoad: number;
   readonly wantedLevel: 0 | 1 | 2 | 3;
@@ -175,6 +176,7 @@ export function normalizeAudioState(
 ): AfterlightAudioState {
   return {
     ...state,
+    grounded: Boolean(state.grounded),
     speedKph: clamp(
       Number.isFinite(state.speedKph) ? state.speedKph : 0,
       0,
@@ -288,6 +290,7 @@ export function computeAfterlightAudioMix(
 
 export const DEFAULT_AFTERLIGHT_AUDIO_STATE: AfterlightAudioState = {
   mode: "foot",
+  grounded: true,
   speedKph: 0,
   engineLoad: 0,
   wantedLevel: 0,

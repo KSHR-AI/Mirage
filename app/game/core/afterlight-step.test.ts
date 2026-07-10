@@ -199,7 +199,8 @@ describe("Afterlight step", () => {
     scenario.step({ look: [8, 0] });
     const turned = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
     if (!turned) throw new Error("missing player after look input");
-    expect(turned.pose.rotationY).not.toBeCloseTo(initial.pose.rotationY);
+    expect(turned.pose.rotationY).toBeCloseTo(initial.pose.rotationY);
+    const cameraYaw = initial.pose.rotationY - 8 * 0.025;
 
     const before = turned.pose.position;
     scenario.stepMany(30, { move: [0, 1] });
@@ -209,10 +210,7 @@ describe("Afterlight step", () => {
       moved.pose.position[0] - before[0],
       moved.pose.position[2] - before[2],
     ] as const;
-    const forward = [
-      Math.sin(turned.pose.rotationY),
-      Math.cos(turned.pose.rotationY),
-    ] as const;
+    const forward = [Math.sin(cameraYaw), Math.cos(cameraYaw)] as const;
     expect(
       displacement[0] * forward[0] + displacement[1] * forward[1],
     ).toBeCloseTo(Math.hypot(...displacement), 5);
@@ -257,8 +255,17 @@ describe("Afterlight step", () => {
 
   it("stops at a parked vehicle while preserving the enter interaction", () => {
     const scenario = new AfterlightScenario();
+    const initialHero = scenario.state.vehicles.get(
+      AFTERLIGHT_ENTITY_IDS.heroCoupe,
+    );
+    if (!initialHero) throw new Error("missing coupe fixture");
+    scenario.placeActor(
+      AFTERLIGHT_ENTITY_IDS.player,
+      [initialHero.pose.position[0], 1.15, initialHero.pose.position[2] + 6],
+      Math.PI,
+    );
 
-    scenario.stepMany(60, { move: [0, 1] });
+    scenario.stepMany(120, { move: [0, 1] });
     const stopped = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
     const hero = scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
     if (!stopped || !hero) throw new Error("missing player or coupe fixture");
@@ -270,6 +277,49 @@ describe("Afterlight step", () => {
     expect(
       scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe)?.occupiedBy,
     ).toBe(AFTERLIGHT_ENTITY_IDS.player);
+  });
+
+  it("leaves a clear forward walking lane beside the starting coupe", () => {
+    const scenario = new AfterlightScenario();
+    const before = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    const hero = scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    if (!before || !hero) throw new Error("missing player or coupe fixture");
+
+    scenario.stepMany(120, { move: [0, 1] });
+    const after = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    if (!after) throw new Error("missing moved player fixture");
+
+    expect(after.pose.position[2]).toBeLessThan(
+      hero.pose.position[2] + 2.2 + AFTERLIGHT_CHARACTER_TUNING.radius,
+    );
+    expect(after.pose.position[0]).toBeCloseTo(before.pose.position[0]);
+  });
+
+  it("accelerates, brakes, and preserves facing without idle snapping", () => {
+    const scenario = new AfterlightScenario();
+    scenario.placeVehicle(AFTERLIGHT_ENTITY_IDS.heroCoupe, [20, 0.72, 20], 0);
+
+    scenario.step({ move: [1, 1] });
+    const first = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    if (!first) throw new Error("missing accelerating player fixture");
+    const firstSpeed = Math.hypot(first.velocity[0], first.velocity[2]);
+    expect(firstSpeed).toBeGreaterThan(0);
+    expect(firstSpeed).toBeLessThan(2.6);
+
+    scenario.stepMany(20, { move: [1, 1] });
+    const moving = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    if (!moving) throw new Error("missing moving player fixture");
+    const movingYaw = moving.pose.rotationY;
+    const movingSpeed = Math.hypot(moving.velocity[0], moving.velocity[2]);
+    expect(movingSpeed).toBeCloseTo(2.6, 1);
+
+    scenario.step();
+    const braking = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    if (!braking) throw new Error("missing braking player fixture");
+    const brakingSpeed = Math.hypot(braking.velocity[0], braking.velocity[2]);
+    expect(brakingSpeed).toBeGreaterThan(0);
+    expect(brakingSpeed).toBeLessThan(movingSpeed);
+    expect(braking.pose.rotationY).toBeCloseTo(movingYaw);
   });
 
   it("turns entering the hero coupe into the first mission objective", () => {

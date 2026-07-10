@@ -31,7 +31,7 @@ import {
   hydrateAfterlightState,
 } from "../game/core/afterlight-state";
 import {
-  createAfterlightStep,
+  AfterlightStepController,
   restoreAfterlightCheckpointState,
 } from "../game/core/afterlight-step";
 import { BrowserGameLoop } from "../game/core/browser-loop";
@@ -100,12 +100,14 @@ import {
   type ReplayTapeV1,
   type RunScore,
 } from "../game/replay";
+import { sampleAfterlightCharacterGround } from "../game/world/afterlight-character-world";
 import { AfterlightScene, AFTERLIGHT_SCENE_TARGETS } from "./AfterlightScene";
 
 interface SessionView {
   readonly state: GameState;
   readonly snapshot: RenderSnapshot;
   readonly input: InputFrame;
+  readonly cameraYaw: number;
   readonly vfxEvents: readonly AfterlightVfxEvent[];
   readonly cameraImpulses: readonly AfterlightCameraImpulse[];
   readonly notifications: readonly HudNotification[];
@@ -541,6 +543,7 @@ function freshView(
     state,
     snapshot: runtime.snapshot(1),
     input: EMPTY_INPUT_FRAME,
+    cameraYaw: state.actors.get(state.playerId)?.pose.rotationY ?? 0,
     vfxEvents: EMPTY_VFX_EVENTS,
     cameraImpulses: EMPTY_CAMERA_IMPULSES,
     notifications: [initialNotification(state)],
@@ -563,7 +566,8 @@ export function AfterlightGame() {
   );
   const [initialSession] = useState(() => {
     const state = createInitialAfterlightState(GAME_SEED);
-    const runtime = createGameRuntime(state, createAfterlightStep(state.seed));
+    const stepController = new AfterlightStepController(state.seed);
+    const runtime = createGameRuntime(state, stepController.step);
     const input = new InputBuffer();
     return {
       state,
@@ -571,12 +575,14 @@ export function AfterlightGame() {
       input,
       keyboard: new KeyboardInputAdapter(input),
       recorder: new ReplaySessionRecorder(state.seed, state.tick),
+      stepController,
       notification: initialNotification(state),
     };
   });
   const runtimeRef = useRef<DeterministicGameRuntime | null>(
     initialSession.runtime,
   );
+  const stepControllerRef = useRef(initialSession.stepController);
   const inputRef = useRef(initialSession.input);
   const keyboardRef = useRef(initialSession.keyboard);
   const loopRef = useRef<BrowserGameLoop | null>(null);
@@ -728,8 +734,10 @@ export function AfterlightGame() {
     loopRef.current?.stop();
     inputRef.current.reset();
     touchLookRef.current = [0, 0];
-    const runtime = createGameRuntime(state, createAfterlightStep(state.seed));
+    const stepController = new AfterlightStepController(state.seed);
+    const runtime = createGameRuntime(state, stepController.step);
     runtimeRef.current = runtime;
+    stepControllerRef.current = stepController;
     recorderRef.current = new ReplaySessionRecorder(state.seed, state.tick);
     statsRef.current = {
       deaths,
@@ -969,10 +977,17 @@ export function AfterlightGame() {
         vfxRef.current = Object.freeze(nextVfx.slice(-48));
         impulsesRef.current = Object.freeze(nextImpulses.slice(-12));
         notificationRef.current = Object.freeze(nextNotifications.slice(-3));
+        const hero = state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+        const driving = hero?.occupiedBy === state.playerId;
+        const player = state.actors.get(state.playerId);
+        const cameraYaw = stepControllerRef.current.getCameraYaw(
+          player?.pose.rotationY ?? hero?.pose.rotationY ?? 0,
+        );
         const nextView: SessionView = {
           state,
           snapshot: frame.snapshot,
           input: lastInputRef.current,
+          cameraYaw,
           vfxEvents: vfxRef.current,
           cameraImpulses: impulsesRef.current,
           notifications: notificationRef.current,
@@ -985,20 +1000,28 @@ export function AfterlightGame() {
         viewRef.current = nextView;
         setView(nextView);
 
-        const hero = state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
-        const driving = hero?.occupiedBy === state.playerId;
-        const player = state.actors.get(state.playerId);
         const listenerPosition = driving
           ? (hero?.pose.position ?? activePlayerPosition(state))
           : (player?.pose.position ?? activePlayerPosition(state));
-        const listenerYaw = driving
-          ? (hero?.pose.rotationY ?? player?.pose.rotationY ?? 0)
-          : (player?.pose.rotationY ?? 0);
+        const listenerYaw = cameraYaw;
         const activeVelocity = driving
           ? (hero?.velocity ?? ([0, 0, 0] as Vec3))
           : (player?.velocity ?? ([0, 0, 0] as Vec3));
+        const ground = player
+          ? sampleAfterlightCharacterGround(
+              player.pose.position[0],
+              player.pose.position[2],
+            )
+          : null;
         audioRef.current.update({
           mode: driving ? "vehicle" : "foot",
+          grounded:
+            driving ||
+            Boolean(
+              player &&
+              ground &&
+              player.pose.position[1] <= ground.height + 0.06,
+            ),
           speedKph: Math.hypot(activeVelocity[0], activeVelocity[2]) * 3.6,
           engineLoad: Math.max(
             Math.abs(lastInputRef.current.throttle),
@@ -1067,7 +1090,8 @@ export function AfterlightGame() {
     mutedRef.current = muted;
     reducedMotionRef.current = reducedMotion;
     audioRef.current.setMuted(muted);
-  }, [muted, paused, reducedMotion, started]);
+    audioRef.current.setPaused(paused || !started || blocked);
+  }, [blocked, muted, paused, reducedMotion, started]);
 
   useEffect(() => {
     const adapter = keyboardRef.current;
@@ -1371,16 +1395,20 @@ export function AfterlightGame() {
   };
   const canvasSettings = qualitySettings(quality);
   const activePosition = activePlayerPosition(view.state);
+  const playerYaw = player?.pose.rotationY ?? 0;
 
   return (
     <main
       className="bay-city-shell"
       data-aiming={view.input.aim ? "true" : "false"}
+      data-camera-yaw={view.cameraYaw.toFixed(4)}
+      data-look-x={view.input.look[0].toFixed(3)}
+      data-look-y={view.input.look[1].toFixed(3)}
       data-mode={driving ? "car" : "foot"}
       data-magazine={weapon?.magazine ?? 0}
       data-player-x={activePosition[0].toFixed(2)}
       data-player-y={activePosition[1].toFixed(2)}
-      data-player-yaw={(player?.pose.rotationY ?? 0).toFixed(4)}
+      data-player-yaw={playerYaw.toFixed(4)}
       data-player-z={activePosition[2].toFixed(2)}
       data-pointer-locked={pointerLocked ? "true" : "false"}
       data-quality={quality}

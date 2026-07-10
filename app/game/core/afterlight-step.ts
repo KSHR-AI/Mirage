@@ -89,6 +89,11 @@ const INTERACTION_DISTANCE = 7;
 const INTERNAL_BLACKOUT_MARKER = "afterlight:blackout:active";
 const WORLD_SOUTH_BOUNDARY = -238;
 const COURIER_COLLISION_IMPULSE_SCALE = 1.25;
+const FOOT_ACCELERATION = 18;
+const FOOT_DECELERATION = 26;
+const AIR_CONTROL_SCALE = 0.42;
+const FOOT_TURN_RATE = 9;
+const AIM_TURN_RATE = 14;
 const HOSTILE_COVER_STANDOFF = 0.84;
 const HOSTILE_PEEK_OFFSET = 0.38;
 const HOSTILE_HITSCAN_RANGE = 72;
@@ -154,6 +159,27 @@ function isNear(
 function normalizedAngle(angle: number): number {
   const turn = Math.PI * 2;
   return ((((angle + Math.PI) % turn) + turn) % turn) - Math.PI;
+}
+
+function approachPlanarVelocity(
+  current: Vec3,
+  target: Vec3,
+  maximumDelta: number,
+): Vec3 {
+  const dx = target[0] - current[0];
+  const dz = target[2] - current[2];
+  const distance = Math.hypot(dx, dz);
+  if (distance <= maximumDelta || distance <= Number.EPSILON) {
+    return [target[0], 0, target[2]];
+  }
+  const scale = maximumDelta / distance;
+  return [current[0] + dx * scale, 0, current[2] + dz * scale];
+}
+
+function rotateToward(current: number, target: number, maximumDelta: number) {
+  const delta = normalizedAngle(target - current);
+  if (Math.abs(delta) <= maximumDelta) return normalizedAngle(target);
+  return normalizedAngle(current + Math.sign(delta) * maximumDelta);
 }
 
 function clampedPitch(pitch: number): number {
@@ -343,9 +369,19 @@ function stepFootPlayer(
     grounded: previousMotor.grounded,
     cameraYaw,
   });
+  const desiredVelocity = locomotion.intent.horizontalVelocity;
+  const stopping = Math.hypot(desiredVelocity[0], desiredVelocity[2]) < 0.01;
+  const controlScale = previousMotor.grounded ? 1 : AIR_CONTROL_SCALE;
+  const horizontalVelocity = approachPlanarVelocity(
+    player.velocity,
+    desiredVelocity,
+    (stopping ? FOOT_DECELERATION : FOOT_ACCELERATION) *
+      SIMULATION_DT *
+      controlScale,
+  );
   const motor = stepKinematicCharacter({
     position: player.pose.position,
-    horizontalVelocity: locomotion.intent.horizontalVelocity,
+    horizontalVelocity,
     jumpPressed: input.jumpPressed,
     dt: SIMULATION_DT,
     previous: previousMotor,
@@ -358,9 +394,17 @@ function stepFootPlayer(
     (position[1] - player.pose.position[1]) / SIMULATION_DT,
     (position[2] - player.pose.position[2]) / SIMULATION_DT,
   ];
-  const rotationY = input.aim
+  const targetRotation = input.aim
     ? cameraYaw
-    : (locomotion.intent.facingRotationY ?? cameraYaw);
+    : locomotion.intent.facingRotationY;
+  const rotationY =
+    targetRotation === undefined
+      ? player.pose.rotationY
+      : rotateToward(
+          player.pose.rotationY,
+          targetRotation,
+          (input.aim ? AIM_TURN_RATE : FOOT_TURN_RATE) * SIMULATION_DT,
+        );
 
   return {
     actor: {
@@ -569,6 +613,14 @@ export class AfterlightStepController {
       },
     });
     this.step = this.advance.bind(this);
+  }
+
+  getCameraYaw(fallback = 0): number {
+    return this.cameraYaw ?? fallback;
+  }
+
+  getCameraPitch(): number {
+    return this.cameraPitch;
   }
 
   advance(
@@ -1097,7 +1149,7 @@ export class AfterlightStepController {
     const weapon = collections.weapons.get(SIGNAL_9_SPEC.id);
     if (!weapon) return false;
     const direction = directionFromYawPitch(
-      player.pose.rotationY,
+      this.cameraYaw ?? player.pose.rotationY,
       this.cameraPitch,
     );
     const result = stepSignal9(weapon, {

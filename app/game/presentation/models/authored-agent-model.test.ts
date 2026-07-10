@@ -35,13 +35,13 @@ describe("authored agent model helpers", () => {
       idle: ["Idle_Neutral", "Idle"],
       walk: ["Walk"],
       run: ["Run"],
-      jump: ["Roll", "Run"],
+      jump: ["Run", "Idle_Neutral"],
       aim: ["Idle_Gun_Pointing"],
       fire: ["Idle_Gun_Shoot", "Gun_Shoot"],
       cower: ["Idle"],
       down: ["Death"],
     });
-    expect(resolveAuthoredAgentClipName(SOURCE_CLIPS, "jump")).toBe("Roll");
+    expect(resolveAuthoredAgentClipName(SOURCE_CLIPS, "jump")).toBe("Run");
     expect(resolveAuthoredAgentClipName(SOURCE_CLIPS, "fire")).toBe(
       "Idle_Gun_Shoot",
     );
@@ -83,6 +83,12 @@ describe("authored agent model helpers", () => {
     expect(getAuthoredAgentTimeScale("run", 8.5)).toBeGreaterThan(
       getAuthoredAgentTimeScale("run", 2),
     );
+    expect(getAuthoredAgentTimeScale("walk", 2.6, 1, 4 / 3, 1.02)).toBeCloseTo(
+      (2.6 * (4 / 3)) / (1.76 * 1.02),
+    );
+    expect(getAuthoredAgentTimeScale("run", 5.8, 1, 0.8, 1.02)).toBeCloseTo(
+      (5.8 * 0.8) / (2.08 * 1.02),
+    );
     expect(Number.isFinite(getAuthoredAgentTimeScale("walk", Number.NaN))).toBe(
       true,
     );
@@ -102,5 +108,12 @@ describe("authored agent model helpers", () => {
     expect(first.playbackRate).toBeLessThanOrEqual(1.04);
     expect(first.scale).toBeGreaterThanOrEqual(0.94);
     expect(first.scale).toBeLessThanOrEqual(1.06);
+  });
+
+  it("starts the hero on a stable phase without cadence randomization", () => {
+    expect(getAuthoredAgentVariation(1, "player")).toMatchObject({
+      animationPhase: 0,
+      playbackRate: 1,
+    });
   });
 });

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-10T18:09:24.000Z",
+  "generatedAt": "2026-07-10T20:46:50.000Z",
   "policy": {
     "commercialUseRequired": true,
     "standaloneRedistribution": false,
@@ -15,7 +15,10 @@
         "provider": "Poly Haven",
         "pageUrl": "https://polyhaven.com/a/asphalt_04",
         "apiUrl": "https://api.polyhaven.com/files/asphalt_04",
-        "authors": ["Jenelle van Heerden", "Sergej Majboroda"]
+        "authors": [
+          "Jenelle van Heerden",
+          "Sergej Majboroda"
+        ]
       },
       "license": {
         "spdx": "CC0-1.0",
@@ -59,7 +62,9 @@
         "provider": "Poly Haven",
         "pageUrl": "https://polyhaven.com/a/fire_hydrant",
         "apiUrl": "https://api.polyhaven.com/files/fire_hydrant",
-        "authors": ["Gonçalo Felício"]
+        "authors": [
+          "Gonçalo Felício"
+        ]
       },
       "license": {
         "spdx": "CC0-1.0",
@@ -94,7 +99,9 @@
         "provider": "Quaternius",
         "pageUrl": "https://quaternius.com/packs/ultimatemodularcharacters.html",
         "downloadUrl": "https://drive.google.com/drive/folders/1USAAquX2JJWuA2m6zol0KUkFe3UkZ8zX",
-        "authors": ["Quaternius"]
+        "authors": [
+          "Quaternius"
+        ]
       },
       "license": {
         "spdx": "CC0-1.0",
@@ -139,7 +146,9 @@
         "provider": "Quaternius",
         "pageUrl": "https://quaternius.com/packs/downtowncitymegakit.html",
         "downloadUrl": "https://quaternius.itch.io/downtown-city-megakit",
-        "authors": ["Quaternius"]
+        "authors": [
+          "Quaternius"
+        ]
       },
       "license": {
         "spdx": "CC0-1.0",
@@ -173,7 +182,9 @@
         "provider": "Quaternius",
         "pageUrl": "https://quaternius.com/packs/zombieapocalypsekit.html",
         "downloadUrl": "https://drive.google.com/drive/folders/1gU4EDvCbI5DCXBUskqYRzmps5Du3KUvF",
-        "authors": ["Quaternius"]
+        "authors": [
+          "Quaternius"
+        ]
       },
       "license": {
         "spdx": "CC0-1.0",
@@ -196,6 +207,412 @@
           "maxTriangles": 6000,
           "bytes": 62444,
           "sha256": "7b37725b76a04b6b8521f62d77e645f1e8647f4be12650467e97acd92f1413a0"
+        }
+      ]
+    },
+    {
+      "id": "kenney-impact-sounds",
+      "name": "Impact Sounds - Concrete Footsteps and Impacts",
+      "kind": "optimized-audio-sample-set",
+      "source": {
+        "provider": "Kenney",
+        "pageUrl": "https://kenney.nl/assets/impact-sounds",
+        "downloadUrl": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+        "authors": [
+          "Kenney"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Kenney credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected all five concrete footsteps, three light generic impacts, and two medium metal impacts from the official CC0 archive.",
+        "Downmixed to mono, resampled to 48 kHz, measured and peak-normalized to -4 dBFS with a -3 dBFS limiter, stripped metadata, and encoded as quality-3 Ogg Vorbis."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/audio/footsteps/concrete-01.ogg",
+          "role": "concrete-footstep-variant-1",
+          "bytes": 4330,
+          "sha256": "85120579c6d27ae5087fb4635182bc464a1caec9e963ad2352fd4673aa32388b"
+        },
+        {
+          "path": "public/game-assets/audio/footsteps/concrete-02.ogg",
+          "role": "concrete-footstep-variant-2",
+          "bytes": 4423,
+          "sha256": "84155ccbbd1266dde9f538bb38df162f5ac193161d8b8a9a3aeb470d043f87bb"
+        },
+        {
+          "path": "public/game-assets/audio/footsteps/concrete-03.ogg",
+          "role": "concrete-footstep-variant-3",
+          "bytes": 4454,
+          "sha256": "1a8bfa779ce6a15540ad579296dcd3873c8f044d15c6cbb9a62a47b54ec2e835"
+        },
+        {
+          "path": "public/game-assets/audio/footsteps/concrete-04.ogg",
+          "role": "concrete-footstep-variant-4",
+          "bytes": 4357,
+          "sha256": "1bbbf7b3332642a556bd54bb7a373f3b39466d475fd965d3840b3693b74ecc6f"
+        },
+        {
+          "path": "public/game-assets/audio/footsteps/concrete-05.ogg",
+          "role": "concrete-footstep-variant-5",
+          "bytes": 4363,
+          "sha256": "056bfd7f60f32c13889a2ffadb6c83e225d953908bc470f6397c1d6bec45c471"
+        },
+        {
+          "path": "public/game-assets/audio/impacts/generic-01.ogg",
+          "role": "generic-impact-variant-1",
+          "bytes": 4224,
+          "sha256": "31a12f9251a1ba523ba5f9a16683e178af77ac88033a838f785b9eb214f6befd"
+        },
+        {
+          "path": "public/game-assets/audio/impacts/generic-02.ogg",
+          "role": "generic-impact-variant-2",
+          "bytes": 4122,
+          "sha256": "1aca4aa279fa2b235fd4a2d71be74f954827ea4acfc34cb96fafc08a8d0167ec"
+        },
+        {
+          "path": "public/game-assets/audio/impacts/generic-03.ogg",
+          "role": "generic-impact-variant-3",
+          "bytes": 4216,
+          "sha256": "b337456c211f37714825b6e032e61943d7ec5075f86bf676b7290c9b8d75017b"
+        },
+        {
+          "path": "public/game-assets/audio/impacts/metal-01.ogg",
+          "role": "metal-impact-variant-1",
+          "bytes": 5126,
+          "sha256": "c517ca47a44e064b55483cc017f57b48181cefd0d03e6353023d86c41651ca97"
+        },
+        {
+          "path": "public/game-assets/audio/impacts/metal-02.ogg",
+          "role": "metal-impact-variant-2",
+          "bytes": 4382,
+          "sha256": "a19d83e70d1e7019b32cb92e4aca78b0a2ad03c1c448c91831b030d443928080"
+        }
+      ]
+    },
+    {
+      "id": "kenney-rpg-audio-pistol-empty",
+      "name": "RPG Audio - Metal Action",
+      "kind": "optimized-audio-sample",
+      "source": {
+        "provider": "Kenney",
+        "pageUrl": "https://kenney.nl/assets/rpg-audio",
+        "downloadUrl": "https://kenney.nl/media/pages/assets/rpg-audio/8e99002d76-1677590336/kenney_rpg-audio.zip",
+        "authors": [
+          "Kenney"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Kenney credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected metalClick.ogg as the empty pistol action cue.",
+        "Downmixed to mono, resampled to 48 kHz, measured and peak-normalized to -4 dBFS with a -3 dBFS limiter, stripped metadata, and encoded as quality-3 Ogg Vorbis."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/audio/weapons/pistol-empty.ogg",
+          "role": "pistol-empty-action",
+          "bytes": 7523,
+          "sha256": "3bb085a821f67f212ed1c282df2337300a259f9fd683c1cd613e9ec5007f9c06"
+        }
+      ]
+    },
+    {
+      "id": "kenney-interface-sounds",
+      "name": "Interface Sounds - Mission and UI Cues",
+      "kind": "optimized-audio-sample-set",
+      "source": {
+        "provider": "Kenney",
+        "pageUrl": "https://kenney.nl/assets/interface-sounds",
+        "downloadUrl": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+        "authors": [
+          "Kenney"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Kenney credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected open_001, confirmation_002, error_006, and select_003 for objective start, completion, failure, and general selection cues.",
+        "Downmixed to mono, resampled to 48 kHz, measured and peak-normalized to -4 dBFS with a -3 dBFS limiter, stripped metadata, and encoded as quality-3 Ogg Vorbis."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/audio/ui/objective-start.ogg",
+          "role": "objective-start",
+          "bytes": 5043,
+          "sha256": "660790c7ed2c80a9d34a5c912600d7710e0c6b82e62922acd6239d89c2a82ef8"
+        },
+        {
+          "path": "public/game-assets/audio/ui/objective-complete.ogg",
+          "role": "objective-complete",
+          "bytes": 7238,
+          "sha256": "47a8504cb66e0aa6e8cdd14c73e8689b642426e8b770b432ae9d071a5e75662f"
+        },
+        {
+          "path": "public/game-assets/audio/ui/objective-failed.ogg",
+          "role": "objective-failed",
+          "bytes": 7055,
+          "sha256": "ebafc81b481eb8436fbf493152cabd850eb892b1ed86885d635bea9f14a7c2c8"
+        },
+        {
+          "path": "public/game-assets/audio/ui/select.ogg",
+          "role": "ui-select",
+          "bytes": 5890,
+          "sha256": "ee9e6fea5eefd6b93d12ef6a638e18edf4f6fcf60f20569b73f357ab76eb3f6a"
+        }
+      ]
+    },
+    {
+      "id": "free-firearm-sound-library-1911",
+      "name": "Free Firearm Sound Library - 1911 Near",
+      "kind": "optimized-recorded-audio-sample-set",
+      "source": {
+        "provider": "OpenGameArt mirror of The Free Firearm Sound Library",
+        "pageUrl": "https://opengameart.org/content/the-free-firearm-sound-library",
+        "downloadUrl": "https://opengameart.org/sites/default/files/Prepared%20SFX%20Library.7z",
+        "authors": [
+          "Ben Jaszczak",
+          "Brian Nelson",
+          "Kevin Heras",
+          "Matthew Nanney"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; the recording team and Kickstarter backers appreciate credit."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected A_42P.wav, documented by the source master sheet as a near-distance stereo 1911 handgun recording.",
+        "Separated the two recorded reports at 0.88-1.78 seconds and 4.94-5.84 seconds, added 150 ms tail fades, downmixed to mono, resampled to 48 kHz, measured and peak-normalized to -4 dBFS with a -3 dBFS limiter.",
+        "Stripped metadata and encoded both reports as quality-3 Ogg Vorbis."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/audio/weapons/pistol-fire-01.ogg",
+          "role": "pistol-fire-variant-1",
+          "bytes": 10790,
+          "sha256": "678ce5319b3f2f60de7322970c906d6d002b51d908332de37ff040a5a28506bd"
+        },
+        {
+          "path": "public/game-assets/audio/weapons/pistol-fire-02.ogg",
+          "role": "pistol-fire-variant-2",
+          "bytes": 10778,
+          "sha256": "7a0ebb07a7c53286d33bb32f262c82b4afd2341bcdbd0c050d340a7d1d1ff148"
+        }
+      ]
+    },
+    {
+      "id": "opengameart-gun-reload-sounds",
+      "name": "Gun Reload Sounds - Pistol Reload",
+      "kind": "optimized-recorded-audio-sample",
+      "source": {
+        "provider": "OpenGameArt",
+        "pageUrl": "https://opengameart.org/content/gun-reload-sounds",
+        "downloadUrl": "https://opengameart.org/sites/default/files/gunreload1.wav",
+        "authors": [
+          "SpringySpringo"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; SpringySpringo credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected the source's airsoft pistol reload recording gunreload1.wav.",
+        "Downmixed to mono, resampled to 48 kHz, measured and peak-normalized to -4 dBFS with a -3 dBFS limiter, stripped metadata, and encoded as quality-3 Ogg Vorbis."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/audio/weapons/pistol-reload.ogg",
+          "role": "pistol-reload",
+          "bytes": 18132,
+          "sha256": "cf2250074ae307bd0424e3eb456402fafdb881dc1f02009e6c0b88bc890e482f"
+        }
+      ]
+    },
+    {
+      "id": "opengameart-car-door-sfx",
+      "name": "Car Door SFX",
+      "kind": "optimized-recorded-audio-sample-set",
+      "source": {
+        "provider": "OpenGameArt",
+        "pageUrl": "https://opengameart.org/content/cardoorsfx",
+        "downloadUrl": "https://opengameart.org/sites/default/files/door_opening.wav",
+        "additionalDownloadUrls": [
+          "https://opengameart.org/sites/default/files/door_closing.wav"
+        ],
+        "authors": [
+          "looneybits"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; looneybits credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Mapped door_opening.wav to vehicle entry and door_closing.wav to vehicle exit.",
+        "Resampled the mono recordings to 48 kHz, measured and peak-normalized to -4 dBFS with a -3 dBFS limiter, stripped metadata, and encoded as quality-3 Ogg Vorbis."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/audio/vehicles/door-enter.ogg",
+          "role": "vehicle-door-enter",
+          "bytes": 12218,
+          "sha256": "178a84486c6d578f0e3ff554da4c51e61da860096d19b0c15cd2090cb2613778"
+        },
+        {
+          "path": "public/game-assets/audio/vehicles/door-exit.ogg",
+          "role": "vehicle-door-exit",
+          "bytes": 9137,
+          "sha256": "553e2966af3344fefbaa0d0a9634ad0f8ff336c0b13b61b2eb9dea49dcc8738a"
+        }
+      ]
+    },
+    {
+      "id": "opengameart-racing-car-engine-loops",
+      "name": "Racing Car Engine Sound Loops",
+      "kind": "optimized-recorded-audio-loop-set",
+      "source": {
+        "provider": "OpenGameArt",
+        "pageUrl": "https://opengameart.org/content/racing-car-engine-sound-loops",
+        "downloadUrl": "https://opengameart.org/sites/default/files/loop_0.wav",
+        "additionalDownloadUrls": [
+          "https://opengameart.org/sites/default/files/loop_3_0.wav"
+        ],
+        "authors": [
+          "domasx2"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected the public-domain-derived loop_0 and loop_3 pitch variants as idle and drive layers.",
+        "Added 80 ms and 60 ms crossfaded seams respectively, resampled to 48 kHz mono, normalized to -22 LUFS with a -2 dBTP ceiling, stripped metadata, and encoded as quality-3 Ogg Vorbis."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/audio/vehicles/engine-idle-loop.ogg",
+          "role": "vehicle-engine-idle-loop",
+          "bytes": 9560,
+          "sha256": "b230b10afd192ba69640ec8b566908f30c3dac3926a91e91599676ef3e96e26a"
+        },
+        {
+          "path": "public/game-assets/audio/vehicles/engine-drive-loop.ogg",
+          "role": "vehicle-engine-drive-loop",
+          "bytes": 7515,
+          "sha256": "a0a24cff8ad6b45eb051089b2a5318edbd6174acc07a07e7e82454b39172d4a2"
+        }
+      ]
+    },
+    {
+      "id": "bigsoundbank-gendarmerie-siren-0886",
+      "name": "Gendarmerie Outdoor Two-Tone Siren",
+      "kind": "optimized-recorded-audio-loop",
+      "source": {
+        "provider": "BigSoundBank / La Sonotheque",
+        "pageUrl": "https://bigsoundbank.com/sirene-exterieure-gendarmerie-s0886.html",
+        "downloadUrl": "https://bigsoundbank.com/UPLOAD/ogg/0886.ogg",
+        "authors": [
+          "Joseph Sardin"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://bigsoundbank.com/licenses.html",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Joseph Sardin and La Sonotheque credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected 2.0-8.2 seconds from the studio-recorded, outside-vehicle French Gendarmerie two-tone siren.",
+        "Created a six-second loop with a 200 ms crossfaded seam, preserved the 48 kHz mono layout, normalized to -22 LUFS with a -2 dBTP ceiling, stripped metadata, and encoded as quality-3 Ogg Vorbis."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/audio/vehicles/police-siren-loop.ogg",
+          "role": "police-siren-loop",
+          "bytes": 55257,
+          "sha256": "b2773cb3eab3ac04f979e49582912bbac510164e993ab89c543b1c7e47481561"
+        }
+      ]
+    },
+    {
+      "id": "opengameart-ovemelaa-rain",
+      "name": "Rain Ambient Sample",
+      "kind": "optimized-recorded-audio-loop",
+      "source": {
+        "provider": "OpenGameArt",
+        "pageUrl": "https://opengameart.org/content/rain-ambient-not-loopable-2-versions-available",
+        "downloadUrl": "https://opengameart.org/sites/default/files/Ove%20Melaa%20-%20Rainy%20%28NOT%20loopable%29.ogg",
+        "authors": [
+          "Ove Melaa"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Ove Melaa credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected 10.0-22.5 seconds from the recorded rain ambience for Mirage's urban exterior bed.",
+        "Created a twelve-second loop with a 500 ms crossfaded seam, downmixed to mono, resampled to 48 kHz, normalized to -22 LUFS with a -2 dBTP ceiling, stripped metadata, and encoded as quality-3 Ogg Vorbis."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/audio/ambience/urban-rain-loop.ogg",
+          "role": "urban-rain-ambience-loop",
+          "bytes": 101441,
+          "sha256": "1969311604d781b5f09ea6069a472fc326b8a49ef248e09b0980bb7bb8498b26"
         }
       ]
     }

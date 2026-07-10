@@ -1,8 +1,8 @@
 import type { InputFrame, Vec3 } from "../core/contracts";
 
 export const LOCOMOTION_TUNING = {
-  walkSpeed: 5,
-  sprintSpeed: 8.5,
+  walkSpeed: 2.6,
+  sprintSpeed: 5.8,
   jumpVelocity: 7.2,
   inputDeadzone: 0.1,
 } as const;
