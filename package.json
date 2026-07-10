@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
-    "format:check": "prettier --check app/game .github eslint.config.mjs vitest.config.ts package.json pnpm-workspace.yaml public/game-assets/manifest.json",
+    "test:e2e": "playwright test",
+    "format:check": "prettier --check app/game tests .github eslint.config.mjs vitest.config.ts playwright.config.ts package.json pnpm-workspace.yaml public/game-assets/manifest.json",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:run && pnpm build"
   },
   "dependencies": {
