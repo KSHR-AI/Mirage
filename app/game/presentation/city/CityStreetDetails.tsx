@@ -3,27 +3,31 @@
 import { memo, useMemo } from "react";
 import { InstancedPrimitives } from "./InstancedPrimitives";
 import { LicensedHydrants } from "./LicensedStreetProps";
+import { filterPoweredCityFeatures, type CityPowerState } from "./power";
 import type {
   BoxInstance,
   CityLayout,
+  CityVec3,
   PointFeature,
   StreetProp,
 } from "./types";
 
 type CityStreetDetailsProps = {
   layout: CityLayout;
+  powerState: CityPowerState;
 };
 
 export const CityStreetDetails = memo(function CityStreetDetails({
   layout,
+  powerState,
 }: CityStreetDetailsProps) {
   const lights = useMemo(
-    () => createStreetlightParts(layout.streetlights),
-    [layout.streetlights],
+    () => createStreetlightParts(layout.streetlights, powerState),
+    [layout.streetlights, powerState],
   );
   const signals = useMemo(
-    () => createTrafficSignalParts(layout.trafficSignals),
-    [layout.trafficSignals],
+    () => createTrafficSignalParts(layout.trafficSignals, powerState),
+    [layout.trafficSignals, powerState],
   );
   const vegetation = useMemo(
     () => createTreeParts(layout.trees),
@@ -101,11 +105,16 @@ export const CityStreetDetails = memo(function CityStreetDetails({
   );
 });
 
-function createStreetlightParts(features: readonly PointFeature[]) {
+function createStreetlightParts(
+  features: readonly PointFeature[],
+  powerState: CityPowerState,
+) {
   const poles: BoxInstance[] = [];
   const arms: BoxInstance[] = [];
   const bulbs: BoxInstance[] = [];
   const halos: BoxInstance[] = [];
+  const poweredFeatures = filterPoweredCityFeatures(features, powerState);
+  const poweredIds = new Set(poweredFeatures.map((feature) => feature.id));
 
   for (const feature of features) {
     const armCenter = offset(feature.position, feature.rotationY, 0.48, 5.05);
@@ -126,6 +135,7 @@ function createStreetlightParts(features: readonly PointFeature[]) {
       rotationY: feature.rotationY,
       scale: [1.12, 0.11, 0.11],
     });
+    if (!poweredIds.has(feature.id)) continue;
     bulbs.push({
       color: feature.color,
       id: `${feature.id}-bulb`,
@@ -144,11 +154,16 @@ function createStreetlightParts(features: readonly PointFeature[]) {
   return { arms, bulbs, halos, poles };
 }
 
-function createTrafficSignalParts(features: readonly PointFeature[]) {
+function createTrafficSignalParts(
+  features: readonly PointFeature[],
+  powerState: CityPowerState,
+) {
   const poles: BoxInstance[] = [];
   const arms: BoxInstance[] = [];
   const heads: BoxInstance[] = [];
   const lamps: BoxInstance[] = [];
+  const poweredFeatures = filterPoweredCityFeatures(features, powerState);
+  const poweredIds = new Set(poweredFeatures.map((feature) => feature.id));
 
   for (const feature of features) {
     poles.push(
@@ -175,6 +190,7 @@ function createTrafficSignalParts(features: readonly PointFeature[]) {
       rotationY: feature.rotationY,
       scale: [0.46, 1.08, 0.46],
     });
+    if (!poweredIds.has(feature.id)) continue;
     lamps.push({
       color: feature.color,
       id: `${feature.id}-lamp`,
@@ -275,8 +291,8 @@ function propToInstance(prop: StreetProp): BoxInstance {
 
 function instance(
   id: string,
-  base: [number, number, number],
-  scale: [number, number, number],
+  base: CityVec3,
+  scale: CityVec3,
   color: string,
   yOffset: number,
 ): BoxInstance {
@@ -290,11 +306,11 @@ function instance(
 }
 
 function offset(
-  base: [number, number, number],
+  base: CityVec3,
   rotationY: number,
   distance: number,
   y: number,
-): [number, number, number] {
+): CityVec3 {
   return [
     base[0] + Math.cos(rotationY) * distance,
     base[1] + y,

@@ -1,6 +1,6 @@
 export type CityQuality = "mobile" | "desktop";
 
-export type CityVec3 = [number, number, number];
+export type CityVec3 = readonly [number, number, number];
 
 export type CityDistrict =
   | "afterlight"

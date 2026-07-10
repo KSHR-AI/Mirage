@@ -10,6 +10,15 @@ export {
   cityMissionZone,
   createBayCityLayout,
 } from "./city-layout";
+export {
+  CITY_BLACKOUT_COLLAPSE_TICKS,
+  CITY_BLACKOUT_SECTOR_COUNT,
+  citySectorForPosition,
+  createPoweredCityPowerState,
+  filterPoweredCityFeatures,
+  isCityLightPowered,
+  resolveCityPowerState,
+} from "./power";
 export { createCityRng, hashCitySeed, stableCityOrder } from "./seed";
 export type {
   BoxInstance,
@@ -24,3 +33,4 @@ export type {
   PointFeature,
   StreetProp,
 } from "./types";
+export type { CityPowerMode, CityPowerState } from "./power";

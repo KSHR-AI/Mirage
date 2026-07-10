@@ -5,6 +5,11 @@ import { memo, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { InstancedPrimitives } from "./InstancedPrimitives";
 import { cityMissionZone } from "./city-layout";
+import {
+  filterPoweredCityFeatures,
+  isCityLightPowered,
+  type CityPowerState,
+} from "./power";
 import type {
   BoxInstance,
   CityMissionZoneId,
@@ -16,6 +21,7 @@ import type {
 type CityLandmarksProps = {
   activeZone: CityMissionZoneId | null;
   missionProgress: number;
+  powerState: CityPowerState;
   quality: CityQuality;
   reducedMotion: boolean;
   shadows: boolean;
@@ -24,6 +30,7 @@ type CityLandmarksProps = {
 export const CityLandmarks = memo(function CityLandmarks({
   activeZone,
   missionProgress,
+  powerState,
   quality,
   reducedMotion,
   shadows,
@@ -33,15 +40,27 @@ export const CityLandmarks = memo(function CityLandmarks({
       name="authored-bay-city-landmarks"
       userData={{ cameraCollisionRoot: true }}
     >
-      <EmberSpan shadows={shadows} />
-      <AfterlightSpire quality={quality} shadows={shadows} />
-      <AuroraVault quality={quality} shadows={shadows} />
-      <PaintedRow shadows={shadows} />
-      <GridSeven quality={quality} shadows={shadows} />
-      <BreakwaterTerminal quality={quality} shadows={shadows} />
+      <EmberSpan powerState={powerState} shadows={shadows} />
+      <AfterlightSpire
+        powerState={powerState}
+        quality={quality}
+        shadows={shadows}
+      />
+      <AuroraVault
+        powerState={powerState}
+        quality={quality}
+        shadows={shadows}
+      />
+      <PaintedRow powerState={powerState} shadows={shadows} />
+      <GridSeven powerState={powerState} quality={quality} shadows={shadows} />
+      <BreakwaterTerminal
+        powerState={powerState}
+        quality={quality}
+        shadows={shadows}
+      />
       <CourierYard shadows={shadows} />
       <IndustrialWaterfront shadows={shadows} />
-      <CityHills quality={quality} />
+      <CityHills powerState={powerState} quality={quality} />
       {activeZone ? (
         <MissionZoneBeacon
           progress={missionProgress}
@@ -61,7 +80,13 @@ const BRIDGE_CABLE_POINTS: readonly CityVec3[] = [
   [0, 3.2, -238],
 ];
 
-function EmberSpan({ shadows }: { shadows: boolean }) {
+function EmberSpan({
+  powerState,
+  shadows,
+}: {
+  powerState: CityPowerState;
+  shadows: boolean;
+}) {
   const steel = useMemo<BoxInstance[]>(() => {
     const values: BoxInstance[] = [];
     for (const z of [-132, -196]) {
@@ -135,6 +160,10 @@ function EmberSpan({ shadows }: { shadows: boolean }) {
       ),
     [],
   );
+  const poweredTowerLights = useMemo(
+    () => filterPoweredCityFeatures(towerLights, powerState),
+    [powerState, towerLights],
+  );
 
   return (
     <group name="ember-span">
@@ -169,7 +198,7 @@ function EmberSpan({ shadows }: { shadows: boolean }) {
       ))}
       <InstancedPrimitives
         depthWrite={false}
-        instances={towerLights}
+        instances={poweredTowerLights}
         material="basic"
         shape="sphere"
         toneMapped={false}
@@ -195,9 +224,11 @@ function BridgeCable({ points }: { points: CityVec3[] }) {
 }
 
 function AfterlightSpire({
+  powerState,
   quality,
   shadows,
 }: {
+  powerState: CityPowerState;
   quality: CityQuality;
   shadows: boolean;
 }) {
@@ -213,6 +244,15 @@ function AfterlightSpire({
         );
       }),
     [quality],
+  );
+  const poweredWindows = useMemo(
+    () => filterPoweredCityFeatures(windows, powerState),
+    [powerState, windows],
+  );
+  const poweredBeacon = isCityLightPowered(
+    "afterlight-spire-crown",
+    [42, 60.5, -42],
+    powerState,
   );
 
   return (
@@ -245,15 +285,19 @@ function AfterlightSpire({
         <coneGeometry args={[2.2, 12, 8]} />
         <meshStandardMaterial color="#b8c5bd" metalness={0.5} roughness={0.3} />
       </mesh>
-      <mesh position={[0, 60.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[2.7, 0.17, 8, 28]} />
-        <meshBasicMaterial color="#f093ff" toneMapped={false} />
-      </mesh>
-      <mesh position={[0, 72.5, 0]}>
-        <sphereGeometry args={[0.46, 10, 8]} />
-        <meshBasicMaterial color="#ffb3f6" toneMapped={false} />
-      </mesh>
-      {quality === "desktop" ? (
+      {poweredBeacon ? (
+        <>
+          <mesh position={[0, 60.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[2.7, 0.17, 8, 28]} />
+            <meshBasicMaterial color="#f093ff" toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 72.5, 0]}>
+            <sphereGeometry args={[0.46, 10, 8]} />
+            <meshBasicMaterial color="#ffb3f6" toneMapped={false} />
+          </mesh>
+        </>
+      ) : null}
+      {quality === "desktop" && poweredBeacon ? (
         <pointLight
           color="#ec8cff"
           distance={32}
@@ -264,7 +308,7 @@ function AfterlightSpire({
       <group position={[-42, 0, 42]}>
         <InstancedPrimitives
           depthWrite={false}
-          instances={windows}
+          instances={poweredWindows}
           material="basic"
           toneMapped={false}
         />
@@ -274,9 +318,11 @@ function AfterlightSpire({
 }
 
 function AuroraVault({
+  powerState,
   quality,
   shadows,
 }: {
+  powerState: CityPowerState;
   quality: CityQuality;
   shadows: boolean;
 }) {
@@ -291,6 +337,11 @@ function AuroraVault({
         ),
       ),
     [quality],
+  );
+  const poweredPortal = isCityLightPowered(
+    "aurora-vault-portal",
+    [14, 3.35, -50.78],
+    powerState,
   );
   return (
     <group name="aurora-exchange-vault">
@@ -319,11 +370,13 @@ function AuroraVault({
           roughness={0.22}
         />
       </mesh>
-      <mesh position={[14, 3.35, -50.78]}>
-        <torusGeometry args={[2.15, 0.18, 10, 36]} />
-        <meshBasicMaterial color="#71e6f2" toneMapped={false} />
-      </mesh>
-      {quality === "desktop" ? (
+      {poweredPortal ? (
+        <mesh position={[14, 3.35, -50.78]}>
+          <torusGeometry args={[2.15, 0.18, 10, 36]} />
+          <meshBasicMaterial color="#71e6f2" toneMapped={false} />
+        </mesh>
+      ) : null}
+      {quality === "desktop" && poweredPortal ? (
         <pointLight
           color="#5de4ef"
           distance={20}
@@ -335,7 +388,13 @@ function AuroraVault({
   );
 }
 
-function PaintedRow({ shadows }: { shadows: boolean }) {
+function PaintedRow({
+  powerState,
+  shadows,
+}: {
+  powerState: CityPowerState;
+  shadows: boolean;
+}) {
   const houses = useMemo<BoxInstance[]>(
     () =>
       ["#a85767", "#3e7f83", "#b77f4e", "#71628d", "#55775c"].map(
@@ -377,14 +436,24 @@ function PaintedRow({ shadows }: { shadows: boolean }) {
           [1.85, 1.15, 0.08],
           "#ffd486",
         ),
+      ]),
+    [houses],
+  );
+  const doors = useMemo<BoxInstance[]>(
+    () =>
+      houses.map((house, index) =>
         cityBox(
           `${house.id}-door`,
           [house.position[0], 1.55, 74.34],
           [1.05, 2.55, 0.12],
           index === 2 ? "#d95455" : "#23383b",
         ),
-      ]),
+      ),
     [houses],
+  );
+  const poweredFronts = useMemo(
+    () => filterPoweredCityFeatures(fronts, powerState),
+    [fronts, powerState],
   );
   return (
     <group name="painted-row-safehouse">
@@ -401,10 +470,11 @@ function PaintedRow({ shadows }: { shadows: boolean }) {
         shape="cone"
       />
       <InstancedPrimitives
-        instances={fronts}
+        instances={poweredFronts}
         material="basic"
         toneMapped={false}
       />
+      <InstancedPrimitives instances={doors} roughness={0.68} />
       <mesh position={[-70, 0.36, 75.3]}>
         <boxGeometry args={[19, 0.5, 1.8]} />
         <meshStandardMaterial color="#526263" roughness={0.86} />
@@ -414,9 +484,11 @@ function PaintedRow({ shadows }: { shadows: boolean }) {
 }
 
 function GridSeven({
+  powerState,
   quality,
   shadows,
 }: {
+  powerState: CityPowerState;
   quality: CityQuality;
   shadows: boolean;
 }) {
@@ -468,6 +540,15 @@ function GridSeven({
       ),
     [quality],
   );
+  const poweredInsulators = useMemo(
+    () => filterPoweredCityFeatures(insulators, powerState),
+    [insulators, powerState],
+  );
+  const poweredSubstation = isCityLightPowered(
+    "grid-seven-substation-light",
+    [-70, 6, -41],
+    powerState,
+  );
   return (
     <group name="grid-seven-substation">
       <InstancedPrimitives
@@ -483,12 +564,12 @@ function GridSeven({
         roughness={0.3}
       />
       <InstancedPrimitives
-        instances={insulators}
+        instances={poweredInsulators}
         material="basic"
         shape="cylinder"
         toneMapped={false}
       />
-      {quality === "desktop" ? (
+      {quality === "desktop" && poweredSubstation ? (
         <pointLight
           color="#c9ff5f"
           distance={18}
@@ -501,9 +582,11 @@ function GridSeven({
 }
 
 function BreakwaterTerminal({
+  powerState,
   quality,
   shadows,
 }: {
+  powerState: CityPowerState;
   quality: CityQuality;
   shadows: boolean;
 }) {
@@ -520,6 +603,15 @@ function BreakwaterTerminal({
         ),
       ),
     [],
+  );
+  const poweredDockLights = useMemo(
+    () => filterPoweredCityFeatures(dockLights, powerState),
+    [dockLights, powerState],
+  );
+  const poweredTerminalLight = isCityLightPowered(
+    "breakwater-terminal-face",
+    [103.02, 15, 14],
+    powerState,
   );
   return (
     <group name="breakwater-terminal">
@@ -543,17 +635,23 @@ function BreakwaterTerminal({
           roughness={0.62}
         />
       </mesh>
-      <mesh position={[103.02, 15, 14]} rotation={[0, Math.PI / 2, 0]}>
-        <circleGeometry args={[1.35, 24]} />
-        <meshBasicMaterial color="#ffda83" toneMapped={false} />
-      </mesh>
+      {poweredTerminalLight ? (
+        <mesh position={[103.02, 15, 14]} rotation={[0, Math.PI / 2, 0]}>
+          <circleGeometry args={[1.35, 24]} />
+          <meshBasicMaterial color="#ffda83" toneMapped={false} />
+        </mesh>
+      ) : null}
       <InstancedPrimitives
-        instances={quality === "desktop" ? dockLights : dockLights.slice(0, 8)}
+        instances={
+          quality === "desktop"
+            ? poweredDockLights
+            : poweredDockLights.slice(0, 8)
+        }
         material="basic"
         shape="sphere"
         toneMapped={false}
       />
-      {quality === "desktop" ? (
+      {quality === "desktop" && poweredTerminalLight ? (
         <pointLight
           color="#ffd17b"
           distance={26}
@@ -679,7 +777,18 @@ function IndustrialWaterfront({ shadows }: { shadows: boolean }) {
   );
 }
 
-function CityHills({ quality }: { quality: CityQuality }) {
+function CityHills({
+  powerState,
+  quality,
+}: {
+  powerState: CityPowerState;
+  quality: CityQuality;
+}) {
+  const poweredAntenna = isCityLightPowered(
+    "city-hills-antenna",
+    [-118, 34, -78],
+    powerState,
+  );
   return (
     <group name="city-hills">
       <mesh position={[-158, -15, -36]} receiveShadow scale={[1.3, 0.5, 1]}>
@@ -698,10 +807,12 @@ function CityHills({ quality }: { quality: CityQuality }) {
           roughness={0.48}
         />
       </mesh>
-      <mesh position={[-118, 34, -78]}>
-        <sphereGeometry args={[0.45, 8, 6]} />
-        <meshBasicMaterial color="#ff5e68" toneMapped={false} />
-      </mesh>
+      {poweredAntenna ? (
+        <mesh position={[-118, 34, -78]}>
+          <sphereGeometry args={[0.45, 8, 6]} />
+          <meshBasicMaterial color="#ff5e68" toneMapped={false} />
+        </mesh>
+      ) : null}
     </group>
   );
 }

@@ -2,15 +2,18 @@
 
 import { memo, useMemo } from "react";
 import { InstancedPrimitives } from "./InstancedPrimitives";
+import { filterPoweredCityFeatures, type CityPowerState } from "./power";
 import type { BoxInstance, CityLayout } from "./types";
 
 type CityArchitectureProps = {
   layout: CityLayout;
+  powerState: CityPowerState;
   shadows: boolean;
 };
 
 export const CityArchitecture = memo(function CityArchitecture({
   layout,
+  powerState,
   shadows,
 }: CityArchitectureProps) {
   const plinths = useMemo<BoxInstance[]>(
@@ -39,6 +42,14 @@ export const CityArchitecture = memo(function CityArchitecture({
         scale: [building.scale[0] * 1.035, 0.32, building.scale[2] * 1.035],
       })),
     [layout.buildings],
+  );
+  const poweredWindows = useMemo(
+    () => filterPoweredCityFeatures(layout.windows, powerState),
+    [layout.windows, powerState],
+  );
+  const poweredNeonSigns = useMemo(
+    () => filterPoweredCityFeatures(layout.neonSigns, powerState),
+    [layout.neonSigns, powerState],
   );
 
   return (
@@ -73,7 +84,7 @@ export const CityArchitecture = memo(function CityArchitecture({
       />
       <InstancedPrimitives
         depthWrite={false}
-        instances={layout.windows}
+        instances={poweredWindows}
         material="basic"
         opacity={0.86}
         toneMapped={false}
@@ -81,7 +92,7 @@ export const CityArchitecture = memo(function CityArchitecture({
       />
       <InstancedPrimitives
         depthWrite={false}
-        instances={layout.neonSigns}
+        instances={poweredNeonSigns}
         material="basic"
         opacity={0.92}
         toneMapped={false}

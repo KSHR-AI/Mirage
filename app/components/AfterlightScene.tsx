@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { memo, useMemo, useRef } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import {
   AFTERLIGHT_ENTITY_IDS,
@@ -19,14 +19,16 @@ import {
   AFTERLIGHT_PHASE_IDS,
   createAfterlightJob,
 } from "../game/missions/afterlight-job";
-import type { GameQualityTier } from "../game/performance";
+import { qualitySettings, type GameQualityTier } from "../game/performance";
 import {
   AfterlightCameraRig,
   type AfterlightCameraImpulse,
 } from "../game/presentation/camera";
 import {
   BayCityWorld,
+  CITY_BLACKOUT_COLLAPSE_TICKS,
   type CityMissionZoneId,
+  resolveCityPowerState,
 } from "../game/presentation/city";
 import { AfterlightMissionSetpieces } from "../game/presentation/mission";
 import {
@@ -169,7 +171,7 @@ function createAmbientVehicles(
 }
 
 function AmbientTraffic({ quality }: { readonly quality: GameQualityTier }) {
-  const count = quality === "high" ? 14 : quality === "medium" ? 9 : 6;
+  const count = qualitySettings(quality).trafficCount;
   const definitions = useMemo(() => createAmbientVehicles(count), [count]);
   const groups = useRef<Array<THREE.Group | null>>([]);
   const visualQuality = modelQuality(quality);
@@ -245,7 +247,7 @@ function createAmbientCivilians(
 }
 
 function AmbientCivilians({ quality }: { readonly quality: GameQualityTier }) {
-  const count = quality === "high" ? 18 : quality === "medium" ? 11 : 7;
+  const count = qualitySettings(quality).civilianCount;
   const definitions = useMemo(() => createAmbientCivilians(count), [count]);
   const groups = useRef<Array<THREE.Group | null>>([]);
   const visualQuality = modelQuality(quality);
@@ -373,6 +375,39 @@ export const AfterlightScene = memo(function AfterlightScene({
   const hero =
     vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe) ??
     state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+  const blackoutActive = state.inventory.has(BLACKOUT_MARKER);
+  const [blackoutStartTick, setBlackoutStartTick] = useState<number | null>(
+    null,
+  );
+
+  useFrame(() => {
+    if (!blackoutActive) {
+      if (blackoutStartTick !== null) setBlackoutStartTick(null);
+      return;
+    }
+    if (blackoutStartTick === null) {
+      setBlackoutStartTick(snapshot.currentTick);
+    }
+  });
+
+  const effectiveBlackoutStartTick = blackoutActive
+    ? (blackoutStartTick ?? snapshot.currentTick)
+    : undefined;
+  const blackoutTick =
+    blackoutActive && effectiveBlackoutStartTick != null
+      ? Math.min(
+          snapshot.currentTick,
+          effectiveBlackoutStartTick + CITY_BLACKOUT_COLLAPSE_TICKS,
+        )
+      : snapshot.currentTick;
+  const cityPowerState = resolveCityPowerState({
+    blackoutActive,
+    blackoutStartTick: effectiveBlackoutStartTick,
+    currentTick: blackoutTick,
+    reducedMotion,
+    seed: state.seed,
+  });
+
   if (!player || !hero) return null;
 
   const driving = hero.occupiedBy === player.id;
@@ -413,6 +448,7 @@ export const AfterlightScene = memo(function AfterlightScene({
     <>
       <BayCityWorld
         activeZone={zoneForPhase(phaseId)}
+        powerState={cityPowerState}
         missionProgress={
           state.mission.phaseIndex / Math.max(1, definition.phases.length - 1)
         }
@@ -423,7 +459,7 @@ export const AfterlightScene = memo(function AfterlightScene({
       />
 
       <AfterlightMissionSetpieces
-        blackout={state.inventory.has(BLACKOUT_MARKER)}
+        blackout={blackoutActive}
         completedObjectiveIds={state.mission.completedObjectiveIds}
         encounterVariant={definition.encounter}
         inventory={state.inventory}

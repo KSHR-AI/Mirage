@@ -10,6 +10,7 @@ import { CityStreetDetails } from "./CityStreetDetails";
 import { CitySurface } from "./CitySurface";
 import { replaceProceduralDowntownBlocks } from "./authored-downtown-layout";
 import { createBayCityLayout } from "./city-layout";
+import { createPoweredCityPowerState, type CityPowerState } from "./power";
 import type {
   CityLayout,
   CityMissionZoneId,
@@ -21,6 +22,7 @@ export type BayCityWorldProps = {
   activeZone?: CityMissionZoneId | null;
   layout?: CityLayout;
   missionProgress?: number;
+  powerState?: CityPowerState;
   position?: CityVec3;
   quality?: CityQuality;
   reducedMotion?: boolean;
@@ -34,6 +36,7 @@ export const BayCityWorld = memo(function BayCityWorld({
   activeZone = null,
   layout,
   missionProgress = 0,
+  powerState,
   position = [0, 0, 0],
   quality = "desktop",
   reducedMotion = false,
@@ -55,6 +58,12 @@ export const BayCityWorld = memo(function BayCityWorld({
   const resolvedShadows = shadows ?? resolvedQuality === "desktop";
   const useAuthoredDowntown =
     resolvedQuality === "desktop" && authoredDowntownReady;
+  const resolvedPowerState = useMemo(
+    () =>
+      powerState ??
+      createPoweredCityPowerState(resolvedLayout.seed, 0, reducedMotion),
+    [powerState, reducedMotion, resolvedLayout.seed],
+  );
   const presentationLayout = useMemo(
     () =>
       useAuthoredDowntown
@@ -82,12 +91,14 @@ export const BayCityWorld = memo(function BayCityWorld({
         />
         <CityArchitecture
           layout={presentationLayout}
+          powerState={resolvedPowerState}
           shadows={resolvedShadows}
         />
         {resolvedQuality === "desktop" ? (
           <ModelAssetBoundary fallback={null}>
             <AuthoredDowntownBuildings
               onReady={markAuthoredDowntownReady}
+              powerState={resolvedPowerState}
               shadows={resolvedShadows}
             />
           </ModelAssetBoundary>
@@ -95,11 +106,15 @@ export const BayCityWorld = memo(function BayCityWorld({
         <CityLandmarks
           activeZone={activeZone}
           missionProgress={missionProgress}
+          powerState={resolvedPowerState}
           quality={resolvedQuality}
           reducedMotion={reducedMotion}
           shadows={resolvedShadows}
         />
-        <CityStreetDetails layout={presentationLayout} />
+        <CityStreetDetails
+          layout={presentationLayout}
+          powerState={resolvedPowerState}
+        />
       </group>
     </>
   );
