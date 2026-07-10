@@ -377,6 +377,19 @@ export function stepAfterlightCameraControls(
   return state;
 }
 
+export function applyControlledCameraOrientation(
+  state: CameraControlState,
+  orientation: { readonly yaw: number; readonly pitch: number },
+) {
+  const yaw = normalizeCameraAngle(orientation.yaw);
+  const pitch = clamp(finiteOr(orientation.pitch, 0), -0.3, 0.52);
+  state.yaw = yaw;
+  state.desiredYaw = yaw;
+  state.pitch = pitch;
+  state.desiredPitch = pitch;
+  return state;
+}
+
 export function solveAfterlightCameraFrame(
   out: MutableCameraFrame,
   request: CameraFrameRequest,

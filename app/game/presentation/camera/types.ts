@@ -28,6 +28,8 @@ export interface AfterlightCameraOrientationRef {
 export interface AfterlightCameraRigProps {
   readonly targetPose: Pose;
   readonly mode: AfterlightCameraMode;
+  /** Deterministic gameplay orientation used by on-foot movement and aiming. */
+  readonly controlledOrientation?: AfterlightCameraOrientation;
   /** Planar target speed in meters per second. */
   readonly speed?: number;
   readonly aim?: boolean;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { LOCOMOTION_TUNING } from "../actors/locomotion";
 import {
   AFTERLIGHT_ITEMS,
   AFTERLIGHT_OBJECTIVE_IDS,
@@ -18,6 +19,7 @@ import {
 import {
   AFTERLIGHT_ENTITY_IDS,
   AFTERLIGHT_CHECKPOINTS,
+  AFTERLIGHT_LANDMARKS,
   createInitialAfterlightState,
 } from "./afterlight-state";
 import {
@@ -311,7 +313,7 @@ describe("Afterlight step", () => {
     if (!moving) throw new Error("missing moving player fixture");
     const movingYaw = moving.pose.rotationY;
     const movingSpeed = Math.hypot(moving.velocity[0], moving.velocity[2]);
-    expect(movingSpeed).toBeCloseTo(2.6, 1);
+    expect(movingSpeed).toBeCloseTo(LOCOMOTION_TUNING.walkSpeed, 1);
 
     scenario.step();
     const braking = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
@@ -363,6 +365,36 @@ describe("Afterlight step", () => {
     expect(runtime.state.mission.completedObjectiveIds).toContain(
       AFTERLIGHT_OBJECTIVE_IDS.learnDriving,
     );
+  });
+
+  it("starts the coupe facing the Mission intercept", () => {
+    const initial = createInitialAfterlightState();
+    const runtime = createGameRuntime(
+      initial,
+      createAfterlightStep(initial.seed),
+    );
+    const start = initial.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    if (!start) throw new Error("missing opening coupe");
+    const startDistance = Math.hypot(
+      start.pose.position[0] - AFTERLIGHT_LANDMARKS.missionIntercept[0],
+      start.pose.position[2] - AFTERLIGHT_LANDMARKS.missionIntercept[2],
+    );
+
+    runtime.command(input({ interactPressed: true }));
+    runtime.advance();
+    for (let tick = 0; tick < 60; tick += 1) {
+      runtime.command(input({ throttle: 1 }));
+      runtime.advance();
+    }
+
+    const moved = runtime.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    if (!moved) throw new Error("missing driven coupe");
+    const movedDistance = Math.hypot(
+      moved.pose.position[0] - AFTERLIGHT_LANDMARKS.missionIntercept[0],
+      moved.pose.position[2] - AFTERLIGHT_LANDMARKS.missionIntercept[2],
+    );
+    expect(moved.pose.position[2]).toBeLessThan(start.pose.position[2]);
+    expect(movedDistance).toBeLessThan(startDistance);
   });
 
   it("prevents the hero coupe from penetrating rendered building footprints", () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  applyControlledCameraOrientation,
   cameraDampingAlpha,
   consumeAfterlightCameraImpulses,
   dampCameraAngle,
@@ -149,6 +150,24 @@ describe("Afterlight camera profiles", () => {
 });
 
 describe("camera controls", () => {
+  it("locks rendered orientation to the deterministic gameplay camera", () => {
+    const state = controls();
+    state.yaw = -1.4;
+    state.desiredYaw = 2.2;
+    state.pitch = -0.2;
+    state.desiredPitch = 0.3;
+
+    applyControlledCameraOrientation(state, {
+      yaw: Math.PI * 2 + 0.65,
+      pitch: 0.18,
+    });
+
+    expect(state.yaw).toBeCloseTo(0.65);
+    expect(state.desiredYaw).toBeCloseTo(0.65);
+    expect(state.pitch).toBeCloseTo(0.18);
+    expect(state.desiredPitch).toBeCloseTo(0.18);
+  });
+
   it("clamps on-foot pitch and normalizes yaw", () => {
     const state = controls();
     for (let index = 0; index < 240; index += 1) {

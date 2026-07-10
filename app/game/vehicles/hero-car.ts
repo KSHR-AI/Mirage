@@ -23,12 +23,12 @@ export interface ArcadeCarConfig {
 export const DEFAULT_ARCADE_CAR_CONFIG: ArcadeCarConfig = Object.freeze({
   targetSpeed: HERO_CAR_TARGET_SPEED,
   reverseSpeed: 10,
-  acceleration: 18,
-  reverseAcceleration: 11,
+  acceleration: 22,
+  reverseAcceleration: 14,
   brakeDeceleration: 30,
   rollingResistance: 1.8,
-  steeringRate: 1.75,
-  minimumSteerSpeed: 0.4,
+  steeringRate: 2.25,
+  minimumSteerSpeed: 0.2,
   lateralTraction: 12,
 });
 
@@ -183,7 +183,7 @@ export function stepHeroCar(
     speedForSteering >= config.minimumSteerSpeed
   ) {
     const speedRatio = clamp(speedForSteering / config.targetSpeed, 0, 1);
-    const steeringScale = 0.25 + speedRatio * 0.75;
+    const steeringScale = 0.42 + speedRatio * 0.58;
     const direction = forwardSpeed >= 0 ? 1 : -1;
     rotationY = normalizeAngle(
       rotationY - steer * direction * config.steeringRate * steeringScale * dt,

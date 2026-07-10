@@ -17,6 +17,7 @@ import {
 } from "./collision";
 
 import {
+  applyControlledCameraOrientation,
   consumeAfterlightCameraImpulses,
   dampAfterlightCameraFrame,
   dampCameraScalar,
@@ -174,6 +175,7 @@ function finiteOr(value: number, fallback: number) {
 export function AfterlightCameraRig({
   aim = false,
   collisionDistance = null,
+  controlledOrientation,
   enabled = true,
   impulses = EMPTY_IMPULSES,
   look = EMPTY_LOOK,
@@ -226,8 +228,9 @@ export function AfterlightCameraRig({
     const controlStep = runtime.controlStep;
     controlStep.mode = mode;
     controlStep.targetYaw = targetYaw;
-    controlStep.lookX = look[0];
-    controlStep.lookY = look[1];
+    const controlledOnFoot = mode === "on-foot" && controlledOrientation;
+    controlStep.lookX = controlledOnFoot ? 0 : look[0];
+    controlStep.lookY = controlledOnFoot ? 0 : look[1];
     controlStep.lookMode = lookMode;
     controlStep.speed = speed;
     controlStep.aim = aim;
@@ -235,6 +238,9 @@ export function AfterlightCameraRig({
     controlStep.cinematicTime = runtime.cinematicTime;
     controlStep.dt = dt;
     stepAfterlightCameraControls(runtime.controls, controlStep);
+    if (controlledOnFoot) {
+      applyControlledCameraOrientation(runtime.controls, controlledOrientation);
+    }
 
     const request = runtime.request;
     request.targetX = targetX;

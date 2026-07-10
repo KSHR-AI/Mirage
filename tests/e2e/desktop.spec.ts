@@ -159,9 +159,9 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
     strideX * Math.sin(walkingCameraYaw) + strideZ * Math.cos(walkingCameraYaw);
   const lateralTravel =
     strideX * Math.cos(walkingCameraYaw) - strideZ * Math.sin(walkingCameraYaw);
-  expect(strideDistance).toBeGreaterThan(1.5);
-  expect(strideDistance).toBeLessThan(3.5);
-  expect(forwardTravel).toBeGreaterThan(1.5);
+  expect(strideDistance).toBeGreaterThan(3);
+  expect(strideDistance).toBeLessThan(5.2);
+  expect(forwardTravel).toBeGreaterThan(3);
   expect(Math.abs(lateralTravel)).toBeLessThan(0.35);
 
   const restingYaw = Number(await shell.getAttribute("data-player-yaw"));
@@ -233,4 +233,69 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
     });
   await page.getByRole("button", { name: "Resume" }).click();
   await expect(shell).toHaveAttribute("data-pointer-locked", "true");
+});
+
+test("keeps mouse-look and camera-relative movement in a narrow desktop window", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 722, height: 825 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start the job" }).click();
+
+  const shell = page.getByTestId("afterlight-game");
+  const inputSurface = page.locator(".game-input-surface");
+  await expect(page.locator('[aria-label="Touch game controls"]')).toHaveCount(
+    0,
+  );
+
+  const yawBefore = Number(await shell.getAttribute("data-camera-yaw"));
+  await inputSurface.dispatchEvent("pointerdown", {
+    bubbles: true,
+    button: 0,
+    clientX: 430,
+    clientY: 410,
+    pointerId: 77,
+    pointerType: "mouse",
+  });
+  await inputSurface.dispatchEvent("pointermove", {
+    bubbles: true,
+    clientX: 550,
+    clientY: 410,
+    movementX: 120,
+    pointerId: 77,
+    pointerType: "mouse",
+  });
+  await inputSurface.dispatchEvent("pointerup", {
+    bubbles: true,
+    button: 0,
+    clientX: 550,
+    clientY: 410,
+    pointerId: 77,
+    pointerType: "mouse",
+  });
+  await expect
+    .poll(async () => Number(await shell.getAttribute("data-camera-yaw")))
+    .not.toBe(yawBefore);
+
+  const cameraYaw = Number(await shell.getAttribute("data-camera-yaw"));
+  const startX = Number(await shell.getAttribute("data-player-x"));
+  const startZ = Number(await shell.getAttribute("data-player-z"));
+  const startTick = Number(await shell.getAttribute("data-tick"));
+  await page.keyboard.down("w");
+  await expect
+    .poll(async () => Number(await shell.getAttribute("data-tick")), {
+      timeout: 20_000,
+    })
+    .toBeGreaterThanOrEqual(startTick + 60);
+  await page.keyboard.up("w");
+
+  const travelX = Number(await shell.getAttribute("data-player-x")) - startX;
+  const travelZ = Number(await shell.getAttribute("data-player-z")) - startZ;
+  const forwardTravel =
+    travelX * Math.sin(cameraYaw) + travelZ * Math.cos(cameraYaw);
+  const lateralTravel =
+    travelX * Math.cos(cameraYaw) - travelZ * Math.sin(cameraYaw);
+  expect(forwardTravel).toBeGreaterThan(3);
+  expect(Math.abs(lateralTravel)).toBeLessThan(0.5);
 });

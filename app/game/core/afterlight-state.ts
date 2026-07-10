@@ -55,7 +55,7 @@ export const AFTERLIGHT_CHECKPOINTS: Readonly<
     }),
     vehiclePose: Object.freeze({
       position: [61.3, 0.72, 51] as Vec3,
-      rotationY: Math.PI,
+      rotationY: 0,
     }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.keyholder]: Object.freeze({
@@ -274,13 +274,7 @@ export function createInitialAfterlightVehicles(
   return new Map([
     [
       ids.heroCoupe,
-      vehicle(
-        ids.heroCoupe,
-        "hero",
-        AFTERLIGHT_LANDMARKS.boostYard,
-        Math.PI,
-        100,
-      ),
+      vehicle(ids.heroCoupe, "hero", AFTERLIGHT_LANDMARKS.boostYard, 0, 100),
     ],
     [
       ids.courier,

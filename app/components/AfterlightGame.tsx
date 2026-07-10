@@ -60,6 +60,7 @@ import {
   type KeyboardLayout,
   type RemappableKeyboardAction,
 } from "../game/input/input-buffer";
+import { prefersTouchControls } from "../game/input/device-profile";
 import {
   AFTERLIGHT_PHASE_IDS,
   createAfterlightJob,
@@ -108,6 +109,7 @@ interface SessionView {
   readonly snapshot: RenderSnapshot;
   readonly input: InputFrame;
   readonly cameraYaw: number;
+  readonly cameraPitch: number;
   readonly vfxEvents: readonly AfterlightVfxEvent[];
   readonly cameraImpulses: readonly AfterlightCameraImpulse[];
   readonly notifications: readonly HudNotification[];
@@ -125,6 +127,14 @@ interface TouchDrag {
   readonly id: number;
   x: number;
   y: number;
+}
+
+function capturePointerIfAvailable(element: HTMLElement, pointerId: number) {
+  try {
+    element.setPointerCapture(pointerId);
+  } catch {
+    // Embedded browsers can expose pointer capture while rejecting the stream.
+  }
 }
 
 const GAME_SEED = 2407;
@@ -165,9 +175,11 @@ function readControlSettings(): ControlSettings {
 }
 
 function getTouchSnapshot(): boolean {
-  return (
-    window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 760
-  );
+  return prefersTouchControls({
+    coarsePointer: window.matchMedia("(pointer: coarse)").matches,
+    finePointer: window.matchMedia("(pointer: fine)").matches,
+    viewportWidth: window.innerWidth,
+  });
 }
 
 function getServerTouchSnapshot(): boolean {
@@ -175,11 +187,14 @@ function getServerTouchSnapshot(): boolean {
 }
 
 function subscribeToTouch(onStoreChange: () => void): () => void {
-  const query = window.matchMedia("(pointer: coarse)");
-  query.addEventListener("change", onStoreChange);
+  const coarseQuery = window.matchMedia("(pointer: coarse)");
+  const fineQuery = window.matchMedia("(pointer: fine)");
+  coarseQuery.addEventListener("change", onStoreChange);
+  fineQuery.addEventListener("change", onStoreChange);
   window.addEventListener("resize", onStoreChange);
   return () => {
-    query.removeEventListener("change", onStoreChange);
+    coarseQuery.removeEventListener("change", onStoreChange);
+    fineQuery.removeEventListener("change", onStoreChange);
     window.removeEventListener("resize", onStoreChange);
   };
 }
@@ -544,6 +559,7 @@ function freshView(
     snapshot: runtime.snapshot(1),
     input: EMPTY_INPUT_FRAME,
     cameraYaw: state.actors.get(state.playerId)?.pose.rotationY ?? 0,
+    cameraPitch: 0,
     vfxEvents: EMPTY_VFX_EVENTS,
     cameraImpulses: EMPTY_CAMERA_IMPULSES,
     notifications: [initialNotification(state)],
@@ -709,7 +725,10 @@ export function AfterlightGame() {
       const locked = document.pointerLockElement === inputSurfaceRef.current;
       pointerLockedRef.current = locked;
       setPointerLocked(locked);
-      if (locked) return;
+      if (locked) {
+        touchDragRef.current = null;
+        return;
+      }
 
       inputRef.current.setAction("fire", false);
       inputRef.current.setAction("aim", false);
@@ -983,11 +1002,13 @@ export function AfterlightGame() {
         const cameraYaw = stepControllerRef.current.getCameraYaw(
           player?.pose.rotationY ?? hero?.pose.rotationY ?? 0,
         );
+        const cameraPitch = stepControllerRef.current.getCameraPitch();
         const nextView: SessionView = {
           state,
           snapshot: frame.snapshot,
           input: lastInputRef.current,
           cameraYaw,
+          cameraPitch,
           vfxEvents: vfxRef.current,
           cameraImpulses: impulsesRef.current,
           notifications: notificationRef.current,
@@ -1289,7 +1310,7 @@ export function AfterlightGame() {
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (!startedRef.current || pausedRef.current || blocked) return;
       if (event.pointerType === "touch") {
-        event.currentTarget.setPointerCapture(event.pointerId);
+        capturePointerIfAvailable(event.currentTarget, event.pointerId);
         touchDragRef.current = {
           id: event.pointerId,
           x: event.clientX,
@@ -1299,6 +1320,12 @@ export function AfterlightGame() {
       }
 
       if (!pointerLockedRef.current) {
+        capturePointerIfAvailable(event.currentTarget, event.pointerId);
+        touchDragRef.current = {
+          id: event.pointerId,
+          x: event.clientX,
+          y: event.clientY,
+        };
         requestGamePointerLock();
         return;
       }
@@ -1325,7 +1352,9 @@ export function AfterlightGame() {
     if (!pointer || pointer.id !== event.pointerId) return;
     const dx = event.clientX - pointer.x;
     const dy = event.clientY - pointer.y;
-    inputRef.current.setSource("touch");
+    inputRef.current.setSource(
+      event.pointerType === "touch" ? "touch" : "keyboard",
+    );
     inputRef.current.addLookDelta(
       dx * 0.08 * lookSensitivityRef.current,
       -dy *
@@ -1341,7 +1370,6 @@ export function AfterlightGame() {
     if (event.pointerType !== "touch") {
       inputRef.current.setAction("fire", false);
       inputRef.current.setAction("aim", false);
-      return;
     }
     if (touchDragRef.current?.id === event.pointerId) {
       touchDragRef.current = null;
@@ -1402,6 +1430,7 @@ export function AfterlightGame() {
       className="bay-city-shell"
       data-aiming={view.input.aim ? "true" : "false"}
       data-camera-yaw={view.cameraYaw.toFixed(4)}
+      data-camera-pitch={view.cameraPitch.toFixed(4)}
       data-look-x={view.input.look[0].toFixed(3)}
       data-look-y={view.input.look[1].toFixed(3)}
       data-mode={driving ? "car" : "foot"}
@@ -1453,6 +1482,8 @@ export function AfterlightGame() {
           <Suspense fallback={null}>
             <AfterlightScene
               cameraImpulses={view.cameraImpulses}
+              cameraPitch={view.cameraPitch}
+              cameraYaw={view.cameraYaw}
               input={view.input}
               paused={paused || blocked}
               quality={quality}

@@ -6,6 +6,7 @@ export {
 } from "./collision";
 export {
   AFTERLIGHT_CAMERA_PROFILES,
+  applyControlledCameraOrientation,
   cameraDampingAlpha,
   consumeAfterlightCameraImpulses,
   dampAfterlightCameraFrame,

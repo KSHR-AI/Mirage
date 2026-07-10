@@ -63,6 +63,8 @@ export interface AfterlightSceneProps {
   readonly quality: GameQualityTier;
   readonly vfxEvents: readonly AfterlightVfxEvent[];
   readonly cameraImpulses: readonly AfterlightCameraImpulse[];
+  readonly cameraYaw: number;
+  readonly cameraPitch: number;
 }
 
 const KEYHOLDER_GUARDS = new Set<number>([
@@ -364,6 +366,8 @@ function DynamicHeroVehicle({
 }
 
 export const AfterlightScene = memo(function AfterlightScene({
+  cameraPitch,
+  cameraYaw,
   state,
   snapshot,
   input,
@@ -574,6 +578,9 @@ export const AfterlightScene = memo(function AfterlightScene({
 
       <AfterlightCameraRig
         aim={!driving && input.aim}
+        controlledOrientation={
+          driving ? undefined : { pitch: cameraPitch, yaw: cameraYaw }
+        }
         impulses={cameraImpulses}
         look={input.look}
         lookMode={

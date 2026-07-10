@@ -294,7 +294,7 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
           headlights
           position={plan.anchor}
           quality={plan.quality.modelQuality}
-          rotation={[0, Math.PI, 0]}
+          rotation={[0, 0, 0]}
         />
       ) : null}
       {plan.routeGateVisible ? (

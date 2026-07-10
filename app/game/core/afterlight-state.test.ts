@@ -31,6 +31,7 @@ describe("initial Afterlight state", () => {
     const player = state.actors.get(state.playerId);
     const hero = state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
     if (!player || !hero) throw new Error("missing opening fixtures");
+    expect(hero.pose.rotationY).toBe(0);
     expect(
       Math.hypot(
         player.pose.position[0] - hero.pose.position[0],

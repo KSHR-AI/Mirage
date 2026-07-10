@@ -93,6 +93,13 @@ describe("arcade hero car", () => {
     expect(reversing.pose.rotationY).toBeGreaterThan(0);
   });
 
+  it("responds to steering during the first acceleration step", () => {
+    const turned = stepHeroCar(vehicle(), input({ throttle: 1, steer: 1 }));
+
+    expect(vehiclePlanarSpeed(turned)).toBeGreaterThan(0);
+    expect(turned.pose.rotationY).toBeLessThan(0);
+  });
+
   it("coasts, preserves vertical state, and leaves disabled vehicles untouched", () => {
     const moving = vehicle({
       pose: { position: [2, 4, 8], rotationY: 0 },
