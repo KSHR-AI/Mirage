@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AFTERLIGHT_ITEMS,
   AFTERLIGHT_OBJECTIVE_IDS,
+  AFTERLIGHT_PHASE_IDS,
 } from "../missions/afterlight-job";
 import {
   EMPTY_INPUT_FRAME,
@@ -107,6 +108,28 @@ class AfterlightScenario {
     if (!weapon) throw new Error("missing Signal-9 fixture");
     weapons.set(weapon.id, { ...weapon, cooldownTicks: 0 });
     this.state = { ...this.state, weapons };
+  }
+
+  setPhase(phaseId: string): void {
+    const phaseIndex = this.controller.definition.phases.findIndex(
+      (phase) => phase.id === phaseId,
+    );
+    if (phaseIndex < 0) throw new Error(`missing phase fixture ${phaseId}`);
+    this.state = {
+      ...this.state,
+      mission: { ...this.state.mission, phaseIndex },
+    };
+  }
+
+  setWantedLevel(wantedLevel: 0 | 1 | 2 | 3): void {
+    this.state = {
+      ...this.state,
+      heat: {
+        ...this.state.heat,
+        value: wantedLevel,
+        wantedLevel,
+      },
+    };
   }
 
   activateCourierChase(): void {
@@ -422,6 +445,155 @@ describe("Afterlight step", () => {
       runtime.state.actors.get(AFTERLIGHT_ENTITY_IDS.keyholderGuardA)?.health,
     ).toBe(56);
     expect(runtime.state.weapons.get("signal-9")?.magazine).toBe(23);
+  });
+
+  it("requires aim pitch to hit an elevated target", () => {
+    const runShot = (lookY = 0) => {
+      const scenario = new AfterlightScenario();
+      scenario.placeActor(
+        AFTERLIGHT_ENTITY_IDS.player,
+        [64, 1.15, 56],
+        Math.PI,
+      );
+      scenario.placeVehicle(
+        AFTERLIGHT_ENTITY_IDS.heroCoupe,
+        [20, 0.72, 20],
+        0,
+        {
+          occupiedBy: undefined,
+          velocity: [0, 0, 0],
+        },
+      );
+      scenario.placeActor(
+        AFTERLIGHT_ENTITY_IDS.keyholderGuardA,
+        [64, 4.15, 48],
+        0,
+      );
+      scenario.readyWeapon();
+      scenario.step({ aim: true, firePressed: true, look: [0, lookY] });
+      return scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.keyholderGuardA)
+        ?.health;
+    };
+
+    expect(runShot()).toBe(90);
+    expect(runShot(-14)).toBe(56);
+  });
+
+  it("keeps a vault guard from crossing or shooting through the vault shell", () => {
+    const scenario = new AfterlightScenario();
+    const ids = AFTERLIGHT_ENTITY_IDS;
+    scenario.setPhase(AFTERLIGHT_PHASE_IDS.vault);
+    scenario.placeActor(ids.player, [14, 1.15, -30], 0);
+    scenario.placeActor(ids.vaultGuardA, [14, 1.15, -52], 0);
+    scenario.placeActor(ids.vaultGuardB, [40, 1.15, -80], 0, {
+      life: "down",
+      health: 0,
+    });
+    scenario.placeActor(ids.vaultGuardC, [40, 1.15, -84], 0, {
+      life: "down",
+      health: 0,
+    });
+    scenario.placeActor(ids.vaultGuardD, [40, 1.15, -88], 0, {
+      life: "down",
+      health: 0,
+    });
+    scenario.readyWeapon();
+
+    scenario.step({ aim: true, firePressed: true });
+    scenario.stepMany(240);
+
+    const guard = scenario.state.actors.get(ids.vaultGuardA);
+    const player = scenario.state.actors.get(ids.player);
+    if (!guard || !player) throw new Error("missing vault guard or player");
+
+    expect(guard.pose.position[2]).toBeLessThanOrEqual(-47.4);
+    expect(player.health).toBe(100);
+  });
+
+  it("waits the configured reaction delay before the first exposed hostile shot", () => {
+    const scenario = new AfterlightScenario();
+    const ids = AFTERLIGHT_ENTITY_IDS;
+    scenario.placeActor(ids.player, [0, 1.15, 0], Math.PI / 2);
+    scenario.placeActor(ids.policeA, [-20, 1.15, 0], Math.PI / 2);
+    scenario.placeVehicle(ids.heroCoupe, [20, 0.72, 20], 0, {
+      occupiedBy: undefined,
+      velocity: [0, 0, 0],
+    });
+
+    const preReaction = Array.from({ length: 18 }, () => {
+      scenario.setWantedLevel(1);
+      return scenario.step();
+    }).flat();
+    expect(
+      preReaction.filter((event) => event.type === "actor-damaged"),
+    ).toHaveLength(0);
+
+    scenario.setWantedLevel(1);
+    const reactionTick = scenario.step();
+    expect(reactionTick).toContainEqual(
+      expect.objectContaining({
+        type: "actor-damaged",
+        actorId: ids.player,
+        sourceId: ids.policeA,
+      }),
+    );
+  });
+
+  it("lets pursuing police acquire and damage the occupied hero vehicle", () => {
+    const scenario = new AfterlightScenario();
+    const ids = AFTERLIGHT_ENTITY_IDS;
+    scenario.placeActor(ids.player, [0, 1.15, 0], Math.PI / 2);
+    scenario.placeActor(ids.policeA, [-20, 1.15, 0], Math.PI / 2);
+    scenario.placeVehicle(ids.heroCoupe, [0, 0.72, 0], Math.PI / 2, {
+      occupiedBy: ids.player,
+      velocity: [0, 0, 0],
+    });
+
+    for (let tick = 0; tick < 18; tick += 1) {
+      scenario.setWantedLevel(1);
+      scenario.step();
+    }
+    scenario.setWantedLevel(1);
+    const reactionTick = scenario.step();
+
+    expect(reactionTick).toContainEqual(
+      expect.objectContaining({
+        type: "vehicle-damaged",
+        vehicleId: ids.heroCoupe,
+        sourceId: ids.policeA,
+      }),
+    );
+  });
+
+  it("caps simultaneous hostile shooters when several guards get the same lane", () => {
+    const scenario = new AfterlightScenario();
+    const ids = AFTERLIGHT_ENTITY_IDS;
+    scenario.setWantedLevel(3);
+    scenario.placeVehicle(ids.heroCoupe, [64, 0.72, 50], Math.PI, {
+      occupiedBy: undefined,
+      velocity: [0, 0, 0],
+    });
+    scenario.placeActor(ids.player, [0, 1.15, 0], Math.PI / 2);
+    scenario.placeActor(ids.policeA, [-20, 1.15, -10], Math.PI / 2);
+    scenario.placeActor(ids.policeB, [-20, 1.15, 0], Math.PI / 2);
+    scenario.placeActor(ids.policeC, [-20, 1.15, 10], Math.PI / 2);
+
+    for (let tick = 0; tick < 18; tick += 1) {
+      scenario.setWantedLevel(3);
+      scenario.step();
+    }
+    scenario.setWantedLevel(3);
+    const fired = scenario.step();
+    const shooters = new Set(
+      fired
+        .filter(
+          (event): event is Extract<GameEvent, { type: "actor-damaged" }> =>
+            event.type === "actor-damaged" && event.sourceId !== undefined,
+        )
+        .map((event) => event.sourceId),
+    );
+
+    expect(shooters.size).toBe(2);
   });
 
   it("produces identical hashes for identical commands", () => {

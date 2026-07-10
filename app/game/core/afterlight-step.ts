@@ -5,7 +5,6 @@ import {
   type LocomotionState,
 } from "../actors";
 import { updateHeat } from "../ai/police/heat";
-import { stepSignal9, SIGNAL_9_SPEC } from "../combat";
 import {
   AFTERLIGHT_ITEMS,
   AFTERLIGHT_OBJECTIVE_IDS,
@@ -33,22 +32,36 @@ import {
 import {
   INITIAL_CHARACTER_MOTOR_STATE,
   stepKinematicCharacter,
+  type CharacterObstacle,
   type CharacterMotorState,
   type CharacterWorld,
 } from "../world/character-controller";
 import {
+  AFTERLIGHT_CHARACTER_HIT_CENTER_OFFSET,
   AFTERLIGHT_CHARACTER_WEAPON_OFFSET,
   createAfterlightCharacterWorld,
   createAfterlightVehicleObstacles,
 } from "../world/afterlight-character-world";
 import { DEFAULT_ROAD_GRAPH, findRouteBetween } from "../world/road-graph";
 import {
+  HostileAiSystem,
+  type HostileActorFrame,
+  type HostileIntent,
+  type HostileNoiseStimulus,
+  type HostileTargetFrame,
+} from "../ai/npc";
+import { stepSignal9, SIGNAL_9_SPEC, traceHitscan } from "../combat";
+import {
   AFTERLIGHT_ENTITY_IDS,
   AFTERLIGHT_LANDMARKS,
   afterlightCheckpoint,
   createInitialAfterlightActors,
 } from "./afterlight-state";
-import { createAfterlightPhysicsQuery } from "./afterlight-physics";
+import {
+  AFTERLIGHT_MISSION_COVER,
+  createAfterlightPhysicsQuery,
+  type WorldCollisionBox,
+} from "./afterlight-physics";
 import { SIMULATION_DT } from "./contracts";
 import { deriveSeed } from "./rng";
 import type {
@@ -71,12 +84,22 @@ import type {
 
 const POINTER_LOOK_SENSITIVITY = 0.025;
 const AXIS_LOOK_SPEED = 2.65;
+const MAX_CAMERA_PITCH = Math.PI * 0.35;
 const INTERACTION_DISTANCE = 7;
-const HOSTILE_STOP_DISTANCE = 9;
-const HOSTILE_FIRE_DISTANCE = 34;
 const INTERNAL_BLACKOUT_MARKER = "afterlight:blackout:active";
 const WORLD_SOUTH_BOUNDARY = -238;
 const COURIER_COLLISION_IMPULSE_SCALE = 1.25;
+const HOSTILE_COVER_STANDOFF = 0.84;
+const HOSTILE_PEEK_OFFSET = 0.38;
+const HOSTILE_HITSCAN_RANGE = 72;
+const HOSTILE_VEHICLE_DAMAGE = Object.freeze({
+  police: 4,
+  guard: 6,
+} as const);
+const HOSTILE_ACTOR_DAMAGE = Object.freeze({
+  police: 7,
+  guard: 9,
+} as const);
 
 const COURIER_ROUTE_DESTINATIONS: Readonly<Record<string, Vec3>> =
   Object.freeze({
@@ -133,6 +156,10 @@ function normalizedAngle(angle: number): number {
   return ((((angle + Math.PI) % turn) + turn) % turn) - Math.PI;
 }
 
+function clampedPitch(pitch: number): number {
+  return Math.max(-MAX_CAMERA_PITCH, Math.min(MAX_CAMERA_PITCH, pitch));
+}
+
 function heatFloorLevel(value: number | undefined): 0 | 1 | 2 | 3 {
   if (value === undefined || !Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(3, Math.round(value))) as 0 | 1 | 2 | 3;
@@ -148,8 +175,13 @@ function clampWorld(position: Vec3): Vec3 {
   ];
 }
 
-function playerForward(rotationY: number): Vec3 {
-  return [Math.sin(rotationY), 0, Math.cos(rotationY)];
+function directionFromYawPitch(rotationY: number, pitch: number): Vec3 {
+  const horizontal = Math.cos(pitch);
+  return [
+    Math.sin(rotationY) * horizontal,
+    Math.sin(pitch),
+    Math.cos(rotationY) * horizontal,
+  ];
 }
 
 function sourceFields(sourceId: EntityId | undefined) {
@@ -358,29 +390,125 @@ function exitPosition(vehicle: VehicleState): Vec3 {
   ]);
 }
 
-function moveToward(
-  actor: ActorState,
-  target: Vec3,
-  speed: number,
-): ActorState {
-  const dx = target[0] - actor.pose.position[0];
-  const dz = target[2] - actor.pose.position[2];
-  const distance = Math.hypot(dx, dz);
-  if (distance <= Number.EPSILON) return actor;
-  const vx = (dx / distance) * speed;
-  const vz = (dz / distance) * speed;
+function coverObstacle(box: WorldCollisionBox): CharacterObstacle {
   return {
-    ...actor,
-    pose: {
-      position: clampWorld([
-        actor.pose.position[0] + vx * SIMULATION_DT,
-        1.15,
-        actor.pose.position[2] + vz * SIMULATION_DT,
-      ]),
-      rotationY: Math.atan2(vx, vz),
-    },
-    velocity: [vx, 0, vz],
+    id: `afterlight-cover:${box.id}`,
+    minX: box.center[0] - box.halfExtents[0],
+    maxX: box.center[0] + box.halfExtents[0],
+    minY: box.center[1] - box.halfExtents[1],
+    maxY: box.center[1] + box.halfExtents[1],
+    minZ: box.center[2] - box.halfExtents[2],
+    maxZ: box.center[2] + box.halfExtents[2],
   };
+}
+
+function coverGroundHeight(
+  world: CharacterWorld,
+  x: number,
+  z: number,
+): number {
+  return world.sampleGround(x, z)?.height ?? 1.15;
+}
+
+function createMissionCoverAnchors(world: CharacterWorld) {
+  return Object.freeze(
+    AFTERLIGHT_MISSION_COVER.flatMap((box) => {
+      const faces = [
+        {
+          suffix: "east",
+          normal: [1, 0, 0] as Vec3,
+          position: [
+            box.center[0] + box.halfExtents[0] + HOSTILE_COVER_STANDOFF,
+            box.center[1],
+            box.center[2],
+          ] as Vec3,
+          peek: [
+            box.center[0] + box.halfExtents[0] + HOSTILE_PEEK_OFFSET,
+            box.center[1],
+            box.center[2],
+          ] as Vec3,
+        },
+        {
+          suffix: "west",
+          normal: [-1, 0, 0] as Vec3,
+          position: [
+            box.center[0] - box.halfExtents[0] - HOSTILE_COVER_STANDOFF,
+            box.center[1],
+            box.center[2],
+          ] as Vec3,
+          peek: [
+            box.center[0] - box.halfExtents[0] - HOSTILE_PEEK_OFFSET,
+            box.center[1],
+            box.center[2],
+          ] as Vec3,
+        },
+        {
+          suffix: "north",
+          normal: [0, 0, 1] as Vec3,
+          position: [
+            box.center[0],
+            box.center[1],
+            box.center[2] + box.halfExtents[2] + HOSTILE_COVER_STANDOFF,
+          ] as Vec3,
+          peek: [
+            box.center[0],
+            box.center[1],
+            box.center[2] + box.halfExtents[2] + HOSTILE_PEEK_OFFSET,
+          ] as Vec3,
+        },
+        {
+          suffix: "south",
+          normal: [0, 0, -1] as Vec3,
+          position: [
+            box.center[0],
+            box.center[1],
+            box.center[2] - box.halfExtents[2] - HOSTILE_COVER_STANDOFF,
+          ] as Vec3,
+          peek: [
+            box.center[0],
+            box.center[1],
+            box.center[2] - box.halfExtents[2] - HOSTILE_PEEK_OFFSET,
+          ] as Vec3,
+        },
+      ];
+
+      return faces.map((face) => {
+        const height = coverGroundHeight(
+          world,
+          face.position[0],
+          face.position[2],
+        );
+        return Object.freeze({
+          id: `${box.id}:${face.suffix}`,
+          position: [face.position[0], height, face.position[2]] as Vec3,
+          normal: face.normal,
+          peekPositions: [[face.peek[0], height + 1.55, face.peek[2]] as Vec3],
+          quality: box.id === "vault-shell" ? 2 : 1,
+        });
+      });
+    }),
+  );
+}
+
+function hostileVehicleDamage(actor: ActorState): number {
+  return actor.kind === "police"
+    ? HOSTILE_VEHICLE_DAMAGE.police
+    : HOSTILE_VEHICLE_DAMAGE.guard;
+}
+
+function hostileActorDamage(actor: ActorState): number {
+  return actor.kind === "police"
+    ? HOSTILE_ACTOR_DAMAGE.police
+    : HOSTILE_ACTOR_DAMAGE.guard;
+}
+
+function directionToward(origin: Vec3, target: Vec3): Vec3 {
+  const dx = target[0] - origin[0];
+  const dy = target[1] - origin[1];
+  const dz = target[2] - origin[2];
+  const distance = Math.hypot(dx, dy, dz);
+  if (distance <= Number.EPSILON) return [0, 0, 1];
+  return [dx / distance, dy / distance, dz / distance];
 }
 
 export class AfterlightStepController {
@@ -395,7 +523,18 @@ export class AfterlightStepController {
   };
   private characterMotor: CharacterMotorState = INITIAL_CHARACTER_MOTOR_STATE;
   private readonly characterWorld: CharacterWorld;
+  private readonly hostileCoverObstacles: readonly CharacterObstacle[];
+  private readonly hostileAi: HostileAiSystem;
+  private readonly hostileMotorStates = new Map<
+    EntityId,
+    CharacterMotorState
+  >();
+  private hostilePhysics = createAfterlightPhysicsQuery({
+    actors: new Map(),
+    vehicles: new Map(),
+  });
   private cameraYaw: number | undefined;
+  private cameraPitch = 0;
   private courierAgent: TrafficAgentState | undefined;
   private courierReservations: ReadonlyMap<string, IntersectionReservation> =
     new Map();
@@ -404,6 +543,31 @@ export class AfterlightStepController {
   constructor(seed: number) {
     this.definition = createAfterlightJob(seed);
     this.characterWorld = createAfterlightCharacterWorld(seed);
+    this.hostileCoverObstacles = AFTERLIGHT_MISSION_COVER.map(coverObstacle);
+    this.hostileAi = new HostileAiSystem({
+      seed: deriveSeed(seed, "afterlight-hostiles"),
+      physics: {
+        raycast: (query) => this.hostilePhysics.raycast(query),
+      },
+      coverAnchors: createMissionCoverAnchors(this.characterWorld),
+      config: {
+        perceptionChecksPerTick: 8,
+        targetChecksPerObserver: 4,
+        visionRange: 68,
+        hearingRange: 140,
+        reactionMinTicks: 18,
+        reactionMaxTicks: 18,
+        engageStopDistance: 15,
+        seekCoverAfterTicks: 24,
+        flankAfterDeniedTicks: 18,
+        fireRange: 48,
+        burstMinShots: 1,
+        burstMaxShots: 1,
+        shotIntervalTicks: 1,
+        burstCooldownTicks: 42,
+        maxSimultaneousShooters: 2,
+      },
+    });
     this.step = this.advance.bind(this);
   }
 
@@ -460,15 +624,23 @@ export class AfterlightStepController {
         velocity: hero.velocity,
       };
       this.cameraYaw = hero.pose.rotationY;
+      this.cameraPitch = 0;
       collections.actors.set(player.id, player);
     } else {
-      const lookDelta =
+      const [lookYaw, lookPitch] =
         input.source === "gamepad" || input.source === "touch"
-          ? input.look[0] * AXIS_LOOK_SPEED * SIMULATION_DT
-          : input.look[0] * POINTER_LOOK_SENSITIVITY;
+          ? [
+              input.look[0] * AXIS_LOOK_SPEED * SIMULATION_DT,
+              input.look[1] * AXIS_LOOK_SPEED * SIMULATION_DT,
+            ]
+          : [
+              input.look[0] * POINTER_LOOK_SENSITIVITY,
+              input.look[1] * POINTER_LOOK_SENSITIVITY,
+            ];
       this.cameraYaw = normalizedAngle(
-        (this.cameraYaw ?? player.pose.rotationY) - lookDelta,
+        (this.cameraYaw ?? player.pose.rotationY) - lookYaw,
       );
+      this.cameraPitch = clampedPitch(this.cameraPitch - lookPitch);
       const stepped = stepFootPlayer(
         player,
         input,
@@ -603,7 +775,13 @@ export class AfterlightStepController {
       events,
       context.tick,
     );
-    this.handlePlayerWeapon(collections, events, context.tick, input, player);
+    const playerWeaponFired = this.handlePlayerWeapon(
+      collections,
+      events,
+      context.tick,
+      input,
+      player,
+    );
     this.stepHostiles(
       phaseId,
       collections,
@@ -612,6 +790,7 @@ export class AfterlightStepController {
       player,
       driving,
       state.heat.wantedLevel,
+      playerWeaponFired,
     );
 
     player = collections.actors.get(player.id) ?? player;
@@ -914,10 +1093,13 @@ export class AfterlightStepController {
     tick: number,
     input: InputFrame,
     player: ActorState,
-  ): void {
+  ): boolean {
     const weapon = collections.weapons.get(SIGNAL_9_SPEC.id);
-    if (!weapon) return;
-    const direction = playerForward(player.pose.rotationY);
+    if (!weapon) return false;
+    const direction = directionFromYawPitch(
+      player.pose.rotationY,
+      this.cameraPitch,
+    );
     const result = stepSignal9(weapon, {
       tick,
       ownerId: player.id,
@@ -965,6 +1147,8 @@ export class AfterlightStepController {
       );
       if (crime) events.push(crime);
     }
+
+    return result.events.some((event) => event.type === "weapon-fired");
   }
 
   private stepHostiles(
@@ -975,54 +1159,295 @@ export class AfterlightStepController {
     player: ActorState,
     driving: boolean,
     wantedLevel: 0 | 1 | 2 | 3,
+    playerWeaponFired: boolean,
   ): void {
-    const guards = activeGuardIds(phaseId);
-    const heatPolice = POLICE_ACTORS.slice(0, wantedLevel);
-    const ids = [...guards, ...heatPolice];
+    const activeIds = this.syncHostiles(
+      phaseId,
+      wantedLevel,
+      collections,
+      tick,
+    );
+    if (activeIds.length === 0) return;
 
-    for (const id of ids) {
-      let hostile = collections.actors.get(id);
-      const currentPlayer = collections.actors.get(player.id);
-      if (!hostile || hostile.life !== "alive" || !currentPlayer) continue;
-      const distance = distanceXZ(
-        hostile.pose.position,
-        currentPlayer.pose.position,
+    const currentPlayer = collections.actors.get(player.id);
+    if (!currentPlayer) return;
+
+    this.hostilePhysics = createAfterlightPhysicsQuery(collections);
+    const intents = this.hostileAi.update({
+      tick,
+      actors: this.hostileActorFrames(activeIds, collections),
+      targets: this.hostileTargets(
+        currentPlayer,
+        driving
+          ? collections.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe)
+          : undefined,
+      ),
+      noises: this.hostileNoises(
+        tick,
+        currentPlayer,
+        wantedLevel,
+        playerWeaponFired,
+      ),
+    });
+    const dynamicObstacles = [
+      ...this.hostileCoverObstacles,
+      ...createAfterlightVehicleObstacles(collections.vehicles),
+    ];
+
+    for (const intent of intents) {
+      const hostile = collections.actors.get(intent.actorId);
+      if (!hostile || hostile.life !== "alive") continue;
+      collections.actors.set(
+        hostile.id,
+        this.applyHostileMotion(hostile, intent, dynamicObstacles),
       );
-      if (distance > HOSTILE_STOP_DISTANCE) {
-        hostile = moveToward(
-          hostile,
-          currentPlayer.pose.position,
-          hostile.kind === "police" ? 6.2 : 4.2,
-        );
-        collections.actors.set(id, hostile);
-      } else {
-        collections.actors.set(id, { ...hostile, velocity: [0, 0, 0] });
-      }
+    }
 
+    this.hostilePhysics = createAfterlightPhysicsQuery(collections);
+    for (const intent of intents) {
+      if (!intent.fire) continue;
+      this.applyHostileFire(
+        collections,
+        events,
+        tick,
+        intent,
+        currentPlayer.id,
+        driving,
+      );
+    }
+  }
+
+  private syncHostiles(
+    phaseId: string,
+    wantedLevel: 0 | 1 | 2 | 3,
+    collections: StepCollections,
+    tick: number,
+  ): readonly EntityId[] {
+    const activeIds = [
+      ...activeGuardIds(phaseId),
+      ...POLICE_ACTORS.slice(0, wantedLevel),
+    ].sort((left, right) => left - right);
+    const activeSet = new Set(activeIds);
+
+    for (const snapshot of this.hostileAi.snapshots()) {
+      const actor = collections.actors.get(snapshot.actorId);
       if (
-        distance <= HOSTILE_FIRE_DISTANCE &&
-        (tick + id * 7) % (hostile.kind === "police" ? 54 : 66) === 0
+        !activeSet.has(snapshot.actorId) ||
+        !actor ||
+        actor.life !== "alive"
       ) {
-        if (driving) {
-          damageVehicle(
-            collections.vehicles,
-            events,
-            tick,
-            AFTERLIGHT_ENTITY_IDS.heroCoupe,
-            hostile.kind === "police" ? 4 : 6,
-            hostile.id,
-          );
-        } else {
-          damageActor(
-            collections.actors,
-            events,
-            tick,
-            player.id,
-            hostile.kind === "police" ? 7 : 9,
-            hostile.id,
-          );
-        }
+        this.hostileAi.despawn(snapshot.actorId);
+        this.hostileMotorStates.delete(snapshot.actorId);
       }
+    }
+
+    for (const actorId of activeIds) {
+      const actor = collections.actors.get(actorId);
+      const snapshot = this.hostileAi.get(actorId);
+      if (!actor || actor.life !== "alive") continue;
+      if (snapshot && snapshot.state !== "down") continue;
+      if (snapshot) this.hostileAi.despawn(actorId);
+      this.hostileAi.spawn({ actorId, spawnTick: tick });
+      this.hostileMotorStates.set(actorId, INITIAL_CHARACTER_MOTOR_STATE);
+    }
+
+    return activeIds;
+  }
+
+  private hostileActorFrames(
+    activeIds: readonly EntityId[],
+    collections: StepCollections,
+  ): readonly HostileActorFrame[] {
+    return activeIds.flatMap((actorId) => {
+      const actor = collections.actors.get(actorId);
+      return actor
+        ? [
+            {
+              actorId,
+              position: actor.pose.position,
+              health: actor.health,
+              maxHealth: actor.kind === "police" ? 100 : 90,
+              down: actor.life !== "alive",
+            },
+          ]
+        : [];
+    });
+  }
+
+  private hostileTargets(
+    player: ActorState,
+    occupiedVehicle: VehicleState | undefined,
+  ): readonly HostileTargetFrame[] {
+    if (occupiedVehicle?.occupiedBy === player.id) {
+      return [
+        {
+          actorId: occupiedVehicle.id,
+          position: occupiedVehicle.pose.position,
+          velocity: occupiedVehicle.velocity,
+          alive: occupiedVehicle.life !== "destroyed",
+        },
+      ];
+    }
+
+    return [
+      {
+        actorId: player.id,
+        position: player.pose.position,
+        velocity: player.velocity,
+        alive: player.life === "alive",
+      },
+    ];
+  }
+
+  private hostileNoises(
+    tick: number,
+    player: ActorState,
+    wantedLevel: 0 | 1 | 2 | 3,
+    playerWeaponFired: boolean,
+  ): readonly HostileNoiseStimulus[] {
+    const noises: HostileNoiseStimulus[] = [];
+    if (playerWeaponFired) {
+      noises.push({
+        id: `player-gunfire:${tick}`,
+        position: player.pose.position,
+        createdAtTick: tick,
+        expiresAtTick: tick + 12,
+        radius: this.hostileAi.config.hearingRange,
+        sourceEntityId: player.id,
+      });
+    }
+    if (wantedLevel > 0) {
+      noises.push({
+        id: `player-wanted:${tick}`,
+        position: player.pose.position,
+        createdAtTick: tick,
+        expiresAtTick: tick,
+        radius: this.hostileAi.config.hearingRange,
+        sourceEntityId: player.id,
+      });
+    }
+    return noises;
+  }
+
+  private applyHostileMotion(
+    actor: ActorState,
+    intent: HostileIntent,
+    additionalObstacles: readonly CharacterObstacle[],
+  ): ActorState {
+    const faceTarget = intent.aimAt ?? intent.move?.target;
+    const desiredRotation =
+      faceTarget === undefined
+        ? actor.pose.rotationY
+        : Math.atan2(
+            faceTarget[0] - actor.pose.position[0],
+            faceTarget[2] - actor.pose.position[2],
+          );
+    const move = intent.move;
+    if (!move) {
+      return {
+        ...actor,
+        pose: { ...actor.pose, rotationY: desiredRotation },
+        velocity: [0, 0, 0],
+      };
+    }
+
+    const dx = move.target[0] - actor.pose.position[0];
+    const dz = move.target[2] - actor.pose.position[2];
+    const distance = Math.hypot(dx, dz);
+    const horizontalVelocity: Vec3 =
+      distance > move.stopDistance
+        ? [(dx / distance) * move.speed, 0, (dz / distance) * move.speed]
+        : [0, 0, 0];
+    const motor = stepKinematicCharacter({
+      position: actor.pose.position,
+      horizontalVelocity,
+      jumpPressed: false,
+      dt: SIMULATION_DT,
+      previous:
+        this.hostileMotorStates.get(actor.id) ?? INITIAL_CHARACTER_MOTOR_STATE,
+      world: this.characterWorld,
+      additionalObstacles,
+    });
+    this.hostileMotorStates.set(actor.id, motor.state);
+    const position = clampWorld(motor.position);
+
+    return {
+      ...actor,
+      pose: { position, rotationY: desiredRotation },
+      velocity: [
+        (position[0] - actor.pose.position[0]) / SIMULATION_DT,
+        (position[1] - actor.pose.position[1]) / SIMULATION_DT,
+        (position[2] - actor.pose.position[2]) / SIMULATION_DT,
+      ],
+    };
+  }
+
+  private applyHostileFire(
+    collections: StepCollections,
+    events: GameEvent[],
+    tick: number,
+    intent: HostileIntent,
+    playerId: EntityId,
+    driving: boolean,
+  ): void {
+    const fire = intent.fire;
+    const shooter = collections.actors.get(intent.actorId);
+    if (!fire || !shooter || shooter.life !== "alive") return;
+
+    const hero = collections.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    const player = collections.actors.get(playerId);
+    const targetPoint: Vec3 | undefined =
+      driving && hero?.occupiedBy === playerId
+        ? [
+            hero.pose.position[0],
+            hero.pose.position[1] + 0.72,
+            hero.pose.position[2],
+          ]
+        : player
+          ? [
+              player.pose.position[0],
+              player.pose.position[1] + AFTERLIGHT_CHARACTER_HIT_CENTER_OFFSET,
+              player.pose.position[2],
+            ]
+          : undefined;
+    if (!targetPoint) return;
+
+    const trace = traceHitscan(this.hostilePhysics, {
+      origin: fire.origin,
+      direction: directionToward(fire.origin, targetPoint),
+      maxDistance: HOSTILE_HITSCAN_RANGE,
+      sourceEntityId: shooter.id,
+    });
+    if (!trace.hit) return;
+
+    if (driving) {
+      if (
+        hero?.occupiedBy === playerId &&
+        ((trace.hit.kind === "vehicle" &&
+          trace.hit.entityId === AFTERLIGHT_ENTITY_IDS.heroCoupe) ||
+          (trace.hit.kind === "actor" && trace.hit.entityId === playerId))
+      ) {
+        damageVehicle(
+          collections.vehicles,
+          events,
+          tick,
+          hero.id,
+          hostileVehicleDamage(shooter),
+          shooter.id,
+        );
+      }
+      return;
+    }
+
+    if (trace.hit.kind === "actor" && trace.hit.entityId === playerId) {
+      damageActor(
+        collections.actors,
+        events,
+        tick,
+        playerId,
+        hostileActorDamage(shooter),
+        shooter.id,
+      );
     }
   }
 }
