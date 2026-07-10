@@ -9,7 +9,9 @@ export default defineConfig([
     ".next/**",
     "dist/**",
     "node_modules/**",
+    "playwright-report/**",
     "public/vendor/**",
     "research/**",
+    "test-results/**",
   ]),
 ]);

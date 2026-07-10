@@ -17,6 +17,7 @@ import {
   hashVisualId,
   type AgentVisualRole,
 } from "./appearance";
+import { MuzzleFlash } from "./effects";
 import type { AgentAnimationState, AgentModelProps, VisualId } from "./types";
 
 export interface AuthoredAgentModelProps extends AgentModelProps {
@@ -176,6 +177,65 @@ function clipForName(
   return clips.find((clip) => clip.name === name) ?? null;
 }
 
+function AuthoredAgentEquipment({
+  active,
+  muzzleFlash,
+  quality,
+  role,
+}: {
+  readonly active: boolean;
+  readonly muzzleFlash: boolean;
+  readonly quality: "desktop" | "mobile";
+  readonly role: AgentVisualRole;
+}) {
+  if (role === "civilian") return null;
+
+  return active ? (
+    <group position={[0.22, 0.2, 0.39]}>
+      <mesh castShadow={quality === "desktop"} position={[0, 0, 0.12]}>
+        <boxGeometry args={[0.12, 0.14, 0.38]} />
+        <meshStandardMaterial
+          color="#151b1e"
+          metalness={0.68}
+          roughness={0.3}
+        />
+      </mesh>
+      <mesh
+        castShadow={quality === "desktop"}
+        position={[0, -0.14, 0.02]}
+        rotation={[-0.24, 0, 0]}
+      >
+        <boxGeometry args={[0.1, 0.25, 0.14]} />
+        <meshStandardMaterial
+          color="#293337"
+          metalness={0.34}
+          roughness={0.56}
+        />
+      </mesh>
+      <mesh position={[0, 0.01, 0.35]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.025, 0.025, 0.2, 8]} />
+        <meshStandardMaterial
+          color="#0b1012"
+          metalness={0.82}
+          roughness={0.22}
+        />
+      </mesh>
+      <MuzzleFlash
+        active={muzzleFlash}
+        position={[0, 0.01, 0.49]}
+        quality={quality}
+      />
+    </group>
+  ) : (
+    <group position={[0.42, -0.18, 0.02]} rotation={[0, 0, -0.1]}>
+      <mesh castShadow={quality === "desktop"}>
+        <boxGeometry args={[0.14, 0.34, 0.12]} />
+        <meshStandardMaterial color="#151a1c" roughness={0.68} />
+      </mesh>
+    </group>
+  );
+}
+
 export function AuthoredAgentModel({
   aim = false,
   aimPitch = 0,
@@ -310,6 +370,12 @@ export function AuthoredAgentModel({
           scale={variation.scale}
         >
           <primitive dispose={null} object={clonedScene} />
+          <AuthoredAgentEquipment
+            active={aiming}
+            muzzleFlash={muzzleFlash || resolvedAnimation === "fire"}
+            quality={quality}
+            role={role}
+          />
         </group>
       </group>
     </group>

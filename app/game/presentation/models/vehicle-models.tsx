@@ -2,7 +2,7 @@
 
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
-import { Group, Mesh, MathUtils } from "three";
+import { Group, Mesh, MathUtils, Object3D } from "three";
 
 import {
   clampPresentationSignal,
@@ -471,6 +471,7 @@ function Lamps({
   brakeLights,
   damage,
   dimensions,
+  dynamicHeadlight,
   headlights,
   quality,
 }: {
@@ -478,6 +479,7 @@ function Lamps({
   brakeLights: boolean;
   damage: number;
   dimensions: VehicleModelDimensions;
+  dynamicHeadlight: boolean;
   headlights: boolean;
   quality: ModelQuality;
 }) {
@@ -486,6 +488,7 @@ function Lamps({
   const lampX = dimensions.width * 0.31;
   const lampY = dimensions.bodyY + 0.08;
   const brokenRight = damage > 0.72;
+  const headlightTarget = useMemo(() => new Object3D(), []);
   return (
     <>
       {[-1, 1].map((side) => {
@@ -522,21 +525,22 @@ function Lamps({
           roughness={0.31}
         />
       </mesh>
-      {headlights && quality === "desktop" ? (
+      {headlights && dynamicHeadlight && quality === "desktop" ? (
         <>
-          <pointLight
-            color="#ffe7b0"
-            decay={2}
-            distance={8}
-            intensity={2.4}
-            position={[-lampX, lampY, frontZ - 0.18]}
+          <primitive
+            object={headlightTarget}
+            position={[0, lampY - 0.34, frontZ - 15]}
           />
-          <pointLight
+          <spotLight
+            angle={0.38}
+            castShadow={false}
             color="#ffe7b0"
             decay={2}
-            distance={8}
-            intensity={2.4}
-            position={[lampX, lampY, frontZ - 0.18]}
+            distance={18}
+            intensity={42}
+            penumbra={0.72}
+            position={[0, lampY + 0.08, frontZ - 0.2]}
+            target={headlightTarget}
           />
         </>
       ) : null}
@@ -1010,6 +1014,7 @@ export function RoadVehicleModel({
           brakeLights={brakeLights || disabled}
           damage={normalizedDamage}
           dimensions={dimensions}
+          dynamicHeadlight={kind === "hero-coupe"}
           headlights={headlights}
           quality={quality}
         />
