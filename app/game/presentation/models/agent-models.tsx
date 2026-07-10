@@ -11,7 +11,9 @@ import {
   type AgentAppearance,
   type AgentVisualRole,
 } from "./appearance";
+import { AuthoredAgentModel } from "./authored-agent-model";
 import { MuzzleFlash } from "./effects";
+import { ModelAssetBoundary } from "./ModelAssetBoundary";
 import type {
   AgentAnimationState,
   AgentModelProps,
@@ -602,21 +604,46 @@ function AgentRig({
 }
 
 export function AgentModel(props: GenericAgentModelProps) {
-  return <AgentRig {...props} armed={props.role !== "civilian"} />;
+  const fallback = <AgentRig {...props} armed={props.role !== "civilian"} />;
+  return (
+    <ModelAssetBoundary fallback={fallback}>
+      <AuthoredAgentModel {...props} />
+    </ModelAssetBoundary>
+  );
 }
 
 export function PlayerAgentModel(props: AgentModelProps) {
-  return <AgentRig {...props} armed role="player" />;
+  const fallback = <AgentRig {...props} armed role="player" />;
+  return (
+    <ModelAssetBoundary fallback={fallback}>
+      <AuthoredAgentModel {...props} role="player" />
+    </ModelAssetBoundary>
+  );
 }
 
 export function CivilianModel(props: AgentModelProps) {
-  return <AgentRig {...props} armed={false} role="civilian" />;
+  const fallback = <AgentRig {...props} armed={false} role="civilian" />;
+  return (
+    <ModelAssetBoundary fallback={fallback}>
+      <AuthoredAgentModel {...props} role="civilian" />
+    </ModelAssetBoundary>
+  );
 }
 
 export function GuardModel(props: AgentModelProps) {
-  return <AgentRig {...props} armed role="guard" />;
+  const fallback = <AgentRig {...props} armed role="guard" />;
+  return (
+    <ModelAssetBoundary fallback={fallback}>
+      <AuthoredAgentModel {...props} role="guard" />
+    </ModelAssetBoundary>
+  );
 }
 
 export function PoliceOfficerModel(props: AgentModelProps) {
-  return <AgentRig {...props} armed role="police" />;
+  const fallback = <AgentRig {...props} armed role="police" />;
+  return (
+    <ModelAssetBoundary fallback={fallback}>
+      <AuthoredAgentModel {...props} role="police" />
+    </ModelAssetBoundary>
+  );
 }

@@ -10,6 +10,8 @@
   "scripts": {
     "assets:validate": "node scripts/validate-game-assets.mjs",
     "assets:import:polyhaven": "node scripts/import-polyhaven-model.mjs",
+    "assets:import:quaternius:city": "node scripts/import-quaternius-city.mjs",
+    "assets:import:quaternius:characters": "node scripts/import-quaternius-characters.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

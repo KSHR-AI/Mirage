@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-10T12:05:00.000Z",
+  "generatedAt": "2026-07-10T18:09:24.000Z",
   "policy": {
     "commercialUseRequired": true,
     "standaloneRedistribution": false,
@@ -81,6 +81,85 @@
           "role": "render-model",
           "bytes": 2374436,
           "sha256": "bbd50bc23b9dbd62d2b176ab23ee4d9692b63b1317b051395b6099c5ee3eb604"
+        }
+      ]
+    },
+    {
+      "id": "quaternius-ultimate-modular-men",
+      "name": "Ultimate Modular Men - Selected Characters",
+      "kind": "optimized-animated-gltf-model-set",
+      "source": {
+        "provider": "Quaternius",
+        "pageUrl": "https://quaternius.com/packs/ultimatemodularcharacters.html",
+        "downloadUrl": "https://drive.google.com/drive/folders/1USAAquX2JJWuA2m6zol0KUkFe3UkZ8zX",
+        "authors": ["Quaternius"]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Quaternius credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected the Adventurer, Casual Hoodie, and SWAT characters for player, civilian, and armed response roles.",
+        "Pruned each source model from 24 animation clips to the eight clips used by Mirage locomotion, combat, and incapacitation states.",
+        "Deduplicated, joined, welded, pruned, resampled, and high-level Meshopt-compressed the models for browser delivery."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/models/characters/runner.glb",
+          "role": "player-character",
+          "bytes": 460464,
+          "sha256": "109c390a28948970a181494f105374a0703907a00959f7e61232f089cfa950c8"
+        },
+        {
+          "path": "public/game-assets/models/characters/civilian.glb",
+          "role": "civilian-character",
+          "bytes": 389240,
+          "sha256": "14054204fad504d821de9196472ab9604a7cedbb1bf1161a46496e2e9dd34fec"
+        },
+        {
+          "path": "public/game-assets/models/characters/officer.glb",
+          "role": "armed-response-character",
+          "bytes": 425692,
+          "sha256": "a26dd4d4619003622c960b551c0de0adfd8c057b65c7b445d3dc1438dcf90dfd"
+        }
+      ]
+    },
+    {
+      "id": "quaternius-downtown-city-megakit",
+      "name": "Downtown City MegaKit - Standard Buildings",
+      "kind": "optimized-ktx2-gltf-building-set",
+      "source": {
+        "provider": "Quaternius",
+        "pageUrl": "https://quaternius.com/packs/downtowncitymegakit.html",
+        "downloadUrl": "https://quaternius.itch.io/downtown-city-megakit",
+        "authors": ["Quaternius"]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Quaternius credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected the three prebuilt buildings included in the free Standard archive.",
+        "Merged the buildings into one scene so all instances share 19 texture maps instead of duplicating payloads.",
+        "Preserved named building roots, deduplicated and welded geometry, pruned unused data, and applied high-level Meshopt compression.",
+        "Resized texture maps to a maximum 960px and encoded base colors as ETC1S plus normal and metallic-roughness maps as UASTC KTX2."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/models/downtown-buildings.glb",
+          "role": "two-block-authored-architecture",
+          "bytes": 7648560,
+          "sha256": "bfa899e9d57431ca8aea97d7e446f6710fb6d00e4a7b778da33e34ed5abf613f"
         }
       ]
     }

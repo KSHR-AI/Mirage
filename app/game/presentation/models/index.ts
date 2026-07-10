@@ -7,6 +7,10 @@ export {
   type GenericAgentModelProps,
 } from "./agent-models";
 export {
+  AuthoredAgentModel,
+  type AuthoredAgentModelProps,
+} from "./authored-agent-model";
+export {
   clampPresentationSignal,
   getAgentAppearance,
   getModelGeometryDetail,

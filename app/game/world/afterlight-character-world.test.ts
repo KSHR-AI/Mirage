@@ -3,6 +3,10 @@ import {
   AFTERLIGHT_ENTITY_IDS,
   createInitialAfterlightState,
 } from "../core/afterlight-state";
+import {
+  AUTHORED_DOWNTOWN_PLACEMENTS,
+  belongsToAuthoredDowntownBlock,
+} from "../content/authored-downtown";
 import { createBayCityLayout } from "../presentation/city/city-layout";
 import {
   createAfterlightCharacterWorld,
@@ -30,17 +34,26 @@ describe("Afterlight character world", () => {
     expect(sampleAfterlightCharacterGround(20, -120)).toBeNull();
   });
 
-  it("derives stable collision boxes from the same procedural buildings", () => {
+  it("matches procedural and authored building collision", () => {
     const seed = 2407;
     const layout = createBayCityLayout({ quality: "mobile", seed });
     const world = createAfterlightCharacterWorld(seed);
-    const building = layout.buildings[0];
+    const building = layout.buildings.find(
+      (candidate) => !belongsToAuthoredDowntownBlock(candidate.id),
+    );
     if (!building) throw new Error("missing building fixture");
     const obstacle = world.obstacles.find(
       (candidate) => candidate.id === building.id,
     );
 
-    expect(world.obstacles).toHaveLength(layout.buildings.length);
+    const replacedBuildingCount = layout.buildings.filter((candidate) =>
+      belongsToAuthoredDowntownBlock(candidate.id),
+    ).length;
+    expect(world.obstacles).toHaveLength(
+      layout.buildings.length -
+        replacedBuildingCount +
+        AUTHORED_DOWNTOWN_PLACEMENTS.length,
+    );
     expect(obstacle).toEqual({
       id: building.id,
       minX: building.position[0] - building.scale[0] * 0.5,
@@ -49,6 +62,10 @@ describe("Afterlight character world", () => {
       maxY: building.position[1] + building.scale[1] * 0.5,
       minZ: building.position[2] - building.scale[2] * 0.5,
       maxZ: building.position[2] + building.scale[2] * 0.5,
+    });
+    expect(world.obstacles).toContainEqual({
+      id: "authored-downtown-large",
+      ...AUTHORED_DOWNTOWN_PLACEMENTS[2]?.collision,
     });
     expect(createAfterlightCharacterWorld(seed)).toBe(world);
   });
