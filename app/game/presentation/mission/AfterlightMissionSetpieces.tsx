@@ -46,6 +46,7 @@ export const AfterlightMissionSetpieces = memo(
     completedObjectiveIds,
     encounterVariant,
     inventory,
+    interactionCuesVisible = true,
     phaseId,
     quality,
     reducedMotion,
@@ -86,10 +87,12 @@ export const AfterlightMissionSetpieces = memo(
         }}
       >
         <SetpieceModel plan={plan} />
-        <MissionInteractionCues
-          cues={plan.cues}
-          reducedMotion={plan.reducedMotion}
-        />
+        {interactionCuesVisible ? (
+          <MissionInteractionCues
+            cues={plan.cues}
+            reducedMotion={plan.reducedMotion}
+          />
+        ) : null}
         <SetpieceLights lights={plan.lights} />
       </group>
     );

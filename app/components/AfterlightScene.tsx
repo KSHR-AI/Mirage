@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { memo, useMemo, useRef, useState } from "react";
+import { lazy, memo, Suspense, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import {
   AFTERLIGHT_ENTITY_IDS,
@@ -82,6 +82,12 @@ const POLICE_IDS = [
 ] as const;
 
 const BLACKOUT_MARKER = "afterlight:blackout:active";
+
+const AfterlightPostEffects = lazy(() =>
+  import("../game/presentation/postfx").then((module) => ({
+    default: module.AfterlightPostEffects,
+  })),
+);
 
 function planarSpeed(velocity: readonly [number, number, number]): number {
   return Math.hypot(velocity[0], velocity[2]);
@@ -418,12 +424,14 @@ export const AfterlightScene = memo(function AfterlightScene({
       : phaseId === AFTERLIGHT_PHASE_IDS.vault
         ? VAULT_GUARDS
         : new Set<number>();
-  const targetPose: Pose = driving
+  const targetPose: Pose = !started
     ? hero.pose
-    : {
-        position: actorVisualPosition(player.pose.position),
-        rotationY: player.pose.rotationY,
-      };
+    : driving
+      ? hero.pose
+      : {
+          position: actorVisualPosition(player.pose.position),
+          rotationY: player.pose.rotationY,
+        };
   const speed = planarSpeed(driving ? hero.velocity : player.velocity);
   const cameraMode = !started
     ? "intro"
@@ -447,7 +455,7 @@ export const AfterlightScene = memo(function AfterlightScene({
   return (
     <>
       <BayCityWorld
-        activeZone={zoneForPhase(phaseId)}
+        activeZone={started ? zoneForPhase(phaseId) : null}
         powerState={cityPowerState}
         missionProgress={
           state.mission.phaseIndex / Math.max(1, definition.phases.length - 1)
@@ -463,6 +471,7 @@ export const AfterlightScene = memo(function AfterlightScene({
         completedObjectiveIds={state.mission.completedObjectiveIds}
         encounterVariant={definition.encounter}
         inventory={state.inventory}
+        interactionCuesVisible={started}
         phaseId={phaseId}
         quality={quality}
         reducedMotion={reducedMotion}
@@ -554,6 +563,15 @@ export const AfterlightScene = memo(function AfterlightScene({
         speed={speed}
         targetPose={targetPose}
       />
+
+      {quality === "high" && !reducedMotion ? (
+        <Suspense fallback={null}>
+          <AfterlightPostEffects
+            quality={quality}
+            reducedMotion={reducedMotion}
+          />
+        </Suspense>
+      ) : null}
     </>
   );
 });

@@ -129,5 +129,6 @@ export interface CreateAfterlightSetpiecePlanOptions {
 }
 
 export interface AfterlightMissionSetpiecesProps extends CreateAfterlightSetpiecePlanOptions {
+  readonly interactionCuesVisible?: boolean;
   readonly visible?: boolean;
 }

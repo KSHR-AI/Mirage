@@ -1,0 +1,65 @@
+import type { GameQualityTier } from "../../performance";
+
+export interface AfterlightPostFxConfig {
+  readonly enabled: boolean;
+  readonly ao: {
+    readonly radius: number;
+    readonly intensity: number;
+    readonly samples: number;
+    readonly denoiseSamples: number;
+  };
+  readonly bloom: {
+    readonly intensity: number;
+    readonly threshold: number;
+    readonly smoothing: number;
+  };
+  readonly vignette: {
+    readonly offset: number;
+    readonly darkness: number;
+  };
+}
+
+const DISABLED_POST_FX: AfterlightPostFxConfig = Object.freeze({
+  enabled: false,
+  ao: Object.freeze({
+    radius: 0,
+    intensity: 0,
+    samples: 0,
+    denoiseSamples: 0,
+  }),
+  bloom: Object.freeze({
+    intensity: 0,
+    threshold: 1,
+    smoothing: 0,
+  }),
+  vignette: Object.freeze({
+    offset: 0,
+    darkness: 0,
+  }),
+});
+
+const HIGH_POST_FX: AfterlightPostFxConfig = Object.freeze({
+  enabled: true,
+  ao: Object.freeze({
+    radius: 2.2,
+    intensity: 0.72,
+    samples: 8,
+    denoiseSamples: 2,
+  }),
+  bloom: Object.freeze({
+    intensity: 0.52,
+    threshold: 1.08,
+    smoothing: 0.24,
+  }),
+  vignette: Object.freeze({
+    offset: 0.28,
+    darkness: 0.34,
+  }),
+});
+
+export function resolveAfterlightPostFxConfig(
+  quality: GameQualityTier,
+  reducedMotion: boolean,
+): AfterlightPostFxConfig {
+  return quality === "high" && !reducedMotion ? HIGH_POST_FX : DISABLED_POST_FX;
+}

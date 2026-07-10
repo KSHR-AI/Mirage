@@ -67,6 +67,11 @@ button:not(:disabled) {
   height: 100%;
 }
 
+.bay-city-canvas {
+  z-index: 0;
+  overflow: hidden;
+}
+
 .bay-city-canvas canvas {
   display: block;
   touch-action: none;

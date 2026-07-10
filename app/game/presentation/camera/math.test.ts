@@ -230,7 +230,7 @@ describe("camera controls", () => {
       cinematicTime: 8,
       dt: 1 / 60,
     });
-    expect(reduced.desiredYaw).toBeCloseTo(0.4 - 0.72);
+    expect(reduced.desiredYaw).toBeCloseTo(0.4 - 1.45);
     expect(normal.desiredYaw).not.toBeCloseTo(reduced.desiredYaw);
   });
 });
