@@ -48,6 +48,7 @@ import {
   type DeterministicGameRuntime,
 } from "../game/core/runtime";
 import {
+  DEFAULT_INPUT_BINDINGS,
   InputBuffer,
   KeyboardInputAdapter,
   applyGamepadSnapshot,
@@ -102,11 +103,10 @@ interface RunStats {
   finished: boolean;
 }
 
-interface PointerDrag {
+interface TouchDrag {
   readonly id: number;
   x: number;
   y: number;
-  readonly pointerType: string;
 }
 
 const GAME_SEED = 2407;
@@ -115,6 +115,30 @@ const EMPTY_CAMERA_IMPULSES: readonly AfterlightCameraImpulse[] = Object.freeze(
   [],
 );
 const BLACKOUT_MARKER = "afterlight:blackout:active";
+const CONTROL_SETTINGS_KEY = "mirage:controls:v1";
+
+interface ControlSettings {
+  readonly lookSensitivity: number;
+  readonly invertLookY: boolean;
+}
+
+function clampLookSensitivity(value: number): number {
+  return Math.max(0.5, Math.min(2, Number.isFinite(value) ? value : 1));
+}
+
+function readControlSettings(): ControlSettings {
+  try {
+    const parsed = JSON.parse(
+      localStorage.getItem(CONTROL_SETTINGS_KEY) ?? "null",
+    );
+    return {
+      lookSensitivity: clampLookSensitivity(parsed?.lookSensitivity),
+      invertLookY: parsed?.invertLookY === true,
+    };
+  } catch {
+    return { lookSensitivity: 1, invertLookY: false };
+  }
+}
 
 function getTouchSnapshot(): boolean {
   return (
@@ -529,7 +553,9 @@ export function AfterlightGame() {
   const continueSaveRef = useRef<SaveGameV1 | null>(null);
   const lastInputRef = useRef<InputFrame>(EMPTY_INPUT_FRAME);
   const touchLookRef = useRef<readonly [number, number]>([0, 0]);
-  const pointerRef = useRef<PointerDrag | null>(null);
+  const touchDragRef = useRef<TouchDrag | null>(null);
+  const inputSurfaceRef = useRef<HTMLDivElement | null>(null);
+  const pointerLockedRef = useRef(false);
   const lastHashTickRef = useRef(-1);
   const previousPhaseRef = useRef(initialSession.state.mission.phaseIndex);
   const previousMagazineRef = useRef(
@@ -550,6 +576,8 @@ export function AfterlightGame() {
   ]);
   const impulseSequenceRef = useRef(0);
   const qualityRef = useRef<GameQualityTier>("medium");
+  const lookSensitivityRef = useRef(1);
+  const invertLookYRef = useRef(false);
   const governorRef = useRef(
     new PerformanceGovernor({ initialTier: "medium" }),
   );
@@ -561,9 +589,12 @@ export function AfterlightGame() {
   const [sessionVersion, setSessionVersion] = useState(0);
   const [started, setStarted] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [pointerLocked, setPointerLocked] = useState(false);
   const [muted, setMuted] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [quality, setQuality] = useState<GameQualityTier>("medium");
+  const [lookSensitivity, setLookSensitivity] = useState(1);
+  const [invertLookY, setInvertLookY] = useState(false);
   const [continueAvailable, setContinueAvailable] = useState(false);
   const [debriefDismissed, setDebriefDismissed] = useState(false);
   const [runScore, setRunScore] = useState<RunScore | null>(null);
@@ -576,9 +607,12 @@ export function AfterlightGame() {
     document.body.classList.add("bay-city-active");
     const profile = readBrowserDeviceProfile();
     const initialQuality = selectInitialQuality(profile);
+    const controls = readControlSettings();
     qualityRef.current = initialQuality;
     governorRef.current.reset(initialQuality);
     reducedMotionRef.current = profile.reducedMotion;
+    lookSensitivityRef.current = controls.lookSensitivity;
+    invertLookYRef.current = controls.invertLookY;
     saveRepositoryRef.current = new SaveGameRepository(window.localStorage);
     continueSaveRef.current = saveRepositoryRef.current.load();
     let cancelled = false;
@@ -586,11 +620,58 @@ export function AfterlightGame() {
       if (cancelled) return;
       setQuality(initialQuality);
       setReducedMotion(profile.reducedMotion);
+      setLookSensitivity(controls.lookSensitivity);
+      setInvertLookY(controls.invertLookY);
       setContinueAvailable(Boolean(continueSaveRef.current));
     });
     return () => {
       cancelled = true;
       document.body.classList.remove("bay-city-active");
+    };
+  }, []);
+
+  const requestGamePointerLock = useCallback(() => {
+    const surface = inputSurfaceRef.current;
+    if (
+      !surface ||
+      getTouchSnapshot() ||
+      document.pointerLockElement === surface
+    ) {
+      return;
+    }
+    void surface.requestPointerLock().catch(() => {
+      // Pointer lock can be denied when the browser does not consider the
+      // initiating event a user gesture. A subsequent click retries it.
+    });
+  }, []);
+
+  const releaseGamePointerLock = useCallback(() => {
+    if (document.pointerLockElement) document.exitPointerLock();
+  }, []);
+
+  useEffect(() => {
+    const onPointerLockChange = () => {
+      const locked = document.pointerLockElement === inputSurfaceRef.current;
+      pointerLockedRef.current = locked;
+      setPointerLocked(locked);
+      if (locked) return;
+
+      inputRef.current.setAction("fire", false);
+      inputRef.current.setAction("aim", false);
+      const state = viewRef.current.state;
+      if (
+        startedRef.current &&
+        !pausedRef.current &&
+        !state.mission.failed &&
+        !state.mission.completed
+      ) {
+        pausedRef.current = true;
+        setPaused(true);
+      }
+    };
+    document.addEventListener("pointerlockchange", onPointerLockChange);
+    return () => {
+      document.removeEventListener("pointerlockchange", onPointerLockChange);
     };
   }, []);
 
@@ -631,18 +712,35 @@ export function AfterlightGame() {
       readInput: () => {
         const pad = navigator.getGamepads?.()[0];
         if (pad && gamepadActive(pad)) {
-          applyGamepadSnapshot(inputRef.current, {
-            axes: [...pad.axes],
-            buttons: pad.buttons.map((button) => ({
-              pressed: button.pressed,
-              value: button.value,
-            })),
-          });
+          applyGamepadSnapshot(
+            inputRef.current,
+            {
+              axes: [...pad.axes],
+              buttons: pad.buttons.map((button) => ({
+                pressed: button.pressed,
+                value: button.value,
+              })),
+            },
+            {
+              ...DEFAULT_INPUT_BINDINGS,
+              invertLookY: invertLookYRef.current,
+              lookSensitivity: lookSensitivityRef.current,
+            },
+          );
         }
         if (touchLookRef.current[0] !== 0 || touchLookRef.current[1] !== 0) {
           inputRef.current.setSource("touch");
-          inputRef.current.setAxis("look-x", touchLookRef.current[0] * 0.6);
-          inputRef.current.setAxis("look-y", touchLookRef.current[1] * 0.45);
+          inputRef.current.setAxis(
+            "look-x",
+            touchLookRef.current[0] * 0.6 * lookSensitivityRef.current,
+          );
+          inputRef.current.setAxis(
+            "look-y",
+            touchLookRef.current[1] *
+              0.45 *
+              lookSensitivityRef.current *
+              (invertLookYRef.current ? -1 : 1),
+          );
         }
         const input = inputRef.current.frame();
         lastInputRef.current = input;
@@ -856,6 +954,10 @@ export function AfterlightGame() {
       if (event.code === "Escape") {
         if (!startedRef.current) return;
         event.preventDefault();
+        if (document.pointerLockElement) {
+          document.exitPointerLock();
+          return;
+        }
         const next = !pausedRef.current;
         pausedRef.current = next;
         setPaused(next);
@@ -906,6 +1008,7 @@ export function AfterlightGame() {
     pausedRef.current = false;
     setStarted(true);
     setPaused(false);
+    requestGamePointerLock();
     void audioRef.current.start();
     const accepted = selectAfterlightRadioLine(
       viewRef.current.state.seed,
@@ -921,7 +1024,7 @@ export function AfterlightGame() {
       },
     ];
     track("bay_city_started");
-  }, []);
+  }, [requestGamePointerLock]);
 
   const continueCheckpoint = useCallback(() => {
     const save = continueSaveRef.current;
@@ -958,12 +1061,18 @@ export function AfterlightGame() {
     pausedRef.current = false;
     setStarted(false);
     setPaused(false);
-  }, []);
+    releaseGamePointerLock();
+  }, [releaseGamePointerLock]);
 
-  const setPause = useCallback((next: boolean) => {
-    pausedRef.current = next;
-    setPaused(next);
-  }, []);
+  const setPause = useCallback(
+    (next: boolean) => {
+      pausedRef.current = next;
+      setPaused(next);
+      if (next) releaseGamePointerLock();
+      else requestGamePointerLock();
+    },
+    [releaseGamePointerLock, requestGamePointerLock],
+  );
 
   const setMutedValue = useCallback((next: boolean) => {
     mutedRef.current = next;
@@ -982,41 +1091,96 @@ export function AfterlightGame() {
     setQuality(next);
   }, []);
 
+  const persistControlSettings = useCallback(() => {
+    localStorage.setItem(
+      CONTROL_SETTINGS_KEY,
+      JSON.stringify({
+        invertLookY: invertLookYRef.current,
+        lookSensitivity: lookSensitivityRef.current,
+      }),
+    );
+  }, []);
+
+  const setLookSensitivityValue = useCallback(
+    (next: number) => {
+      const clamped = clampLookSensitivity(next);
+      lookSensitivityRef.current = clamped;
+      setLookSensitivity(clamped);
+      persistControlSettings();
+    },
+    [persistControlSettings],
+  );
+
+  const setInvertLookYValue = useCallback(
+    (next: boolean) => {
+      invertLookYRef.current = next;
+      setInvertLookY(next);
+      persistControlSettings();
+    },
+    [persistControlSettings],
+  );
+
   const beginLook = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (!startedRef.current || pausedRef.current || blocked) return;
-      event.currentTarget.setPointerCapture(event.pointerId);
-      pointerRef.current = {
-        id: event.pointerId,
-        x: event.clientX,
-        y: event.clientY,
-        pointerType: event.pointerType,
-      };
-      if (event.pointerType !== "touch") {
-        if (event.button === 0) inputRef.current.setAction("fire", true);
-        if (event.button === 2) inputRef.current.setAction("aim", true);
+      if (event.pointerType === "touch") {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        touchDragRef.current = {
+          id: event.pointerId,
+          x: event.clientX,
+          y: event.clientY,
+        };
+        return;
       }
+
+      if (!pointerLockedRef.current) {
+        requestGamePointerLock();
+        return;
+      }
+      inputRef.current.setSource("keyboard");
+      if (event.button === 0) inputRef.current.setAction("fire", true);
+      if (event.button === 2) inputRef.current.setAction("aim", true);
     },
-    [blocked],
+    [blocked, requestGamePointerLock],
   );
 
   const updateLook = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    const pointer = pointerRef.current;
+    if (event.pointerType !== "touch" && pointerLockedRef.current) {
+      inputRef.current.setSource("keyboard");
+      inputRef.current.addLookDelta(
+        event.movementX * 0.08 * lookSensitivityRef.current,
+        -event.movementY *
+          0.065 *
+          lookSensitivityRef.current *
+          (invertLookYRef.current ? -1 : 1),
+      );
+      return;
+    }
+    const pointer = touchDragRef.current;
     if (!pointer || pointer.id !== event.pointerId) return;
     const dx = event.clientX - pointer.x;
     const dy = event.clientY - pointer.y;
-    inputRef.current.addLookDelta(dx * 0.08, -dy * 0.065);
+    inputRef.current.setSource("touch");
+    inputRef.current.addLookDelta(
+      dx * 0.08 * lookSensitivityRef.current,
+      -dy *
+        0.065 *
+        lookSensitivityRef.current *
+        (invertLookYRef.current ? -1 : 1),
+    );
     pointer.x = event.clientX;
     pointer.y = event.clientY;
   }, []);
 
   const endLook = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    if (pointerRef.current?.id !== event.pointerId) return;
-    if (pointerRef.current.pointerType !== "touch") {
+    if (event.pointerType !== "touch") {
       inputRef.current.setAction("fire", false);
       inputRef.current.setAction("aim", false);
+      return;
     }
-    pointerRef.current = null;
+    if (touchDragRef.current?.id === event.pointerId) {
+      touchDragRef.current = null;
+    }
   }, []);
 
   const definition = useMemo(
@@ -1056,16 +1220,26 @@ export function AfterlightGame() {
       value: entry.points + "/" + entry.maxPoints,
       emphasis: entry.id === "pace" || entry.id === "survival",
     })) ?? [];
-  const settings = { muted, reducedMotion, quality };
+  const settings = {
+    invertLookY,
+    lookSensitivity,
+    muted,
+    quality,
+    reducedMotion,
+  };
   const canvasSettings = qualitySettings(quality);
   const activePosition = activePlayerPosition(view.state);
 
   return (
     <main
       className="bay-city-shell"
+      data-aiming={view.input.aim ? "true" : "false"}
       data-mode={driving ? "car" : "foot"}
+      data-magazine={weapon?.magazine ?? 0}
       data-player-x={activePosition[0].toFixed(2)}
+      data-player-yaw={(player?.pose.rotationY ?? 0).toFixed(4)}
       data-player-z={activePosition[2].toFixed(2)}
+      data-pointer-locked={pointerLocked ? "true" : "false"}
       data-speed={speedKph.toFixed(2)}
       data-tick={view.state.tick}
       data-testid="afterlight-game"
@@ -1128,6 +1302,7 @@ export function AfterlightGame() {
         onPointerDown={beginLook}
         onPointerMove={updateLook}
         onPointerUp={endLook}
+        ref={inputSurfaceRef}
       />
 
       {started ? (
@@ -1174,6 +1349,8 @@ export function AfterlightGame() {
 
       <PauseMenu
         checkpointLabel={phase.location}
+        onInvertLookYChange={setInvertLookYValue}
+        onLookSensitivityChange={setLookSensitivityValue}
         onMutedChange={setMutedValue}
         onQualityChange={setQualityValue}
         onQuit={quitToTitle}

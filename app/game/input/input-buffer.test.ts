@@ -64,4 +64,25 @@ describe("InputBuffer", () => {
     expect(frame.throttle).toBeCloseTo(0.8);
     expect(frame.jumpPressed).toBe(true);
   });
+
+  it("applies gamepad look sensitivity and vertical inversion", () => {
+    const buffer = new InputBuffer();
+    applyGamepadSnapshot(
+      buffer,
+      {
+        axes: [0, 0, 0.5, 0.5],
+        buttons: [],
+      },
+      {
+        gamepadDeadzone: 0.16,
+        invertLookY: true,
+        keyboard: {},
+        lookSensitivity: 1.5,
+      },
+    );
+
+    const frame = buffer.frame();
+    expect(frame.look[0]).toBeGreaterThan(0.5);
+    expect(frame.look[1]).toBeLessThan(-0.5);
+  });
 });

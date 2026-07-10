@@ -1,5 +1,88 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-09T00:00:00.000Z",
-  "entries": []
+  "generatedAt": "2026-07-10T12:05:00.000Z",
+  "policy": {
+    "commercialUseRequired": true,
+    "standaloneRedistribution": false,
+    "unknownLicensesAllowed": false
+  },
+  "entries": [
+    {
+      "id": "polyhaven-asphalt-04",
+      "name": "Asphalt 04",
+      "kind": "pbr-texture-set",
+      "source": {
+        "provider": "Poly Haven",
+        "pageUrl": "https://polyhaven.com/a/asphalt_04",
+        "apiUrl": "https://api.polyhaven.com/files/asphalt_04",
+        "authors": ["Jenelle van Heerden", "Sergej Majboroda"]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://polyhaven.com/license",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Poly Haven credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected official 1K JPEG maps for browser delivery.",
+        "Runtime color-space, repeat, anisotropy, and normal-strength configuration."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/textures/asphalt-04/base-color.jpg",
+          "role": "base-color",
+          "bytes": 880083,
+          "sha256": "837a78bb1e94864c221f847c85480484e953a9ee958772481dd2c501e18def2e"
+        },
+        {
+          "path": "public/game-assets/textures/asphalt-04/normal-gl.jpg",
+          "role": "normal-opengl",
+          "bytes": 986045,
+          "sha256": "18b91c2a6d83a8fbaa8d7fe84e80a66bd6451e4ec2774a09bf4429498c8f3912"
+        },
+        {
+          "path": "public/game-assets/textures/asphalt-04/roughness.jpg",
+          "role": "roughness",
+          "bytes": 483458,
+          "sha256": "0e91a8117a8ec8c89e210dcd680186e66058b92028e89a858cc2fbde4bbfe6da"
+        }
+      ]
+    },
+    {
+      "id": "polyhaven-fire-hydrant",
+      "name": "Fire Hydrant - Aged Variant",
+      "kind": "optimized-gltf-model",
+      "source": {
+        "provider": "Poly Haven",
+        "pageUrl": "https://polyhaven.com/a/fire_hydrant",
+        "apiUrl": "https://api.polyhaven.com/files/fire_hydrant",
+        "authors": ["Gonçalo Felício"]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://polyhaven.com/license",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Poly Haven credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected the aged variant and pruned the unused clean variant.",
+        "Flattened and joined meshes, welded vertices, pruned unused data, and applied high-level Meshopt compression.",
+        "Resized textures to 1024px and encoded base color as ETC1S plus normal and metallic-roughness maps as UASTC KTX2."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/models/fire_hydrant.glb",
+          "role": "render-model",
+          "bytes": 2374436,
+          "sha256": "bbd50bc23b9dbd62d2b176ab23ee4d9692b63b1317b051395b6099c5ee3eb604"
+        }
+      ]
+    }
+  ]
 }

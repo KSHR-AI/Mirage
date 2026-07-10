@@ -33,6 +33,7 @@ export interface InputBindings {
   readonly keyboard: Readonly<Record<string, DigitalAction>>;
   readonly gamepadDeadzone: number;
   readonly lookSensitivity: number;
+  readonly invertLookY: boolean;
 }
 
 export const DEFAULT_INPUT_BINDINGS: InputBindings = {
@@ -56,6 +57,7 @@ export const DEFAULT_INPUT_BINDINGS: InputBindings = {
   },
   gamepadDeadzone: 0.16,
   lookSensitivity: 1,
+  invertLookY: false,
 };
 
 const EDGE_ACTIONS = new Set<DigitalAction>([
@@ -228,7 +230,8 @@ export function applyGamepadSnapshot(
   buffer.setAxis(
     "look-y",
     deadzone(snapshot.axes[3] ?? 0, bindings.gamepadDeadzone) *
-      bindings.lookSensitivity,
+      bindings.lookSensitivity *
+      (bindings.invertLookY ? -1 : 1),
   );
   buffer.setAxis(
     "throttle",

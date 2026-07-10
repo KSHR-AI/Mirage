@@ -104,6 +104,8 @@ export interface AfterlightSettingsValue {
   readonly muted: boolean;
   readonly reducedMotion: boolean;
   readonly quality: HudQuality;
+  readonly lookSensitivity: number;
+  readonly invertLookY: boolean;
 }
 
 export interface AfterlightSettingsProps {
@@ -111,6 +113,8 @@ export interface AfterlightSettingsProps {
   readonly onMutedChange: (muted: boolean) => void;
   readonly onReducedMotionChange: (reducedMotion: boolean) => void;
   readonly onQualityChange: (quality: HudQuality) => void;
+  readonly onLookSensitivityChange: (sensitivity: number) => void;
+  readonly onInvertLookYChange: (invert: boolean) => void;
 }
 
 export interface PauseMenuProps extends AfterlightSettingsProps {

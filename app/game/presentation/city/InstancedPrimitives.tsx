@@ -15,13 +15,18 @@ type InstancedPrimitivesProps = {
   fog?: boolean;
   instances: readonly BoxInstance[];
   material?: PrimitiveMaterial;
+  map?: THREE.Texture;
   metalness?: number;
+  normalMap?: THREE.Texture;
+  normalScale?: readonly [number, number];
   opacity?: number;
   receiveShadow?: boolean;
   roughness?: number;
+  roughnessMap?: THREE.Texture;
   shape?: PrimitiveShape;
   toneMapped?: boolean;
   transparent?: boolean;
+  useInstanceColors?: boolean;
 };
 
 export const InstancedPrimitives = memo(function InstancedPrimitives({
@@ -32,13 +37,18 @@ export const InstancedPrimitives = memo(function InstancedPrimitives({
   fog = true,
   instances,
   material = "standard",
+  map,
   metalness = 0,
+  normalMap,
+  normalScale = [1, 1],
   opacity = 1,
   receiveShadow = false,
   roughness = 0.75,
+  roughnessMap,
   shape = "box",
   toneMapped = true,
   transparent = false,
+  useInstanceColors = true,
 }: InstancedPrimitivesProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const transform = useMemo(() => new THREE.Object3D(), []);
@@ -55,14 +65,16 @@ export const InstancedPrimitives = memo(function InstancedPrimitives({
       transform.scale.set(...instance.scale);
       transform.updateMatrix();
       mesh.setMatrixAt(index, transform.matrix);
-      mesh.setColorAt(index, color.set(instance.color));
+      if (useInstanceColors) mesh.setColorAt(index, color.set(instance.color));
     });
     mesh.count = instances.length;
     mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    if (useInstanceColors && mesh.instanceColor) {
+      mesh.instanceColor.needsUpdate = true;
+    }
     mesh.computeBoundingBox();
     mesh.computeBoundingSphere();
-  }, [color, instances, transform]);
+  }, [color, instances, transform, useInstanceColors]);
 
   if (instances.length === 0) return null;
 
@@ -95,9 +107,13 @@ export const InstancedPrimitives = memo(function InstancedPrimitives({
           emissive={emissive}
           emissiveIntensity={emissiveIntensity}
           fog={fog}
+          map={map}
           metalness={metalness}
+          normalMap={normalMap}
+          normalScale={new THREE.Vector2(...normalScale)}
           opacity={opacity}
           roughness={roughness}
+          roughnessMap={roughnessMap}
           transparent={transparent || opacity < 1}
         />
       )}

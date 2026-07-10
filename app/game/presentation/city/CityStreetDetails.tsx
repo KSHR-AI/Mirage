@@ -2,6 +2,7 @@
 
 import { memo, useMemo } from "react";
 import { InstancedPrimitives } from "./InstancedPrimitives";
+import { LicensedHydrants } from "./LicensedStreetProps";
 import type {
   BoxInstance,
   CityLayout,
@@ -91,7 +92,11 @@ export const CityStreetDetails = memo(function CityStreetDetails({
         toneMapped={false}
       />
 
-      <StreetProps props={layout.props} />
+      <StreetProps
+        includePrimitiveHydrants={layout.quality !== "desktop"}
+        props={layout.props}
+      />
+      {layout.quality === "desktop" ? <LicensedHydrants limit={5} /> : null}
     </group>
   );
 });
@@ -213,16 +218,23 @@ function createTreeParts(features: readonly PointFeature[]) {
   };
 }
 
-function StreetProps({ props }: { props: readonly StreetProp[] }) {
+function StreetProps({
+  includePrimitiveHydrants,
+  props,
+}: {
+  includePrimitiveHydrants: boolean;
+  props: readonly StreetProp[];
+}) {
   const batches = useMemo(() => {
     const byKind = new Map<StreetProp["kind"], BoxInstance[]>();
     for (const prop of props) {
+      if (prop.kind === "hydrant" && !includePrimitiveHydrants) continue;
       const values = byKind.get(prop.kind) ?? [];
       values.push(propToInstance(prop));
       byKind.set(prop.kind, values);
     }
     return byKind;
-  }, [props]);
+  }, [includePrimitiveHydrants, props]);
 
   return (
     <group name="street-props">

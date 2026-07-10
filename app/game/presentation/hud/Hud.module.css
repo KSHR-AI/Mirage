@@ -1185,6 +1185,16 @@
   transform: translateX(18px);
 }
 
+.settingRange {
+  width: 128px;
+  accent-color: var(--hud-lime);
+}
+
+.settingRange:focus-visible {
+  outline: 2px solid var(--hud-lime);
+  outline-offset: 3px;
+}
+
 .segmented {
   display: grid;
   grid-template-columns: repeat(3, 48px);

@@ -484,8 +484,12 @@ export const AfterlightScene = memo(function AfterlightScene({
       <AfterlightCameraRig
         aim={!driving && input.aim}
         impulses={cameraImpulses}
-        look={driving ? input.look : [0, 0]}
-        lookMode="delta"
+        look={input.look}
+        lookMode={
+          input.source === "gamepad" || input.source === "touch"
+            ? "axis"
+            : "delta"
+        }
         mode={cameraMode}
         paused={paused}
         reducedMotion={reducedMotion}

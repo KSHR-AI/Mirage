@@ -5,6 +5,7 @@ import {
   Flag,
   Gauge,
   LogOut,
+  MousePointer2,
   Play,
   RotateCcw,
   Volume2,
@@ -55,6 +56,8 @@ export function AfterlightSettings({
   onMutedChange,
   onReducedMotionChange,
   onQualityChange,
+  onLookSensitivityChange,
+  onInvertLookYChange,
 }: AfterlightSettingsProps) {
   return (
     <section
@@ -76,6 +79,33 @@ export function AfterlightSettings({
         icon={<Activity aria-hidden="true" size={17} />}
         label="Reduced motion"
         onChange={onReducedMotionChange}
+      />
+      <div className={styles.settingRow}>
+        <span className={styles.settingIcon}>
+          <MousePointer2 aria-hidden="true" size={17} />
+        </span>
+        <span className={styles.settingCopy}>
+          <strong>Look sensitivity</strong>
+          <small>{Math.round(value.lookSensitivity * 100)}%</small>
+        </span>
+        <input
+          aria-label="Look sensitivity"
+          className={styles.settingRange}
+          max="200"
+          min="50"
+          onChange={(event) =>
+            onLookSensitivityChange(Number(event.currentTarget.value) / 100)
+          }
+          step="5"
+          type="range"
+          value={Math.round(value.lookSensitivity * 100)}
+        />
+      </div>
+      <ToggleRow
+        checked={value.invertLookY}
+        icon={<MousePointer2 aria-hidden="true" size={17} />}
+        label="Invert vertical look"
+        onChange={onInvertLookYChange}
       />
       <div className={styles.settingRow}>
         <span className={styles.settingIcon}>
@@ -117,6 +147,8 @@ export function PauseMenu({
   onMutedChange,
   onReducedMotionChange,
   onQualityChange,
+  onLookSensitivityChange,
+  onInvertLookYChange,
 }: PauseMenuProps) {
   if (!open) return null;
 
@@ -160,6 +192,8 @@ export function PauseMenu({
         </nav>
 
         <AfterlightSettings
+          onInvertLookYChange={onInvertLookYChange}
+          onLookSensitivityChange={onLookSensitivityChange}
           onMutedChange={onMutedChange}
           onQualityChange={onQualityChange}
           onReducedMotionChange={onReducedMotionChange}

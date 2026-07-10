@@ -46,7 +46,8 @@ import type {
   RuntimeStepResult,
 } from "./runtime";
 
-const PLAYER_LOOK_SENSITIVITY = 0.025;
+const POINTER_LOOK_SENSITIVITY = 0.025;
+const AXIS_LOOK_SPEED = 2.65;
 const INTERACTION_DISTANCE = 7;
 const HOSTILE_STOP_DISTANCE = 9;
 const HOSTILE_FIRE_DISTANCE = 34;
@@ -265,10 +266,8 @@ function stepFootPlayer(
   player: ActorState,
   input: InputFrame,
   previous: LocomotionState,
+  cameraYaw: number,
 ): { actor: ActorState; locomotion: LocomotionState } {
-  const cameraYaw = normalizedAngle(
-    player.pose.rotationY + input.look[0] * PLAYER_LOOK_SENSITIVITY,
-  );
   const locomotion = stepGroundedLocomotion(previous, input, {
     grounded: true,
     cameraYaw,
@@ -341,6 +340,7 @@ export class AfterlightStepController {
     sprinting: false,
     jumping: false,
   };
+  private cameraYaw: number | undefined;
 
   constructor(seed: number) {
     this.definition = createAfterlightJob(seed);
@@ -380,9 +380,22 @@ export class AfterlightStepController {
         },
         velocity: hero.velocity,
       };
+      this.cameraYaw = hero.pose.rotationY;
       collections.actors.set(player.id, player);
     } else {
-      const stepped = stepFootPlayer(player, input, this.locomotion);
+      const lookDelta =
+        input.source === "gamepad" || input.source === "touch"
+          ? input.look[0] * AXIS_LOOK_SPEED * SIMULATION_DT
+          : input.look[0] * POINTER_LOOK_SENSITIVITY;
+      this.cameraYaw = normalizedAngle(
+        (this.cameraYaw ?? player.pose.rotationY) - lookDelta,
+      );
+      const stepped = stepFootPlayer(
+        player,
+        input,
+        this.locomotion,
+        this.cameraYaw,
+      );
       this.locomotion = stepped.locomotion;
       player = stepped.actor;
       collections.actors.set(player.id, player);

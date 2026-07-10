@@ -108,6 +108,33 @@ class AfterlightScenario {
 }
 
 describe("Afterlight step", () => {
+  it("keeps forward locomotion aligned with pointer-controlled camera yaw", () => {
+    const scenario = new AfterlightScenario();
+    const initial = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    if (!initial) throw new Error("missing player fixture");
+
+    scenario.step({ look: [8, 0] });
+    const turned = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    if (!turned) throw new Error("missing player after look input");
+    expect(turned.pose.rotationY).not.toBeCloseTo(initial.pose.rotationY);
+
+    const before = turned.pose.position;
+    scenario.stepMany(30, { move: [0, 1] });
+    const moved = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    if (!moved) throw new Error("missing player after movement");
+    const displacement = [
+      moved.pose.position[0] - before[0],
+      moved.pose.position[2] - before[2],
+    ] as const;
+    const forward = [
+      Math.sin(turned.pose.rotationY),
+      Math.cos(turned.pose.rotationY),
+    ] as const;
+    expect(
+      displacement[0] * forward[0] + displacement[1] * forward[1],
+    ).toBeCloseTo(Math.hypot(...displacement), 5);
+  });
+
   it("turns entering the hero coupe into the first mission objective", () => {
     const initial = createInitialAfterlightState();
     const runtime = createGameRuntime(
