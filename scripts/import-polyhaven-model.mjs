@@ -13,6 +13,12 @@ const cli = path.join(root, "node_modules/.bin/gltf-transform");
 const nodeSelectors = {
   fire_hydrant: (name) => name === "fire_hydrant_aged",
 };
+const simplificationOptions = {
+  fire_hydrant: ["--simplify-ratio", "0.04", "--simplify-error", "1"],
+};
+const textureSizes = {
+  fire_hydrant: "512",
+};
 
 if (ids.length === 0) {
   console.error("Usage: pnpm assets:import:polyhaven <asset-id> [...asset-id]");
@@ -92,7 +98,8 @@ async function importModel(id) {
         "--texture-compress",
         "ktx2",
         "--texture-size",
-        "1024",
+        textureSizes[id] ?? "1024",
+        ...(simplificationOptions[id] ?? []),
       ],
       { maxBuffer: 16 * 1024 * 1024 },
     );

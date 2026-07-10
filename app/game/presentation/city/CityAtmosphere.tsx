@@ -1,10 +1,18 @@
 "use client";
 
 import { Sky } from "@react-three/drei";
-import { memo, useMemo } from "react";
+import { useFrame } from "@react-three/fiber";
+import { memo, useMemo, useRef } from "react";
+import * as THREE from "three";
 import { InstancedPrimitives } from "./InstancedPrimitives";
 import { createCityRng } from "./seed";
 import type { BoxInstance, CityQuality } from "./types";
+
+const SUN_OFFSET = [-92, 106, 54] as const;
+const SUN_SHADOW_HALF_EXTENT = 26;
+const SUN_SHADOW_MAP_SIZE = 1024;
+const SUN_SHADOW_TEXEL_SIZE =
+  (SUN_SHADOW_HALF_EXTENT * 2) / SUN_SHADOW_MAP_SIZE;
 
 type CityAtmosphereProps = {
   quality: CityQuality;
@@ -22,6 +30,25 @@ export const CityAtmosphere = memo(function CityAtmosphere({
     [quality, seed],
   );
   const castSunShadow = shadows && quality === "desktop";
+  const sun = useRef<THREE.DirectionalLight>(null);
+  const sunTarget = useMemo(() => new THREE.Object3D(), []);
+
+  useFrame(({ camera }) => {
+    if (!castSunShadow || !sun.current) return;
+    const centerX =
+      Math.round(camera.position.x / SUN_SHADOW_TEXEL_SIZE) *
+      SUN_SHADOW_TEXEL_SIZE;
+    const centerZ =
+      Math.round(camera.position.z / SUN_SHADOW_TEXEL_SIZE) *
+      SUN_SHADOW_TEXEL_SIZE;
+    sunTarget.position.set(centerX, 0, centerZ);
+    sunTarget.updateMatrixWorld();
+    sun.current.position.set(
+      centerX + SUN_OFFSET[0],
+      SUN_OFFSET[1],
+      centerZ + SUN_OFFSET[2],
+    );
+  });
 
   return (
     <group name="marine-afterlight-atmosphere">
@@ -42,19 +69,22 @@ export const CityAtmosphere = memo(function CityAtmosphere({
 
       <ambientLight color="#8ba9af" intensity={0.52} />
       <hemisphereLight color="#8fc8d1" groundColor="#132428" intensity={1.1} />
+      <primitive object={sunTarget} />
       <directionalLight
         castShadow={castSunShadow}
         color="#ffd2aa"
         intensity={2.35}
-        position={[-92, 106, 54]}
+        position={SUN_OFFSET}
+        ref={sun}
         shadow-bias={-0.00035}
-        shadow-camera-bottom={-122}
-        shadow-camera-far={330}
-        shadow-camera-left={-122}
-        shadow-camera-near={18}
-        shadow-camera-right={122}
-        shadow-camera-top={122}
-        shadow-mapSize={[1024, 1024]}
+        shadow-camera-bottom={-SUN_SHADOW_HALF_EXTENT}
+        shadow-camera-far={230}
+        shadow-camera-left={-SUN_SHADOW_HALF_EXTENT}
+        shadow-camera-near={24}
+        shadow-camera-right={SUN_SHADOW_HALF_EXTENT}
+        shadow-camera-top={SUN_SHADOW_HALF_EXTENT}
+        shadow-mapSize={[SUN_SHADOW_MAP_SIZE, SUN_SHADOW_MAP_SIZE]}
+        target={sunTarget}
       />
 
       <mesh position={[-126, 92, -196]}>

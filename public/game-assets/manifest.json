@@ -72,15 +72,17 @@
       "acquiredAt": "2026-07-10",
       "modifications": [
         "Selected the aged variant and pruned the unused clean variant.",
-        "Flattened and joined meshes, welded vertices, pruned unused data, and applied high-level Meshopt compression.",
-        "Resized textures to 1024px and encoded base color as ETC1S plus normal and metallic-roughness maps as UASTC KTX2."
+        "Flattened and joined meshes, welded vertices, pruned unused data, and simplified visible geometry from 20,128 to 912 triangles.",
+        "Applied high-level Meshopt compression to the simplified geometry.",
+        "Resized textures to 512px and encoded base color as ETC1S plus normal and metallic-roughness maps as UASTC KTX2."
       ],
       "files": [
         {
           "path": "public/game-assets/models/fire_hydrant.glb",
           "role": "render-model",
-          "bytes": 2374436,
-          "sha256": "bbd50bc23b9dbd62d2b176ab23ee4d9692b63b1317b051395b6099c5ee3eb604"
+          "maxTriangles": 1000,
+          "bytes": 653272,
+          "sha256": "deeb1615e402b093e87d9ba45d05449a03c0fe62d1e093e7c9b32e7b714c39ca"
         }
       ]
     },

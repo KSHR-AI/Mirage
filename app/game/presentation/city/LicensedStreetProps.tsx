@@ -69,7 +69,7 @@ export function LicensedHydrants({ limit }: { readonly limit: number }) {
     prepared.position.z -= center.z;
     prepared.traverse((object) => {
       if (object instanceof THREE.Mesh) {
-        object.castShadow = true;
+        object.castShadow = false;
         object.receiveShadow = true;
       }
     });
