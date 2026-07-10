@@ -11,6 +11,10 @@ export {
   type AuthoredAgentModelProps,
 } from "./authored-agent-model";
 export {
+  AuthoredHeroCoupeModel,
+  type AuthoredHeroCoupeModelProps,
+} from "./authored-hero-coupe";
+export {
   clampPresentationSignal,
   getAgentAppearance,
   getModelGeometryDetail,

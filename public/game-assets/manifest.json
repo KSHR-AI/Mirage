@@ -164,6 +164,40 @@
           "sha256": "bfa899e9d57431ca8aea97d7e446f6710fb6d00e4a7b778da33e34ed5abf613f"
         }
       ]
+    },
+    {
+      "id": "quaternius-zombie-sports-vehicle",
+      "name": "Zombie Apocalypse Kit - Sports Vehicle",
+      "kind": "optimized-gltf-hero-vehicle",
+      "source": {
+        "provider": "Quaternius",
+        "pageUrl": "https://quaternius.com/packs/zombieapocalypsekit.html",
+        "downloadUrl": "https://drive.google.com/drive/folders/1gU4EDvCbI5DCXBUskqYRzmps5Du3KUvF",
+        "authors": ["Quaternius"]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Quaternius credit is appreciated."
+      },
+      "acquiredAt": "2026-07-10",
+      "modifications": [
+        "Selected the unarmored Sports vehicle with separate front-wheel nodes from the free CC0 glTF export.",
+        "Preserved wheel nodes and material layout while pruning unused data, welding geometry, quantizing attributes, and applying high-level Meshopt compression.",
+        "Added original Mirage headlights, brake lights, damage treatment, steering, and wheel animation at runtime."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/models/hero-coupe.glb",
+          "role": "hero-vehicle",
+          "maxTriangles": 6000,
+          "bytes": 62444,
+          "sha256": "7b37725b76a04b6b8521f62d77e645f1e8647f4be12650467e97acd92f1413a0"
+        }
+      ]
     }
   ]
 }

@@ -11,6 +11,8 @@ import {
   type VehicleAppearance,
   type VehicleVisualKind,
 } from "./appearance";
+import { AuthoredHeroCoupeModel } from "./authored-hero-coupe";
+import { ModelAssetBoundary } from "./ModelAssetBoundary";
 import type {
   ModelQuality,
   PoliceInterceptorModelProps,
@@ -1050,12 +1052,17 @@ export function RoadVehicleModel({
 }
 
 export function HeroCoupeModel(props: VehicleModelProps) {
-  return (
+  const fallback = (
     <RoadVehicleModel
       {...props}
       entityId={props.entityId ?? "mirage-hero"}
       kind="hero-coupe"
     />
+  );
+  return (
+    <ModelAssetBoundary fallback={fallback}>
+      <AuthoredHeroCoupeModel {...props} />
+    </ModelAssetBoundary>
   );
 }
 
