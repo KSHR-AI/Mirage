@@ -1383,6 +1383,7 @@ export function AfterlightGame() {
       data-player-yaw={(player?.pose.rotationY ?? 0).toFixed(4)}
       data-player-z={activePosition[2].toFixed(2)}
       data-pointer-locked={pointerLocked ? "true" : "false"}
+      data-quality={quality}
       data-speed={speedKph.toFixed(2)}
       data-tick={view.state.tick}
       data-testid="afterlight-game"
