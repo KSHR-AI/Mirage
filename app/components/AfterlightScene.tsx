@@ -82,6 +82,7 @@ const POLICE_IDS = [
 ] as const;
 
 const BLACKOUT_MARKER = "afterlight:blackout:active";
+const AMBIENT_TRAFFIC_CAMERA_CLEARANCE_SQUARED = 12 * 12;
 
 const AfterlightPostEffects = lazy(() =>
   import("../game/presentation/postfx").then((module) => ({
@@ -176,7 +177,13 @@ function createAmbientVehicles(
   );
 }
 
-function AmbientTraffic({ quality }: { readonly quality: GameQualityTier }) {
+function AmbientTraffic({
+  quality,
+  targetPosition,
+}: {
+  readonly quality: GameQualityTier;
+  readonly targetPosition: readonly [number, number, number];
+}) {
   const count = qualitySettings(quality).trafficCount;
   const definitions = useMemo(() => createAmbientVehicles(count), [count]);
   const groups = useRef<Array<THREE.Group | null>>([]);
@@ -202,6 +209,10 @@ function AmbientTraffic({ quality }: { readonly quality: GameQualityTier }) {
         group.position.set(vehicle.lane, 0.02, distance);
         group.rotation.y = vehicle.direction > 0 ? Math.PI : 0;
       }
+      const dx = group.position.x - targetPosition[0];
+      const dz = group.position.z - targetPosition[2];
+      group.visible =
+        dx * dx + dz * dz > AMBIENT_TRAFFIC_CAMERA_CLEARANCE_SQUARED;
     });
   });
 
@@ -477,7 +488,7 @@ export const AfterlightScene = memo(function AfterlightScene({
         reducedMotion={reducedMotion}
       />
 
-      <AmbientTraffic quality={quality} />
+      <AmbientTraffic quality={quality} targetPosition={targetPose.position} />
       <AmbientCivilians quality={quality} />
 
       {!driving ? (
