@@ -881,3 +881,75 @@ button:not(:disabled) {
     scroll-behavior: auto !important;
   }
 }
+
+.runtime-error {
+  display: grid;
+  min-height: 100dvh;
+  grid-template-rows: auto 1fr;
+  padding: clamp(20px, 4vw, 56px);
+  background:
+    linear-gradient(rgba(7, 14, 17, 0.62), rgba(7, 14, 17, 0.92)), #142329;
+  color: var(--paper);
+}
+
+.runtime-error__brand {
+  display: grid;
+  width: max-content;
+  gap: 3px;
+}
+
+.runtime-error__brand strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+}
+
+.runtime-error__brand span,
+.runtime-error__body p {
+  margin: 0;
+  color: var(--lime);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.runtime-error__body {
+  display: grid;
+  width: min(560px, 100%);
+  align-self: center;
+  gap: 18px;
+}
+
+.runtime-error__body h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(42px, 8vw, 82px);
+  line-height: 0.94;
+}
+
+.runtime-error__body > span {
+  max-width: 480px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.runtime-error__body button {
+  display: inline-flex;
+  width: max-content;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  margin-top: 8px;
+  padding: 0 17px;
+  border: 1px solid rgba(217, 255, 92, 0.55);
+  border-radius: 6px;
+  background: var(--lime);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.runtime-error__body button:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 3px;
+}
