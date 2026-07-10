@@ -46,45 +46,69 @@ export const AFTERLIGHT_CHECKPOINTS: Readonly<
 > = Object.freeze({
   [AFTERLIGHT_START_CHECKPOINT_ID]: Object.freeze({
     id: AFTERLIGHT_START_CHECKPOINT_ID,
-    pose: Object.freeze({ position: [10, 1.15, 74], rotationY: Math.PI }),
+    pose: Object.freeze({
+      position: [10, 1.15, 74] as Vec3,
+      rotationY: Math.PI,
+    }),
     vehiclePose: Object.freeze({
-      position: [12, 0.72, 68],
+      position: [12, 0.72, 68] as Vec3,
       rotationY: Math.PI,
     }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.keyholder]: Object.freeze({
     id: AFTERLIGHT_CHECKPOINT_IDS.keyholder,
-    pose: Object.freeze({ position: [70, 1.15, 70], rotationY: -2.35 }),
+    pose: Object.freeze({
+      position: [70, 1.15, 70] as Vec3,
+      rotationY: -2.35,
+    }),
     vehiclePose: Object.freeze({
-      position: [65, 0.72, 72],
+      position: [65, 0.72, 72] as Vec3,
       rotationY: -Math.PI / 2,
     }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.vault]: Object.freeze({
     id: AFTERLIGHT_CHECKPOINT_IDS.vault,
-    pose: Object.freeze({ position: [45, 1.15, 20], rotationY: Math.PI }),
+    pose: Object.freeze({
+      position: [45, 1.15, 20] as Vec3,
+      rotationY: Math.PI,
+    }),
     vehiclePose: Object.freeze({
-      position: [50, 0.72, 23],
+      position: [50, 0.72, 23] as Vec3,
       rotationY: -Math.PI / 2,
     }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.blackout]: Object.freeze({
     id: AFTERLIGHT_CHECKPOINT_IDS.blackout,
-    pose: Object.freeze({ position: [-49, 1.15, 30], rotationY: Math.PI / 2 }),
+    pose: Object.freeze({
+      position: [-49, 1.15, 30] as Vec3,
+      rotationY: Math.PI / 2,
+    }),
     vehiclePose: Object.freeze({
-      position: [-43, 0.72, 32],
+      position: [-43, 0.72, 32] as Vec3,
       rotationY: Math.PI / 2,
     }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.run]: Object.freeze({
     id: AFTERLIGHT_CHECKPOINT_IDS.run,
-    pose: Object.freeze({ position: [0, 1.15, -84], rotationY: 0 }),
-    vehiclePose: Object.freeze({ position: [0, 0.72, -90], rotationY: 0 }),
+    pose: Object.freeze({
+      position: [0, 1.15, -84] as Vec3,
+      rotationY: 0,
+    }),
+    vehiclePose: Object.freeze({
+      position: [0, 0.72, -90] as Vec3,
+      rotationY: 0,
+    }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.debrief]: Object.freeze({
     id: AFTERLIGHT_CHECKPOINT_IDS.debrief,
-    pose: Object.freeze({ position: [0, 1.15, -184], rotationY: 0 }),
-    vehiclePose: Object.freeze({ position: [3, 0.72, -180], rotationY: 0 }),
+    pose: Object.freeze({
+      position: [0, 1.15, -184] as Vec3,
+      rotationY: 0,
+    }),
+    vehiclePose: Object.freeze({
+      position: [3, 0.72, -180] as Vec3,
+      rotationY: 0,
+    }),
   }),
 });
 
