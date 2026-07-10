@@ -17,7 +17,6 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
       value: function requestPointerLock() {
         pointerLocked = true;
         document.dispatchEvent(new Event("pointerlockchange"));
-        return Promise.resolve();
       },
     });
     Object.defineProperty(Document.prototype, "exitPointerLock", {

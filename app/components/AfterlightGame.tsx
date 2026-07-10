@@ -661,10 +661,14 @@ export function AfterlightGame() {
     ) {
       return;
     }
-    void surface.requestPointerLock().catch(() => {
-      // Pointer lock can be denied when the browser does not consider the
-      // initiating event a user gesture. A subsequent click retries it.
-    });
+    try {
+      const request = surface.requestPointerLock() as Promise<void> | undefined;
+      void request?.catch(() => {
+        // A subsequent click retries requests denied as non-user gestures.
+      });
+    } catch {
+      // Older browsers can throw synchronously instead of returning a promise.
+    }
   }, []);
 
   const releaseGamePointerLock = useCallback(() => {
