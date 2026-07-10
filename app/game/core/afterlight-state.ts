@@ -47,81 +47,81 @@ export const AFTERLIGHT_CHECKPOINTS: Readonly<
   [AFTERLIGHT_START_CHECKPOINT_ID]: Object.freeze({
     id: AFTERLIGHT_START_CHECKPOINT_ID,
     pose: Object.freeze({
-      position: [10, 1.15, 74] as Vec3,
+      position: [64, 1.15, 74] as Vec3,
       rotationY: Math.PI,
     }),
     vehiclePose: Object.freeze({
-      position: [12, 0.72, 68] as Vec3,
+      position: [68, 0.72, 70] as Vec3,
       rotationY: Math.PI,
     }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.keyholder]: Object.freeze({
     id: AFTERLIGHT_CHECKPOINT_IDS.keyholder,
     pose: Object.freeze({
-      position: [70, 1.15, 70] as Vec3,
+      position: [70, 1.15, 48] as Vec3,
       rotationY: -2.35,
     }),
     vehiclePose: Object.freeze({
-      position: [65, 0.72, 72] as Vec3,
-      rotationY: -Math.PI / 2,
+      position: [70, 0.72, 50] as Vec3,
+      rotationY: Math.PI,
     }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.vault]: Object.freeze({
     id: AFTERLIGHT_CHECKPOINT_IDS.vault,
     pose: Object.freeze({
-      position: [45, 1.15, 20] as Vec3,
+      position: [14, 1.15, -32] as Vec3,
       rotationY: Math.PI,
     }),
     vehiclePose: Object.freeze({
-      position: [50, 0.72, 23] as Vec3,
-      rotationY: -Math.PI / 2,
+      position: [20, 0.72, -28] as Vec3,
+      rotationY: Math.PI,
     }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.blackout]: Object.freeze({
     id: AFTERLIGHT_CHECKPOINT_IDS.blackout,
     pose: Object.freeze({
-      position: [-49, 1.15, 30] as Vec3,
+      position: [-64, 1.15, -36] as Vec3,
       rotationY: Math.PI / 2,
     }),
     vehiclePose: Object.freeze({
-      position: [-43, 0.72, 32] as Vec3,
+      position: [-58, 0.72, -32] as Vec3,
       rotationY: Math.PI / 2,
     }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.run]: Object.freeze({
     id: AFTERLIGHT_CHECKPOINT_IDS.run,
     pose: Object.freeze({
-      position: [0, 1.15, -84] as Vec3,
+      position: [0, 1.15, -106] as Vec3,
       rotationY: 0,
     }),
     vehiclePose: Object.freeze({
-      position: [0, 0.72, -90] as Vec3,
+      position: [0, 0.72, -108] as Vec3,
       rotationY: 0,
     }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.debrief]: Object.freeze({
     id: AFTERLIGHT_CHECKPOINT_IDS.debrief,
     pose: Object.freeze({
-      position: [0, 1.15, -184] as Vec3,
+      position: [0, 1.15, -224] as Vec3,
       rotationY: 0,
     }),
     vehiclePose: Object.freeze({
-      position: [3, 0.72, -180] as Vec3,
+      position: [3, 0.72, -222] as Vec3,
       rotationY: 0,
     }),
   }),
 });
 
 export const AFTERLIGHT_LANDMARKS = Object.freeze({
-  boostYard: [12, 0.72, 68] as Vec3,
-  missionIntercept: [70, 1.15, 70] as Vec3,
-  courierRouteStart: [68, 0.72, 52] as Vec3,
-  vaultReader: [36, 1.15, 8] as Vec3,
-  vaultExit: [42, 1.15, 14] as Vec3,
-  substationControl: [-56, 1.15, 28] as Vec3,
-  bridgeLaunch: [0, 0.72, -96] as Vec3,
-  bridgeEscape: [0, 1.15, -183] as Vec3,
-  safehouse: [0, 1.15, -194] as Vec3,
+  boostYard: [68, 0.72, 70] as Vec3,
+  missionIntercept: [70, 1.15, 42] as Vec3,
+  courierRouteStart: [70, 0.72, 42] as Vec3,
+  vaultReader: [14, 1.15, -42] as Vec3,
+  vaultExit: [14, 1.15, -30] as Vec3,
+  substationControl: [-70, 1.15, -42] as Vec3,
+  bridgeLaunch: [0, 0.72, -114] as Vec3,
+  bridgeEscape: [0, 1.15, -218] as Vec3,
+  safehouse: [0, 1.15, -232] as Vec3,
 });
 
 function actor(
@@ -176,7 +176,7 @@ export function createInitialAfterlightActors(): ReadonlyMap<
         ids.player,
         "player",
         "player",
-        [10, 1.15, 74],
+        [64, 1.15, 74],
         Math.PI,
         100,
         SIGNAL_9_SPEC.id,
@@ -188,7 +188,7 @@ export function createInitialAfterlightActors(): ReadonlyMap<
         ids.keyholderGuardA,
         "guard",
         "afterlight",
-        [65, 1.15, 56],
+        [66, 1.15, 36],
         Math.PI / 2,
         90,
         SIGNAL_9_SPEC.id,
@@ -200,7 +200,7 @@ export function createInitialAfterlightActors(): ReadonlyMap<
         ids.keyholderGuardB,
         "guard",
         "afterlight",
-        [72, 1.15, 58],
+        [74, 1.15, 36],
         -Math.PI / 2,
         90,
         SIGNAL_9_SPEC.id,
@@ -208,11 +208,18 @@ export function createInitialAfterlightActors(): ReadonlyMap<
     ],
     [
       ids.vaultGuardA,
-      actor(ids.vaultGuardA, "guard", "afterlight", [31, 1.15, 10], 0, 90),
+      actor(ids.vaultGuardA, "guard", "afterlight", [10, 1.15, -48], 0, 90),
     ],
     [
       ids.vaultGuardB,
-      actor(ids.vaultGuardB, "guard", "afterlight", [38, 1.15, 3], Math.PI, 90),
+      actor(
+        ids.vaultGuardB,
+        "guard",
+        "afterlight",
+        [18, 1.15, -48],
+        Math.PI,
+        90,
+      ),
     ],
     [
       ids.vaultGuardC,
@@ -220,7 +227,7 @@ export function createInitialAfterlightActors(): ReadonlyMap<
         ids.vaultGuardC,
         "guard",
         "afterlight",
-        [45, 1.15, 10],
+        [10, 1.15, -36],
         -Math.PI / 2,
         90,
       ),
@@ -231,7 +238,7 @@ export function createInitialAfterlightActors(): ReadonlyMap<
         ids.vaultGuardD,
         "guard",
         "afterlight",
-        [38, 1.15, 17],
+        [18, 1.15, -36],
         Math.PI,
         90,
       ),
@@ -263,14 +270,14 @@ export function createInitialAfterlightVehicles(): ReadonlyMap<
   return new Map([
     [
       ids.heroCoupe,
-      vehicle(ids.heroCoupe, "hero", [12, 0.72, 68], Math.PI, 100),
+      vehicle(ids.heroCoupe, "hero", [68, 0.72, 70], Math.PI, 100),
     ],
     [
       ids.courier,
       vehicle(
         ids.courier,
         "courier",
-        [68, 0.72, 52],
+        [70, 0.72, 42],
         Math.PI,
         120,
         "courier-embarcadero",

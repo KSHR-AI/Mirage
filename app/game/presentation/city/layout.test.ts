@@ -89,7 +89,7 @@ describe("createBayCityLayout", () => {
   });
 
   it("exposes stable integration anchors", () => {
-    expect(cityMissionZone("safehouse").position).toEqual([-70, 0.3, 70]);
+    expect(cityMissionZone("safehouse").position).toEqual([0, 0.3, -232]);
     expect(cityMissionZone("aurora-vault").accent).toBe("#7ee7ff");
   });
 });

@@ -22,27 +22,27 @@ export const AFTERLIGHT_MISSION_COVER: readonly WorldCollisionBox[] =
   Object.freeze([
     Object.freeze({
       id: "boost-yard-office",
-      center: [20, 2, 64] as Vec3,
+      center: [78, 2, 68] as Vec3,
       halfExtents: [4, 2, 5] as Vec3,
     }),
     Object.freeze({
       id: "vault-shell",
-      center: [36, 3, 8] as Vec3,
+      center: [14, 3, -42] as Vec3,
       halfExtents: [7, 3, 5] as Vec3,
     }),
     Object.freeze({
       id: "substation-transformer-west",
-      center: [-61, 1.5, 25] as Vec3,
+      center: [-76, 1.5, -45] as Vec3,
       halfExtents: [2.2, 1.5, 3] as Vec3,
     }),
     Object.freeze({
       id: "substation-transformer-east",
-      center: [-51, 1.5, 31] as Vec3,
+      center: [-64, 1.5, -39] as Vec3,
       halfExtents: [2.2, 1.5, 3] as Vec3,
     }),
     Object.freeze({
       id: "safehouse-wall",
-      center: [7, 2.5, -192] as Vec3,
+      center: [7, 2.5, -232] as Vec3,
       halfExtents: [5, 2.5, 1] as Vec3,
     }),
   ]);

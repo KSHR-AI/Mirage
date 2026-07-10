@@ -72,7 +72,7 @@ describe("Afterlight step", () => {
     if (!player) throw new Error("missing player fixture");
     actors.set(initial.playerId, {
       ...player,
-      pose: { position: [65, 1.15, 64], rotationY: Math.PI },
+      pose: { position: [66, 1.15, 44], rotationY: Math.PI },
     });
     const runtime = createGameRuntime(
       { ...initial, actors },

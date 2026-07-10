@@ -21,7 +21,7 @@ describe("AfterlightPhysicsQuery", () => {
     const state = createInitialAfterlightState();
     const physics = new AfterlightPhysicsQuery(state, []);
     const hit = physics.raycast({
-      origin: [65, 2, 64],
+      origin: [66, 2, 44],
       direction: [0, 0, -1],
       maxDistance: 20,
       collisionMask: ALL_HITSCAN,
@@ -38,7 +38,7 @@ describe("AfterlightPhysicsQuery", () => {
     const state = createInitialAfterlightState();
     const physics = new AfterlightPhysicsQuery(state, []);
     const hit = physics.raycast({
-      origin: [65, 2, 64],
+      origin: [66, 2, 44],
       direction: [0, 0, -1],
       maxDistance: 20,
       collisionMask: layerMask(CollisionLayer.Actor),

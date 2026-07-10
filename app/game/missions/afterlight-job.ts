@@ -89,7 +89,7 @@ export const AFTERLIGHT_ENCOUNTER_VARIANTS = [
   {
     id: "embarcadero-switch",
     courierRouteId: "courier-embarcadero",
-    courierSpawn: [70, 1.35, 52],
+    courierSpawn: [70, 1.35, 42],
     keyholderSetpieceId: "afterlight:keyholder:hotel-lobby",
     vaultGuardSetpieceId: "afterlight:vault:split-patrol",
     blackoutResponseSetpieceId: "afterlight:blackout:police-cordon",
@@ -100,7 +100,7 @@ export const AFTERLIGHT_ENCOUNTER_VARIANTS = [
   {
     id: "mission-decoy",
     courierRouteId: "courier-mission-decoy",
-    courierSpawn: [64, 1.35, 70],
+    courierSpawn: [76, 1.35, 42],
     keyholderSetpieceId: "afterlight:keyholder:alley-exchange",
     vaultGuardSetpieceId: "afterlight:vault:roving-pair",
     blackoutResponseSetpieceId: "afterlight:blackout:private-response",
@@ -111,7 +111,7 @@ export const AFTERLIGHT_ENCOUNTER_VARIANTS = [
   {
     id: "north-beach-transfer",
     courierRouteId: "courier-north-beach",
-    courierSpawn: [70, 1.35, -56],
+    courierSpawn: [64, 1.35, 42],
     keyholderSetpieceId: "afterlight:keyholder:club-balcony",
     vaultGuardSetpieceId: "afterlight:vault:locked-shift",
     blackoutResponseSetpieceId: "afterlight:blackout:drone-search",
@@ -183,7 +183,7 @@ function createPhases(
           label: "Reach the Mission District intercept.",
           trigger: {
             type: "volume",
-            center: [70, 1.35, 70],
+            center: [70, 1.35, 42],
             radius: 9,
             actor: "hero",
             dwellTicks: 30,
@@ -304,7 +304,7 @@ function createPhases(
           label: "Clear the vault with the core.",
           trigger: {
             type: "volume",
-            center: [42, 1.1, 14],
+            center: [14, 1.1, -30],
             radius: 9,
             actor: "player",
           },
@@ -408,7 +408,7 @@ function createPhases(
             children: [
               {
                 type: "volume",
-                center: [0, 1.1, -183],
+                center: [0, 1.1, -218],
                 radius: 12,
                 actor: "hero",
                 dwellTicks: 60,
@@ -444,7 +444,7 @@ function createPhases(
           label: "Reach the Marin safehouse.",
           trigger: {
             type: "volume",
-            center: [0, 1.1, -194],
+            center: [0, 1.1, -232],
             radius: 10,
             actor: "player",
             dwellTicks: 30,

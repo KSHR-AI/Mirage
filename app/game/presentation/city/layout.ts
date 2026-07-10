@@ -25,8 +25,8 @@ export const CITY_MISSION_ZONES: readonly MissionZone[] = [
   {
     accent: "#ffcf70",
     id: "safehouse",
-    label: "Painted Row Safehouse",
-    position: [-70, 0.3, 70],
+    label: "Northspan Safehouse",
+    position: [0, 0.3, -232],
     radius: 12,
   },
   {
