@@ -19,7 +19,17 @@ import {
   restoreMissionState,
   type MissionReducerState,
 } from "../missions/reducer";
-import { stepHeroCar, vehiclePlanarSpeed } from "../vehicles";
+import {
+  applyVehicleCollisionImpulse,
+  createTrafficAgent,
+  resolveIntersectionReservations,
+  resolveVehicleBuildingCollision,
+  stepHeroCar,
+  stepTrafficAgent,
+  vehiclePlanarSpeed,
+  type IntersectionReservation,
+  type TrafficAgentState,
+} from "../vehicles";
 import {
   INITIAL_CHARACTER_MOTOR_STATE,
   stepKinematicCharacter,
@@ -31,6 +41,7 @@ import {
   createAfterlightCharacterWorld,
   createAfterlightVehicleObstacles,
 } from "../world/afterlight-character-world";
+import { DEFAULT_ROAD_GRAPH, findRouteBetween } from "../world/road-graph";
 import {
   AFTERLIGHT_ENTITY_IDS,
   AFTERLIGHT_LANDMARKS,
@@ -39,6 +50,7 @@ import {
 } from "./afterlight-state";
 import { createAfterlightPhysicsQuery } from "./afterlight-physics";
 import { SIMULATION_DT } from "./contracts";
+import { deriveSeed } from "./rng";
 import type {
   ActorState,
   CrimeKind,
@@ -64,6 +76,15 @@ const HOSTILE_STOP_DISTANCE = 9;
 const HOSTILE_FIRE_DISTANCE = 34;
 const INTERNAL_BLACKOUT_MARKER = "afterlight:blackout:active";
 const WORLD_SOUTH_BOUNDARY = -238;
+const COURIER_COLLISION_IMPULSE_SCALE = 1.25;
+
+const COURIER_ROUTE_DESTINATIONS: Readonly<Record<string, Vec3>> =
+  Object.freeze({
+    "courier-embarcadero": [70, 0.72, -70],
+    "courier-mission-decoy": [-70, 0.72, 42],
+    "courier-north-beach": [-42, 0.72, -70],
+  });
+const DEFAULT_COURIER_ROUTE_DESTINATION: Vec3 = [-70, 0.72, -70];
 
 const KEYHOLDER_GUARDS: readonly EntityId[] = Object.freeze([
   AFTERLIGHT_ENTITY_IDS.keyholderGuardA,
@@ -375,6 +396,10 @@ export class AfterlightStepController {
   private characterMotor: CharacterMotorState = INITIAL_CHARACTER_MOTOR_STATE;
   private readonly characterWorld: CharacterWorld;
   private cameraYaw: number | undefined;
+  private courierAgent: TrafficAgentState | undefined;
+  private courierReservations: ReadonlyMap<string, IntersectionReservation> =
+    new Map();
+  private courierContactActive = false;
 
   constructor(seed: number) {
     this.definition = createAfterlightJob(seed);
@@ -402,11 +427,29 @@ export class AfterlightStepController {
     let driving = hero.occupiedBy === player.id;
     if (driving) {
       this.characterMotor = INITIAL_CHARACTER_MOTOR_STATE;
-      hero = stepHeroCar(hero, input);
-      hero = {
-        ...hero,
-        pose: { ...hero.pose, position: clampWorld(hero.pose.position) },
+      const previousHero = hero;
+      const proposedHero = stepHeroCar(hero, input);
+      const clampedHero = {
+        ...proposedHero,
+        pose: {
+          ...proposedHero.pose,
+          position: clampWorld(proposedHero.pose.position),
+        },
       };
+      const buildingCollision = resolveVehicleBuildingCollision(
+        previousHero,
+        clampedHero,
+        this.characterWorld.obstacles,
+      );
+      hero = buildingCollision.vehicle;
+      if (buildingCollision.collision) {
+        const impact = applyVehicleCollisionImpulse(hero, {
+          impulse: buildingCollision.collision.impactSpeed,
+          tick: context.tick,
+        });
+        hero = impact.vehicle;
+        events.push(...impact.events);
+      }
       collections.vehicles.set(hero.id, hero);
       player = {
         ...player,
@@ -545,6 +588,13 @@ export class AfterlightStepController {
       context.tick,
       hero,
       driving,
+    );
+    this.stepCourierRoute(
+      phaseId,
+      collections,
+      context.tick,
+      context.dt,
+      state.seed,
     );
     this.handleBlackoutStart(
       phaseId,
@@ -716,23 +766,39 @@ export class AfterlightStepController {
     hero: VehicleState,
     driving: boolean,
   ): void {
-    if (phaseId !== AFTERLIGHT_PHASE_IDS.keyholder || !driving) return;
-    const courier = collections.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier);
-    if (!courier || courier.life !== "active") return;
-    const speed = vehiclePlanarSpeed(hero);
-    if (speed < 8 || !isNear(hero.pose.position, courier.pose.position, 4.2))
+    if (phaseId !== AFTERLIGHT_PHASE_IDS.keyholder || !driving) {
+      this.courierContactActive = false;
       return;
+    }
+    const courier = collections.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier);
+    if (!courier || courier.life !== "active") {
+      this.courierContactActive = false;
+      return;
+    }
+    const touching = isNear(hero.pose.position, courier.pose.position, 4.2);
+    if (!touching) {
+      this.courierContactActive = false;
+      return;
+    }
+    if (this.courierContactActive) return;
+    this.courierContactActive = true;
 
-    damageVehicle(
-      collections.vehicles,
-      events,
-      tick,
-      courier.id,
-      Math.max(80, speed * 6),
-      hero.id,
+    const relativeSpeed = Math.hypot(
+      hero.velocity[0] - courier.velocity[0],
+      hero.velocity[2] - courier.velocity[2],
     );
-    const updated = collections.vehicles.get(courier.id);
-    if (updated?.life === "disabled") {
+    const result = applyVehicleCollisionImpulse(courier, {
+      impulse: relativeSpeed * COURIER_COLLISION_IMPULSE_SCALE,
+      tick,
+      sourceId: hero.id,
+    });
+    const updated = result.disabled
+      ? { ...result.vehicle, velocity: [0, 0, 0] as Vec3 }
+      : result.vehicle;
+    collections.vehicles.set(courier.id, updated);
+    events.push(...result.events);
+
+    if (result.disabled) {
       events.push(
         interactionEvent(
           tick,
@@ -741,6 +807,81 @@ export class AfterlightStepController {
           courier.id,
         ),
       );
+    }
+  }
+
+  private stepCourierRoute(
+    phaseId: string,
+    collections: StepCollections,
+    tick: number,
+    dt: number,
+    seed: number,
+  ): void {
+    if (phaseId !== AFTERLIGHT_PHASE_IDS.keyholder) {
+      this.courierAgent = undefined;
+      this.courierReservations = new Map();
+      return;
+    }
+
+    const courier = collections.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier);
+    if (!courier || courier.life !== "active") return;
+    const routeId = courier.routeId ?? "courier-embarcadero";
+    if (!this.courierAgent || this.courierAgent.route.routeId !== routeId) {
+      const destination =
+        COURIER_ROUTE_DESTINATIONS[routeId] ??
+        DEFAULT_COURIER_ROUTE_DESTINATION;
+      const route = findRouteBetween(
+        DEFAULT_ROAD_GRAPH,
+        courier.pose.position,
+        destination,
+        {
+          mode: "vehicle",
+          maxSnapDistance: 12,
+          seed: deriveSeed(seed, `afterlight-courier-route:${routeId}`),
+        },
+      );
+      if (!route) return;
+      const created = createTrafficAgent(DEFAULT_ROAD_GRAPH, {
+        id: courier.id,
+        routeId,
+        route,
+        spawnedAtTick: tick,
+        kind: "courier",
+        health: courier.health,
+        cruiseSpeedFactor: 0.92,
+        rideHeight: 0,
+      });
+      this.courierAgent = {
+        ...created,
+        vehicle: courier,
+        speed: vehiclePlanarSpeed(courier),
+      };
+    }
+
+    const agent = { ...this.courierAgent, vehicle: courier };
+    const agents = new Map([[courier.id, agent]]);
+    this.courierReservations = resolveIntersectionReservations(
+      DEFAULT_ROAD_GRAPH,
+      agents,
+      this.courierReservations,
+      tick,
+    );
+    const stepped = stepTrafficAgent(
+      DEFAULT_ROAD_GRAPH,
+      agent,
+      agents,
+      this.courierReservations,
+      dt,
+      deriveSeed(seed, `afterlight-courier-traffic:${routeId}`),
+    );
+    this.courierAgent = stepped.agent;
+    collections.vehicles.set(courier.id, stepped.agent.vehicle);
+    const hero = collections.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    if (
+      hero &&
+      !isNear(hero.pose.position, stepped.agent.vehicle.pose.position, 4.2)
+    ) {
+      this.courierContactActive = false;
     }
   }
 

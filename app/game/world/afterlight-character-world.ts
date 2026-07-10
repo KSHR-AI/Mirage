@@ -1,4 +1,5 @@
 import type { VehicleState } from "../core/contracts";
+import { vehiclePlanarExtents } from "../vehicles/building-collision";
 import {
   AUTHORED_DOWNTOWN_PLACEMENTS,
   belongsToAuthoredDowntownBlock,
@@ -100,20 +101,15 @@ function buildingObstacle(
 }
 
 function vehicleObstacle(vehicle: VehicleState): CharacterObstacle {
-  const halfWidth = vehicle.kind === "courier" ? 1.25 : 1.08;
-  const halfLength = vehicle.kind === "courier" ? 2.65 : 2.2;
-  const cosine = Math.abs(Math.cos(vehicle.pose.rotationY));
-  const sine = Math.abs(Math.sin(vehicle.pose.rotationY));
-  const extentX = cosine * halfWidth + sine * halfLength;
-  const extentZ = sine * halfWidth + cosine * halfLength;
+  const extents = vehiclePlanarExtents(vehicle);
   return Object.freeze({
     id: `vehicle-${vehicle.id}`,
-    minX: vehicle.pose.position[0] - extentX,
-    maxX: vehicle.pose.position[0] + extentX,
+    minX: vehicle.pose.position[0] - extents.x,
+    maxX: vehicle.pose.position[0] + extents.x,
     minY: 0,
     maxY: 2.2,
-    minZ: vehicle.pose.position[2] - extentZ,
-    maxZ: vehicle.pose.position[2] + extentZ,
+    minZ: vehicle.pose.position[2] - extents.z,
+    maxZ: vehicle.pose.position[2] + extents.z,
   });
 }
 

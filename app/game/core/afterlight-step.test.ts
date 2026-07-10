@@ -26,6 +26,7 @@ import {
 } from "./afterlight-step";
 import { RngStreams } from "./rng";
 import { createGameRuntime } from "./runtime";
+import { vehiclePlanarExtents, vehiclePlanarSpeed } from "../vehicles";
 import { createAfterlightCharacterWorld } from "../world/afterlight-character-world";
 import { AFTERLIGHT_CHARACTER_TUNING } from "../world/character-controller";
 
@@ -107,6 +108,63 @@ class AfterlightScenario {
     weapons.set(weapon.id, { ...weapon, cooldownTicks: 0 });
     this.state = { ...this.state, weapons };
   }
+
+  activateCourierChase(): void {
+    this.state = {
+      ...this.state,
+      mission: {
+        ...this.state.mission,
+        phaseIndex: 1,
+        completedObjectiveIds: [
+          AFTERLIGHT_OBJECTIVE_IDS.stealCoupe,
+          AFTERLIGHT_OBJECTIVE_IDS.learnDriving,
+          AFTERLIGHT_OBJECTIVE_IDS.reachMission,
+        ],
+      },
+    };
+  }
+}
+
+function placeHeroForBuildingImpact(scenario: AfterlightScenario) {
+  const world = createAfterlightCharacterWorld(scenario.state.seed);
+  const hero = scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+  if (!hero) throw new Error("missing hero coupe fixture");
+  const rotationY = 0;
+  const extents = vehiclePlanarExtents({
+    ...hero,
+    pose: { ...hero.pose, rotationY },
+  });
+  const obstacle = world.obstacles.find((candidate) => {
+    const x = (candidate.minX + candidate.maxX) * 0.5;
+    const z = candidate.maxZ + extents.z + 0.2;
+    if (z >= 95) return false;
+    return world.obstacles.every(
+      (other) =>
+        other.id === candidate.id ||
+        x <= other.minX - extents.x ||
+        x >= other.maxX + extents.x ||
+        z <= other.minZ - extents.z ||
+        z >= other.maxZ + extents.z,
+    );
+  });
+  if (!obstacle) throw new Error("missing clear building impact fixture");
+  const position: Vec3 = [
+    (obstacle.minX + obstacle.maxX) * 0.5,
+    0.72,
+    obstacle.maxZ + extents.z + 0.2,
+  ];
+  scenario.placeVehicle(AFTERLIGHT_ENTITY_IDS.heroCoupe, position, rotationY, {
+    occupiedBy: AFTERLIGHT_ENTITY_IDS.player,
+    velocity: [0, 0, -26],
+    health: 100,
+    life: "active",
+  });
+  scenario.placeActor(
+    AFTERLIGHT_ENTITY_IDS.player,
+    [position[0], 1.15, position[2]],
+    rotationY,
+  );
+  return { obstacle, extents };
 }
 
 describe("Afterlight step", () => {
@@ -234,6 +292,115 @@ describe("Afterlight step", () => {
     );
   });
 
+  it("prevents the hero coupe from penetrating rendered building footprints", () => {
+    const scenario = new AfterlightScenario();
+    const { obstacle, extents } = placeHeroForBuildingImpact(scenario);
+
+    scenario.stepMany(90, { throttle: 1 });
+
+    const hero = scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    expect(hero?.pose.position[2]).toBeGreaterThanOrEqual(
+      obstacle.maxZ + extents.z,
+    );
+    expect(hero?.pose.position[0]).toBeGreaterThan(obstacle.minX - extents.x);
+    expect(hero?.pose.position[0]).toBeLessThan(obstacle.maxX + extents.x);
+  });
+
+  it("emits deterministic damage once for the same building impact", () => {
+    const collide = () => {
+      const scenario = new AfterlightScenario();
+      placeHeroForBuildingImpact(scenario);
+      const events = scenario
+        .step({ throttle: 1 })
+        .filter(
+          (event) =>
+            event.type === "vehicle-damaged" ||
+            event.type === "vehicle-disabled",
+        );
+      return {
+        events,
+        vehicle: scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe),
+      };
+    };
+
+    const first = collide();
+    const second = collide();
+
+    expect(first).toEqual(second);
+    expect(first.events).toEqual([
+      {
+        type: "vehicle-damaged",
+        tick: 1,
+        vehicleId: AFTERLIGHT_ENTITY_IDS.heroCoupe,
+        amount: 33,
+      },
+    ]);
+    expect(first.vehicle).toMatchObject({ health: 67, life: "active" });
+  });
+
+  it("advances the active courier along its road route after 120 neutral ticks", () => {
+    const scenario = new AfterlightScenario();
+    scenario.activateCourierChase();
+    const initial = scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier);
+    if (!initial) throw new Error("missing courier fixture");
+
+    scenario.step();
+    const routeStart = scenario.state.vehicles.get(
+      AFTERLIGHT_ENTITY_IDS.courier,
+    );
+    if (!routeStart) throw new Error("missing courier route start");
+    scenario.stepMany(119);
+
+    const courier = scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier);
+    if (!courier) throw new Error("missing courier after chase ticks");
+    expect(
+      Math.hypot(
+        courier.pose.position[0] - routeStart.pose.position[0],
+        courier.pose.position[2] - routeStart.pose.position[2],
+      ),
+    ).toBeGreaterThan(5);
+    expect(vehiclePlanarSpeed(courier)).toBeGreaterThan(0);
+    expect(courier.routeId).toBe(initial.routeId);
+  });
+
+  it("damages but does not instantly disable the courier on low-speed contact", () => {
+    const scenario = new AfterlightScenario();
+    const ids = AFTERLIGHT_ENTITY_IDS;
+    scenario.activateCourierChase();
+    scenario.placeVehicle(ids.heroCoupe, [70, 0.72, 42], Math.PI, {
+      occupiedBy: ids.player,
+      velocity: [0, 0, 6],
+    });
+    scenario.placeVehicle(ids.courier, [70, 0.72, 42], Math.PI, {
+      velocity: [0, 0, 0],
+      health: 120,
+      life: "active",
+    });
+    scenario.placeActor(ids.player, [70, 1.15, 42], Math.PI);
+
+    const events = scenario.step();
+    const courier = scenario.state.vehicles.get(ids.courier);
+
+    expect(courier?.health).toBeLessThan(120);
+    expect(courier?.life).toBe("active");
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "vehicle-damaged",
+        vehicleId: ids.courier,
+        sourceId: ids.heroCoupe,
+      }),
+    );
+    expect(events).not.toContainEqual(
+      expect.objectContaining({
+        type: "vehicle-disabled",
+        vehicleId: ids.courier,
+      }),
+    );
+    expect(scenario.state.mission.completedObjectiveIds).not.toContain(
+      AFTERLIGHT_OBJECTIVE_IDS.disableCourier,
+    );
+  });
+
   it("fires the Signal-9 through the shared physics query", () => {
     const initial = createInitialAfterlightState();
     const actors = new Map(initial.actors);
@@ -297,15 +464,39 @@ describe("Afterlight step", () => {
     scenario.stepMany(31);
     expect(scenario.state.mission.phaseIndex).toBe(1);
 
-    scenario.placeVehicle(ids.heroCoupe, [70, 0.72, 42], Math.PI, {
-      occupiedBy: ids.player,
-      velocity: [0, 0, 12],
-    });
-    scenario.placeActor(ids.player, [70, 1.15, 42], Math.PI);
+    const courierAtIntercept = scenario.state.vehicles.get(ids.courier);
+    if (!courierAtIntercept) throw new Error("missing courier intercept");
+    scenario.placeVehicle(
+      ids.courier,
+      courierAtIntercept.pose.position,
+      courierAtIntercept.pose.rotationY,
+      { velocity: [0, 0, -14] },
+    );
+    scenario.placeVehicle(
+      ids.heroCoupe,
+      courierAtIntercept.pose.position,
+      Math.PI,
+      {
+        occupiedBy: ids.player,
+        velocity: [0, 0, 26],
+      },
+    );
+    scenario.placeActor(
+      ids.player,
+      [
+        courierAtIntercept.pose.position[0],
+        1.15,
+        courierAtIntercept.pose.position[2],
+      ],
+      Math.PI,
+    );
     scenario.step();
     expect(scenario.state.mission.completedObjectiveIds).toContain(
       AFTERLIGHT_OBJECTIVE_IDS.disableCourier,
     );
+    scenario.placeVehicle(ids.courier, [70, 0.72, 42], Math.PI, {
+      velocity: [0, 0, 0],
+    });
 
     scenario.placeVehicle(ids.heroCoupe, [52, 0.72, 52], 0, {
       occupiedBy: undefined,
