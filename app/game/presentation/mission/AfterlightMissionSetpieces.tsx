@@ -79,6 +79,7 @@ export const AfterlightMissionSetpieces = memo(
       <group
         name={`afterlight-mission-setpieces-${plan.phaseId}`}
         userData={{
+          cameraCollisionRoot: true,
           encounterVariant: plan.encounter.id,
           estimatedDrawCalls: plan.estimatedDrawCalls,
           phaseId: plan.phaseId,

@@ -2,7 +2,19 @@
 
 import { useFrame, useThree } from "@react-three/fiber";
 import { useLayoutEffect, useRef } from "react";
-import { PerspectiveCamera, Vector3 } from "three";
+import {
+  PerspectiveCamera,
+  Raycaster,
+  Vector3,
+  type Intersection,
+  type Object3D,
+} from "three";
+
+import {
+  collectCameraCollisionRoots,
+  nearestCameraCollisionDistance,
+  probeCameraCollisionDistance,
+} from "./collision";
 
 import {
   consumeAfterlightCameraImpulses,
@@ -41,6 +53,12 @@ interface CameraRigRuntime {
   readonly shake: CameraShakeState;
   readonly shakeSample: MutableCameraShakeSample;
   readonly lookAt: Vector3;
+  readonly collisionOrigin: Vector3;
+  readonly collisionTarget: Vector3;
+  readonly collisionDirection: Vector3;
+  readonly collisionRoots: Object3D[];
+  readonly collisionHits: Intersection<Object3D>[];
+  readonly raycaster: Raycaster;
   initialized: boolean;
   boomDistance: number;
   cinematicTime: number;
@@ -134,6 +152,12 @@ function createRuntime(): CameraRigRuntime {
       fov: 0,
     },
     lookAt: new Vector3(),
+    collisionOrigin: new Vector3(),
+    collisionTarget: new Vector3(),
+    collisionDirection: new Vector3(),
+    collisionRoots: [],
+    collisionHits: [],
+    raycaster: new Raycaster(),
     initialized: false,
     boomDistance: 5.6,
     cinematicTime: 0,
@@ -162,6 +186,7 @@ export function AfterlightCameraRig({
   targetPose,
 }: AfterlightCameraRigProps) {
   const camera = useThree((state) => state.camera);
+  const scene = useThree((state) => state.scene);
   const cameraRef = useRef(camera);
   const runtimeRef = useRef<CameraRigRuntime | null>(null);
 
@@ -211,18 +236,56 @@ export function AfterlightCameraRig({
     controlStep.dt = dt;
     stepAfterlightCameraControls(runtime.controls, controlStep);
 
+    const request = runtime.request;
+    request.targetX = targetX;
+    request.targetY = targetY;
+    request.targetZ = targetZ;
+    request.yaw = runtime.controls.yaw;
+    request.pitch = runtime.controls.pitch;
+    request.boomDistance = runtime.profile.distance;
+    request.pivotHeight = runtime.profile.pivotHeight;
+    request.lookHeight = runtime.profile.lookHeight;
+    request.lookAhead = runtime.profile.lookAhead;
+    request.shoulder = runtime.profile.shoulder;
+    request.fov = runtime.profile.fov;
+    request.roll = 0;
+    solveAfterlightCameraFrame(runtime.desired, request);
+
+    collectCameraCollisionRoots(scene, runtime.collisionRoots);
+    runtime.collisionOrigin.set(
+      targetX,
+      targetY + runtime.profile.pivotHeight,
+      targetZ,
+    );
+    runtime.collisionTarget.set(
+      runtime.desired.position.x,
+      runtime.desired.position.y,
+      runtime.desired.position.z,
+    );
+    const sceneCollisionDistance = probeCameraCollisionDistance(
+      runtime.raycaster,
+      runtime.collisionOrigin,
+      runtime.collisionTarget,
+      runtime.collisionRoots,
+      runtime.collisionDirection,
+      runtime.collisionHits,
+    );
+    const effectiveCollisionDistance = nearestCameraCollisionDistance(
+      collisionDistance,
+      sceneCollisionDistance,
+    );
     const safeBoom = resolveCameraCollisionBoom(
       runtime.profile.distance,
-      collisionDistance,
+      effectiveCollisionDistance,
     );
     const collisionConstrained = safeBoom < runtime.profile.distance - 0.001;
     const currentCollisionLimit = resolveCameraCollisionBoom(
       Math.max(runtime.profile.distance, runtime.boomDistance),
-      collisionDistance,
+      effectiveCollisionDistance,
     );
     const collisionContracted =
-      collisionDistance != null &&
-      Number.isFinite(collisionDistance) &&
+      effectiveCollisionDistance != null &&
+      Number.isFinite(effectiveCollisionDistance) &&
       currentCollisionLimit < runtime.boomDistance - 0.001;
     runtime.boomDistance =
       !runtime.initialized || collisionContracted
@@ -234,19 +297,7 @@ export function AfterlightCameraRig({
             dt,
           );
 
-    const request = runtime.request;
-    request.targetX = targetX;
-    request.targetY = targetY;
-    request.targetZ = targetZ;
-    request.yaw = runtime.controls.yaw;
-    request.pitch = runtime.controls.pitch;
     request.boomDistance = runtime.boomDistance;
-    request.pivotHeight = runtime.profile.pivotHeight;
-    request.lookHeight = runtime.profile.lookHeight;
-    request.lookAhead = runtime.profile.lookAhead;
-    request.shoulder = runtime.profile.shoulder;
-    request.fov = runtime.profile.fov;
-    request.roll = 0;
     solveAfterlightCameraFrame(runtime.desired, request);
     runtime.desired.collisionConstrained = collisionConstrained;
 

@@ -1,5 +1,10 @@
 export { AfterlightCameraRig } from "./AfterlightCameraRig";
 export {
+  collectCameraCollisionRoots,
+  nearestCameraCollisionDistance,
+  probeCameraCollisionDistance,
+} from "./collision";
+export {
   AFTERLIGHT_CAMERA_PROFILES,
   cameraDampingAlpha,
   consumeAfterlightCameraImpulses,

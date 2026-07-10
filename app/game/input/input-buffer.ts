@@ -29,6 +29,128 @@ export type AnalogAction =
 
 export type GameAction = DigitalAction | AnalogAction;
 
+export type RemappableKeyboardAction = Extract<
+  DigitalAction,
+  | "move-forward"
+  | "move-back"
+  | "move-left"
+  | "move-right"
+  | "sprint"
+  | "interact"
+  | "reload"
+>;
+
+export type KeyboardLayout = Readonly<Record<RemappableKeyboardAction, string>>;
+
+export const REMAPPABLE_KEYBOARD_ACTIONS = Object.freeze([
+  "move-forward",
+  "move-back",
+  "move-left",
+  "move-right",
+  "sprint",
+  "interact",
+  "reload",
+] as const satisfies readonly RemappableKeyboardAction[]);
+
+export const DEFAULT_KEYBOARD_LAYOUT: KeyboardLayout = Object.freeze({
+  "move-forward": "KeyW",
+  "move-back": "KeyS",
+  "move-left": "KeyA",
+  "move-right": "KeyD",
+  sprint: "ShiftLeft",
+  interact: "KeyE",
+  reload: "KeyR",
+});
+
+const BINDABLE_KEYBOARD_CODE =
+  /^(?:Key[A-Z]|Digit[0-9]|Arrow(?:Up|Down|Left|Right)|(?:Shift|Control|Alt)(?:Left|Right)|Enter|Backquote|Minus|Equal|BracketLeft|BracketRight|Backslash|Semicolon|Quote|Comma|Period|Slash)$/;
+
+export function isBindableKeyboardCode(code: string): boolean {
+  return BINDABLE_KEYBOARD_CODE.test(code);
+}
+
+export function remapKeyboardLayout(
+  layout: KeyboardLayout,
+  action: RemappableKeyboardAction,
+  code: string,
+): KeyboardLayout {
+  if (!isBindableKeyboardCode(code) || layout[action] === code) return layout;
+
+  const previousCode = layout[action];
+  const conflict = REMAPPABLE_KEYBOARD_ACTIONS.find(
+    (candidate) => candidate !== action && layout[candidate] === code,
+  );
+  const next: Record<RemappableKeyboardAction, string> = { ...layout };
+  next[action] = code;
+  if (conflict) next[conflict] = previousCode;
+  return Object.freeze(next);
+}
+
+export function normalizeKeyboardLayout(value: unknown): KeyboardLayout {
+  if (!value || typeof value !== "object") return DEFAULT_KEYBOARD_LAYOUT;
+
+  let layout = DEFAULT_KEYBOARD_LAYOUT;
+  const source = value as Partial<Record<RemappableKeyboardAction, unknown>>;
+  for (const action of REMAPPABLE_KEYBOARD_ACTIONS) {
+    const code = source[action];
+    if (typeof code === "string" && isBindableKeyboardCode(code)) {
+      layout = remapKeyboardLayout(layout, action, code);
+    }
+  }
+  return layout;
+}
+
+export function createKeyboardActionMap(
+  layout: KeyboardLayout = DEFAULT_KEYBOARD_LAYOUT,
+): Readonly<Record<string, DigitalAction>> {
+  const keyboard: Record<string, DigitalAction> = {
+    ArrowUp: "move-forward",
+    ArrowDown: "move-back",
+    ArrowLeft: "move-left",
+    ArrowRight: "move-right",
+    ShiftRight: "sprint",
+    Space: "jump",
+    Mouse0: "fire",
+    Mouse2: "aim",
+    Escape: "pause",
+  };
+  for (const action of REMAPPABLE_KEYBOARD_ACTIONS) {
+    keyboard[layout[action]] = action;
+  }
+  return Object.freeze(keyboard);
+}
+
+const KEYBOARD_CODE_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  ArrowUp: "UP",
+  ArrowDown: "DOWN",
+  ArrowLeft: "LEFT",
+  ArrowRight: "RIGHT",
+  ShiftLeft: "SHIFT",
+  ShiftRight: "SHIFT",
+  ControlLeft: "CTRL",
+  ControlRight: "CTRL",
+  AltLeft: "ALT",
+  AltRight: "ALT",
+  Enter: "ENTER",
+  Backquote: "`",
+  Minus: "-",
+  Equal: "=",
+  BracketLeft: "[",
+  BracketRight: "]",
+  Backslash: "\\",
+  Semicolon: ";",
+  Quote: "'",
+  Comma: ",",
+  Period: ".",
+  Slash: "/",
+});
+
+export function formatKeyboardCode(code: string): string {
+  if (code.startsWith("Key")) return code.slice(3);
+  if (code.startsWith("Digit")) return code.slice(5);
+  return KEYBOARD_CODE_LABELS[code] ?? code.toUpperCase();
+}
+
 export interface InputBindings {
   readonly keyboard: Readonly<Record<string, DigitalAction>>;
   readonly gamepadDeadzone: number;
@@ -37,24 +159,7 @@ export interface InputBindings {
 }
 
 export const DEFAULT_INPUT_BINDINGS: InputBindings = {
-  keyboard: {
-    KeyW: "move-forward",
-    ArrowUp: "move-forward",
-    KeyS: "move-back",
-    ArrowDown: "move-back",
-    KeyA: "move-left",
-    ArrowLeft: "move-left",
-    KeyD: "move-right",
-    ArrowRight: "move-right",
-    Space: "jump",
-    ShiftLeft: "sprint",
-    ShiftRight: "sprint",
-    KeyE: "interact",
-    KeyR: "reload",
-    Mouse0: "fire",
-    Mouse2: "aim",
-    Escape: "pause",
-  },
+  keyboard: createKeyboardActionMap(),
   gamepadDeadzone: 0.16,
   lookSensitivity: 1,
   invertLookY: false,
@@ -164,13 +269,18 @@ export class InputBuffer {
 
 export class KeyboardInputAdapter {
   readonly #buffer: InputBuffer;
-  readonly #bindings: InputBindings;
+  #bindings: InputBindings;
 
   constructor(
     buffer: InputBuffer,
     bindings: InputBindings = DEFAULT_INPUT_BINDINGS,
   ) {
     this.#buffer = buffer;
+    this.#bindings = bindings;
+  }
+
+  setBindings(bindings: InputBindings) {
+    this.#buffer.reset();
     this.#bindings = bindings;
   }
 

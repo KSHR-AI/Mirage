@@ -42,7 +42,10 @@ export const CityArchitecture = memo(function CityArchitecture({
   );
 
   return (
-    <group name="procedural-city-architecture">
+    <group
+      name="procedural-city-architecture"
+      userData={{ cameraCollisionRoot: true }}
+    >
       <InstancedPrimitives
         castShadow={shadows}
         instances={layout.buildings}

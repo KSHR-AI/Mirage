@@ -123,9 +123,34 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
   await expect(sensitivity).toHaveValue("100");
   await sensitivity.fill("150");
   await page.getByRole("switch", { name: "Invert vertical look: off" }).click();
+  const keyboardBindings = page.getByLabel("Keyboard bindings");
+  await keyboardBindings
+    .getByRole("button", { name: "Change Forward key. Current key W" })
+    .click();
+  await page.keyboard.press("i");
+  await expect(
+    keyboardBindings.getByRole("button", {
+      name: "Change Forward key. Current key I",
+    }),
+  ).toBeVisible();
   await expect
-    .poll(() => page.evaluate(() => localStorage.getItem("mirage:controls:v1")))
-    .toBe('{"invertLookY":true,"lookSensitivity":1.5}');
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("mirage:controls:v1");
+        if (!raw) return null;
+        const controls = JSON.parse(raw);
+        return {
+          forward: controls.keyboardBindings?.["move-forward"],
+          invertLookY: controls.invertLookY,
+          lookSensitivity: controls.lookSensitivity,
+        };
+      }),
+    )
+    .toEqual({
+      forward: "KeyI",
+      invertLookY: true,
+      lookSensitivity: 1.5,
+    });
   await page.getByRole("button", { name: "Resume" }).click();
   await expect(shell).toHaveAttribute("data-pointer-locked", "true");
 });

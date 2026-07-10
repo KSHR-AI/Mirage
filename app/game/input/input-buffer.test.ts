@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DEFAULT_INPUT_BINDINGS,
+  DEFAULT_KEYBOARD_LAYOUT,
   InputBuffer,
   KeyboardInputAdapter,
   applyGamepadSnapshot,
+  createKeyboardActionMap,
+  formatKeyboardCode,
+  normalizeKeyboardLayout,
+  remapKeyboardLayout,
 } from "./input-buffer";
 
 describe("InputBuffer", () => {
@@ -46,6 +52,51 @@ describe("InputBuffer", () => {
     keyboard.keyDown("KeyW");
     keyboard.blur();
     expect(buffer.frame().move).toEqual([0, 0]);
+  });
+
+  it("rebinds physical keys without changing the action contract", () => {
+    const buffer = new InputBuffer();
+    const keyboard = new KeyboardInputAdapter(buffer);
+    const layout = remapKeyboardLayout(
+      DEFAULT_KEYBOARD_LAYOUT,
+      "move-forward",
+      "KeyI",
+    );
+
+    keyboard.setBindings({
+      ...DEFAULT_INPUT_BINDINGS,
+      keyboard: createKeyboardActionMap(layout),
+    });
+
+    expect(keyboard.keyDown("KeyW")).toBe(false);
+    expect(keyboard.keyDown("KeyI")).toBe(true);
+    expect(buffer.frame().move).toEqual([0, 1]);
+  });
+
+  it("swaps conflicting assignments so every action stays reachable", () => {
+    const layout = remapKeyboardLayout(
+      DEFAULT_KEYBOARD_LAYOUT,
+      "move-forward",
+      "KeyS",
+    );
+
+    expect(layout["move-forward"]).toBe("KeyS");
+    expect(layout["move-back"]).toBe("KeyW");
+    expect(createKeyboardActionMap(layout).KeyW).toBe("move-back");
+  });
+
+  it("normalizes persisted layouts and formats physical key labels", () => {
+    const layout = normalizeKeyboardLayout({
+      "move-forward": "KeyS",
+      "move-back": "KeyW",
+      interact: "Space",
+    });
+
+    expect(layout["move-forward"]).toBe("KeyS");
+    expect(layout["move-back"]).toBe("KeyW");
+    expect(layout.interact).toBe("KeyE");
+    expect(formatKeyboardCode("ShiftLeft")).toBe("SHIFT");
+    expect(formatKeyboardCode("KeyQ")).toBe("Q");
   });
 
   it("applies gamepad deadzones and edge actions", () => {

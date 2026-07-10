@@ -1223,6 +1223,57 @@
   color: var(--hud-charcoal);
 }
 
+.keyBindingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid var(--hud-line);
+}
+
+.keyBindingItem {
+  display: grid;
+  min-width: 0;
+  min-height: 46px;
+  grid-template-columns: minmax(0, 1fr) 60px;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--hud-faint);
+  padding: 6px 8px;
+}
+
+.keyBindingItem:nth-child(odd) {
+  border-right: 1px solid var(--hud-faint);
+}
+
+.keyBindingItem > span {
+  overflow: hidden;
+  color: var(--hud-muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.keyBindingItem button {
+  width: 60px;
+  min-height: 30px;
+  justify-content: center;
+  border: 1px solid var(--hud-line);
+  border-radius: 5px;
+  background: rgba(255, 253, 247, 0.06);
+  padding: 0 5px;
+  color: var(--hud-white);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.keyBindingItem button:hover,
+.keyBindingItem button[data-listening="true"] {
+  border-color: var(--hud-lime);
+  background: rgba(217, 255, 92, 0.12);
+  color: var(--hud-lime);
+}
+
 .pauseIndex {
   position: fixed;
   right: max(28px, env(safe-area-inset-right));
@@ -2132,6 +2183,10 @@
     font-size: 46px;
   }
 
+  .settings {
+    margin-bottom: max(18px, env(safe-area-inset-bottom));
+  }
+
   .settingRow {
     grid-template-columns: 26px minmax(0, 1fr) auto;
     gap: 8px;
@@ -2309,6 +2364,14 @@
 
   .segmented button {
     font-size: 6px;
+  }
+
+  .keyBindingGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .keyBindingItem:nth-child(odd) {
+    border-right: 0;
   }
 
   .lookStick {

@@ -29,7 +29,10 @@ export const CityLandmarks = memo(function CityLandmarks({
   shadows,
 }: CityLandmarksProps) {
   return (
-    <group name="authored-bay-city-landmarks">
+    <group
+      name="authored-bay-city-landmarks"
+      userData={{ cameraCollisionRoot: true }}
+    >
       <EmberSpan shadows={shadows} />
       <AfterlightSpire quality={quality} shadows={shadows} />
       <AuroraVault quality={quality} shadows={shadows} />

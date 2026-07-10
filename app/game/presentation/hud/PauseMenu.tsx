@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Activity,
   Flag,
@@ -10,6 +11,11 @@ import {
   RotateCcw,
   Volume2,
 } from "lucide-react";
+import {
+  formatKeyboardCode,
+  isBindableKeyboardCode,
+  type RemappableKeyboardAction,
+} from "../../input/input-buffer";
 import styles from "./Hud.module.css";
 import type {
   AfterlightSettingsProps,
@@ -18,6 +24,15 @@ import type {
 } from "./types";
 
 const QUALITY_OPTIONS: readonly HudQuality[] = ["low", "medium", "high"];
+const KEY_BINDING_OPTIONS = Object.freeze([
+  ["move-forward", "Forward"],
+  ["move-back", "Back"],
+  ["move-left", "Left"],
+  ["move-right", "Right"],
+  ["sprint", "Sprint / boost"],
+  ["interact", "Interact / enter"],
+  ["reload", "Reload"],
+] as const satisfies readonly (readonly [RemappableKeyboardAction, string])[]);
 
 function ToggleRow({
   checked,
@@ -58,7 +73,11 @@ export function AfterlightSettings({
   onQualityChange,
   onLookSensitivityChange,
   onInvertLookYChange,
+  onKeyboardBindingChange,
 }: AfterlightSettingsProps) {
+  const [listeningAction, setListeningAction] =
+    useState<RemappableKeyboardAction | null>(null);
+
   return (
     <section
       aria-labelledby="afterlight-settings-title"
@@ -132,6 +151,48 @@ export function AfterlightSettings({
           ))}
         </div>
       </div>
+      <div className={styles.sectionHeading}>
+        <span>03</span>
+        <h3>Keyboard</h3>
+      </div>
+      <div aria-label="Keyboard bindings" className={styles.keyBindingGrid}>
+        {KEY_BINDING_OPTIONS.map(([action, label]) => {
+          const listening = listeningAction === action;
+          const keyLabel = formatKeyboardCode(value.keyboardBindings[action]);
+          return (
+            <div className={styles.keyBindingItem} key={action}>
+              <span>{label}</span>
+              <button
+                aria-label={
+                  listening
+                    ? `Press a key for ${label}`
+                    : `Change ${label} key. Current key ${keyLabel}`
+                }
+                data-listening={listening}
+                onBlur={() => {
+                  if (listening) setListeningAction(null);
+                }}
+                onClick={() => setListeningAction(action)}
+                onKeyDown={(event) => {
+                  if (!listening) return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  if (event.code === "Escape") {
+                    setListeningAction(null);
+                    return;
+                  }
+                  if (!isBindableKeyboardCode(event.code)) return;
+                  onKeyboardBindingChange(action, event.code);
+                  setListeningAction(null);
+                }}
+                type="button"
+              >
+                {listening ? "..." : keyLabel}
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -149,6 +210,7 @@ export function PauseMenu({
   onQualityChange,
   onLookSensitivityChange,
   onInvertLookYChange,
+  onKeyboardBindingChange,
 }: PauseMenuProps) {
   if (!open) return null;
 
@@ -193,6 +255,7 @@ export function PauseMenu({
 
         <AfterlightSettings
           onInvertLookYChange={onInvertLookYChange}
+          onKeyboardBindingChange={onKeyboardBindingChange}
           onLookSensitivityChange={onLookSensitivityChange}
           onMutedChange={onMutedChange}
           onQualityChange={onQualityChange}

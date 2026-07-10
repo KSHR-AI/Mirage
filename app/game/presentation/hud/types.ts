@@ -1,3 +1,8 @@
+import type {
+  KeyboardLayout,
+  RemappableKeyboardAction,
+} from "../../input/input-buffer";
+
 export type HudQuality = "low" | "medium" | "high";
 export type HudRank = "S" | "A" | "B" | "C";
 export type HudNotificationTone = "neutral" | "success" | "danger" | "reward";
@@ -106,6 +111,7 @@ export interface AfterlightSettingsValue {
   readonly quality: HudQuality;
   readonly lookSensitivity: number;
   readonly invertLookY: boolean;
+  readonly keyboardBindings: KeyboardLayout;
 }
 
 export interface AfterlightSettingsProps {
@@ -115,6 +121,10 @@ export interface AfterlightSettingsProps {
   readonly onQualityChange: (quality: HudQuality) => void;
   readonly onLookSensitivityChange: (sensitivity: number) => void;
   readonly onInvertLookYChange: (invert: boolean) => void;
+  readonly onKeyboardBindingChange: (
+    action: RemappableKeyboardAction,
+    code: string,
+  ) => void;
 }
 
 export interface PauseMenuProps extends AfterlightSettingsProps {

@@ -49,9 +49,15 @@ import {
 } from "../game/core/runtime";
 import {
   DEFAULT_INPUT_BINDINGS,
+  DEFAULT_KEYBOARD_LAYOUT,
   InputBuffer,
   KeyboardInputAdapter,
   applyGamepadSnapshot,
+  createKeyboardActionMap,
+  normalizeKeyboardLayout,
+  remapKeyboardLayout,
+  type KeyboardLayout,
+  type RemappableKeyboardAction,
 } from "../game/input/input-buffer";
 import {
   AFTERLIGHT_PHASE_IDS,
@@ -120,6 +126,7 @@ const CONTROL_SETTINGS_KEY = "mirage:controls:v1";
 interface ControlSettings {
   readonly lookSensitivity: number;
   readonly invertLookY: boolean;
+  readonly keyboardBindings: KeyboardLayout;
 }
 
 function clampLookSensitivity(value: number): number {
@@ -134,9 +141,14 @@ function readControlSettings(): ControlSettings {
     return {
       lookSensitivity: clampLookSensitivity(parsed?.lookSensitivity),
       invertLookY: parsed?.invertLookY === true,
+      keyboardBindings: normalizeKeyboardLayout(parsed?.keyboardBindings),
     };
   } catch {
-    return { lookSensitivity: 1, invertLookY: false };
+    return {
+      lookSensitivity: 1,
+      invertLookY: false,
+      keyboardBindings: DEFAULT_KEYBOARD_LAYOUT,
+    };
   }
 }
 
@@ -578,6 +590,7 @@ export function AfterlightGame() {
   const qualityRef = useRef<GameQualityTier>("medium");
   const lookSensitivityRef = useRef(1);
   const invertLookYRef = useRef(false);
+  const keyboardBindingsRef = useRef<KeyboardLayout>(DEFAULT_KEYBOARD_LAYOUT);
   const governorRef = useRef(
     new PerformanceGovernor({ initialTier: "medium" }),
   );
@@ -595,6 +608,9 @@ export function AfterlightGame() {
   const [quality, setQuality] = useState<GameQualityTier>("medium");
   const [lookSensitivity, setLookSensitivity] = useState(1);
   const [invertLookY, setInvertLookY] = useState(false);
+  const [keyboardBindings, setKeyboardBindings] = useState<KeyboardLayout>(
+    DEFAULT_KEYBOARD_LAYOUT,
+  );
   const [continueAvailable, setContinueAvailable] = useState(false);
   const [debriefDismissed, setDebriefDismissed] = useState(false);
   const [runScore, setRunScore] = useState<RunScore | null>(null);
@@ -613,6 +629,11 @@ export function AfterlightGame() {
     reducedMotionRef.current = profile.reducedMotion;
     lookSensitivityRef.current = controls.lookSensitivity;
     invertLookYRef.current = controls.invertLookY;
+    keyboardBindingsRef.current = controls.keyboardBindings;
+    keyboardRef.current.setBindings({
+      ...DEFAULT_INPUT_BINDINGS,
+      keyboard: createKeyboardActionMap(controls.keyboardBindings),
+    });
     saveRepositoryRef.current = new SaveGameRepository(window.localStorage);
     continueSaveRef.current = saveRepositoryRef.current.load();
     let cancelled = false;
@@ -622,6 +643,7 @@ export function AfterlightGame() {
       setReducedMotion(profile.reducedMotion);
       setLookSensitivity(controls.lookSensitivity);
       setInvertLookY(controls.invertLookY);
+      setKeyboardBindings(controls.keyboardBindings);
       setContinueAvailable(Boolean(continueSaveRef.current));
     });
     return () => {
@@ -1096,6 +1118,7 @@ export function AfterlightGame() {
       CONTROL_SETTINGS_KEY,
       JSON.stringify({
         invertLookY: invertLookYRef.current,
+        keyboardBindings: keyboardBindingsRef.current,
         lookSensitivity: lookSensitivityRef.current,
       }),
     );
@@ -1115,6 +1138,25 @@ export function AfterlightGame() {
     (next: boolean) => {
       invertLookYRef.current = next;
       setInvertLookY(next);
+      persistControlSettings();
+    },
+    [persistControlSettings],
+  );
+
+  const setKeyboardBindingValue = useCallback(
+    (action: RemappableKeyboardAction, code: string) => {
+      const next = remapKeyboardLayout(
+        keyboardBindingsRef.current,
+        action,
+        code,
+      );
+      if (next === keyboardBindingsRef.current) return;
+      keyboardBindingsRef.current = next;
+      keyboardRef.current.setBindings({
+        ...DEFAULT_INPUT_BINDINGS,
+        keyboard: createKeyboardActionMap(next),
+      });
+      setKeyboardBindings(next);
       persistControlSettings();
     },
     [persistControlSettings],
@@ -1222,6 +1264,7 @@ export function AfterlightGame() {
     })) ?? [];
   const settings = {
     invertLookY,
+    keyboardBindings,
     lookSensitivity,
     muted,
     quality,
@@ -1305,7 +1348,7 @@ export function AfterlightGame() {
         ref={inputSurfaceRef}
       />
 
-      {started ? (
+      {started && !paused ? (
         <AfterlightHud
           cash={view.state.cash}
           health={player?.health ?? 0}
@@ -1350,6 +1393,7 @@ export function AfterlightGame() {
       <PauseMenu
         checkpointLabel={phase.location}
         onInvertLookYChange={setInvertLookYValue}
+        onKeyboardBindingChange={setKeyboardBindingValue}
         onLookSensitivityChange={setLookSensitivityValue}
         onMutedChange={setMutedValue}
         onQualityChange={setQualityValue}
