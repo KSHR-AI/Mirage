@@ -15,6 +15,7 @@ import * as THREE from "three";
 import {
   AfterlightAudioDirector,
   type AfterlightAudioCue,
+  resolveAfterlightWeather,
 } from "../game/audio";
 import {
   AFTERLIGHT_LOCATIONS,
@@ -452,6 +453,10 @@ function audioCueForEvent(
   return null;
 }
 
+function audioTokenForEvent(event: GameEvent): string {
+  return `${event.tick}:${event.type}:${eventIdentity(event)}`;
+}
+
 function radioEventForGameEvent(event: GameEvent): AfterlightRadioEvent | null {
   if (event.type === "crime-witnessed" && event.crime === "vehicle-theft") {
     return "crime.vehicle-theft-witnessed";
@@ -790,6 +795,10 @@ export function AfterlightGame() {
         const state = runtime.state;
         const previousState = viewRef.current.state;
         const definition = createAfterlightJob(state.seed);
+        const currentPhase = definition.phases[state.mission.phaseIndex];
+        const currentPhaseContent = getAfterlightPhaseContent(
+          currentPhase.id as Parameters<typeof getAfterlightPhaseContent>[0],
+        );
         const nextVfx = [...vfxRef.current];
         const nextImpulses = [...impulsesRef.current];
         const nextNotifications = [...notificationRef.current];
@@ -798,7 +807,21 @@ export function AfterlightGame() {
           const vfx = vfxForEvent(event, state);
           if (vfx) nextVfx.push(vfx);
           const cue = audioCueForEvent(event, state.playerId);
-          if (cue) audioRef.current.cue(cue);
+          if (cue) {
+            audioRef.current.cue({
+              cue,
+              intensity:
+                event.type === "actor-damaged" ||
+                event.type === "vehicle-damaged"
+                  ? Math.min(1.2, 0.6 + event.amount / 60)
+                  : 1,
+              position:
+                cue === "impact" || cue === "blackout"
+                  ? eventPosition(event, state)
+                  : undefined,
+              token: audioTokenForEvent(event),
+            });
+          }
           const notification = notificationForEvent(event, state, definition);
           if (notification) nextNotifications.push(notification);
           const radioEvent = radioEventForGameEvent(event);
@@ -843,7 +866,10 @@ export function AfterlightGame() {
         const magazine = state.weapons.get("signal-9")?.magazine ?? 0;
         if (magazine < previousMagazineRef.current) {
           statsRef.current.shotsFired += previousMagazineRef.current - magazine;
-          audioRef.current.cue("weapon-fire");
+          audioRef.current.cue({
+            cue: "weapon-fire",
+            token: `weapon-fire:${state.tick}:${previousMagazineRef.current}->${magazine}`,
+          });
         }
         previousMagazineRef.current = magazine;
 
@@ -858,14 +884,20 @@ export function AfterlightGame() {
             detail: content.briefing.text,
             tone: "neutral",
           });
-          audioRef.current.cue("mission-phase");
+          audioRef.current.cue({
+            cue: "mission-phase",
+            token: `mission-phase:${state.mission.phaseIndex}:${state.tick}`,
+          });
           previousPhaseRef.current = state.mission.phaseIndex;
           track("bay_city_mission", phase.id);
         }
 
         if (state.mission.failed && !previousState.mission.failed) {
           statsRef.current.deaths += 1;
-          audioRef.current.cue("death");
+          audioRef.current.cue({
+            cue: "death",
+            token: `mission-failed:${state.tick}`,
+          });
         }
 
         if (
@@ -918,7 +950,10 @@ export function AfterlightGame() {
             shotsHit,
             vehicleDamage,
           });
-          audioRef.current.cue("mission-complete");
+          audioRef.current.cue({
+            cue: "mission-complete",
+            token: `mission-complete:${state.tick}`,
+          });
           track("bay_city_completed");
         }
 
@@ -944,17 +979,50 @@ export function AfterlightGame() {
         const hero = state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
         const driving = hero?.occupiedBy === state.playerId;
         const player = state.actors.get(state.playerId);
+        const listenerPosition = driving
+          ? (hero?.pose.position ?? activePlayerPosition(state))
+          : (player?.pose.position ?? activePlayerPosition(state));
+        const listenerYaw = driving
+          ? (hero?.pose.rotationY ?? player?.pose.rotationY ?? 0)
+          : (player?.pose.rotationY ?? 0);
         const activeVelocity = driving
           ? (hero?.velocity ?? ([0, 0, 0] as Vec3))
           : (player?.velocity ?? ([0, 0, 0] as Vec3));
         audioRef.current.update({
           mode: driving ? "vehicle" : "foot",
           speedKph: Math.hypot(activeVelocity[0], activeVelocity[2]) * 3.6,
+          engineLoad: Math.max(
+            Math.abs(lastInputRef.current.throttle),
+            lastInputRef.current.brake ? 0.7 : 0,
+            Math.min(1, Math.abs(lastInputRef.current.steer) * 0.45),
+          ),
           wantedLevel: state.heat.wantedLevel,
           health: player?.health ?? 0,
           paused: pausedRef.current,
           blackout: state.inventory.has(BLACKOUT_MARKER),
           missionIntensity: state.mission.phaseIndex / 5,
+          district: currentPhaseContent.location,
+          weather: resolveAfterlightWeather(currentPhaseContent.location),
+          listenerPosition,
+          listenerYaw,
+          police: [
+            AFTERLIGHT_ENTITY_IDS.policeA,
+            AFTERLIGHT_ENTITY_IDS.policeB,
+            AFTERLIGHT_ENTITY_IDS.policeC,
+          ]
+            .slice(0, state.heat.wantedLevel)
+            .flatMap((id) => {
+              const actor = state.actors.get(id);
+              return actor
+                ? [
+                    {
+                      id: `police-${id}`,
+                      intensity: actor.kind === "police" ? 1 : 0.85,
+                      position: actor.pose.position,
+                    },
+                  ]
+                : [];
+            }),
         });
 
         const report = governorRef.current.sample({
