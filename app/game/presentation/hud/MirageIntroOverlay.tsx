@@ -1,12 +1,11 @@
 "use client";
 
-import { CarFront, Crosshair, MousePointer2, Move, Play } from "lucide-react";
+import { Play } from "lucide-react";
 import styles from "./Hud.module.css";
 import type { MirageIntroOverlayProps } from "./types";
 
 export function MirageIntroOverlay({
   visible = true,
-  inputMode = "desktop",
   canContinue = false,
   onStart,
   onContinue,
@@ -32,38 +31,6 @@ export function MirageIntroOverlay({
         <p className={styles.introBrief}>
           Steal the core. Kill the grid. Break the response across the bridge.
         </p>
-
-        <div aria-label="Game controls" className={styles.introControls}>
-          {inputMode === "desktop" ? (
-            <>
-              <span>
-                <Move aria-hidden="true" size={16} />
-                <kbd>WASD</kbd>
-                Move
-              </span>
-              <span>
-                <MousePointer2 aria-hidden="true" size={16} />
-                Mouse
-                <small>Look</small>
-              </span>
-              <span>
-                <CarFront aria-hidden="true" size={16} />
-                <kbd>E</kbd>
-                Enter
-              </span>
-              <span>
-                <Crosshair aria-hidden="true" size={16} />
-                <kbd>LMB</kbd>
-                Fire
-              </span>
-            </>
-          ) : (
-            <span>
-              <Move aria-hidden="true" size={16} />
-              Dual touch controls activate in the city
-            </span>
-          )}
-        </div>
 
         <div className={styles.introActions}>
           <button

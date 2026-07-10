@@ -13,26 +13,29 @@ export async function generateMetadata(): Promise<Metadata> {
   const image = new URL("/og.png", origin).toString();
 
   return {
-    title: "Mirage: Bay City",
-    description: "A playable open-world San Francisco, built by a coding model.",
+    title: "Mirage: The Afterlight Job",
+    description:
+      "Steal the core, kill the grid, and break the response across a playable Bay City.",
     openGraph: {
       type: "website",
       url: origin,
-      title: "Mirage: Bay City",
-      description: "A playable open-world San Francisco, built by a coding model.",
+      title: "Mirage: The Afterlight Job",
+      description:
+        "Steal the core, kill the grid, and break the response across a playable Bay City.",
       images: [
         {
           url: image,
           width: 1440,
           height: 900,
-          alt: "Mirage: Bay City, a playable San Francisco",
+          alt: "Mirage: The Afterlight Job in Bay City",
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Mirage: Bay City",
-      description: "A playable open-world San Francisco, built by a coding model.",
+      title: "Mirage: The Afterlight Job",
+      description:
+        "Steal the core, kill the grid, and break the response across a playable Bay City.",
       images: [image],
     },
   };

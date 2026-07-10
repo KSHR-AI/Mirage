@@ -10,6 +10,7 @@ import {
   AFTERLIGHT_START_CHECKPOINT_ID,
   afterlightCheckpoint,
   createInitialAfterlightState,
+  hydrateAfterlightState,
 } from "./afterlight-state";
 import { stableHash } from "./runtime";
 
@@ -54,5 +55,26 @@ describe("initial Afterlight state", () => {
     expect(afterlightCheckpoint("missing").id).toBe(
       AFTERLIGHT_START_CHECKPOINT_ID,
     );
+  });
+
+  it("hydrates a checkpoint save without reviving a failed mission", () => {
+    const initial = createInitialAfterlightState();
+    const player = initial.actors.get(initial.playerId);
+    if (!player) throw new Error("missing player fixture");
+    const hydrated = hydrateAfterlightState({
+      version: 1,
+      contractVersion: 1,
+      seed: initial.seed,
+      checkpointId: AFTERLIGHT_CHECKPOINT_IDS.vault,
+      mission: { ...initial.mission, phaseIndex: 2, failed: true },
+      player: { ...player, pose: { position: [14, 1.15, -32], rotationY: 0 } },
+      cash: 4200,
+      inventory: ["afterlight-vault-credential"],
+    });
+
+    expect(hydrated.mission.failed).toBe(false);
+    expect(hydrated.mission.phaseIndex).toBe(2);
+    expect(hydrated.cash).toBe(4200);
+    expect(hydrated.inventory.has("afterlight-vault-credential")).toBe(true);
   });
 });

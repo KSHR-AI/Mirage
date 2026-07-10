@@ -12,6 +12,7 @@ import type {
   EntityId,
   GameState,
   Pose,
+  SaveGameV1,
   Vec3,
   VehicleState,
 } from "./contracts";
@@ -47,11 +48,11 @@ export const AFTERLIGHT_CHECKPOINTS: Readonly<
   [AFTERLIGHT_START_CHECKPOINT_ID]: Object.freeze({
     id: AFTERLIGHT_START_CHECKPOINT_ID,
     pose: Object.freeze({
-      position: [64, 1.15, 74] as Vec3,
+      position: [64, 1.15, 56] as Vec3,
       rotationY: Math.PI,
     }),
     vehiclePose: Object.freeze({
-      position: [68, 0.72, 70] as Vec3,
+      position: [64, 0.72, 50] as Vec3,
       rotationY: Math.PI,
     }),
   }),
@@ -113,7 +114,7 @@ export const AFTERLIGHT_CHECKPOINTS: Readonly<
 });
 
 export const AFTERLIGHT_LANDMARKS = Object.freeze({
-  boostYard: [68, 0.72, 70] as Vec3,
+  boostYard: [64, 0.72, 50] as Vec3,
   missionIntercept: [70, 1.15, 42] as Vec3,
   courierRouteStart: [70, 0.72, 42] as Vec3,
   vaultReader: [14, 1.15, -42] as Vec3,
@@ -176,7 +177,7 @@ export function createInitialAfterlightActors(): ReadonlyMap<
         ids.player,
         "player",
         "player",
-        [64, 1.15, 74],
+        [64, 1.15, 56],
         Math.PI,
         100,
         SIGNAL_9_SPEC.id,
@@ -270,7 +271,7 @@ export function createInitialAfterlightVehicles(): ReadonlyMap<
   return new Map([
     [
       ids.heroCoupe,
-      vehicle(ids.heroCoupe, "hero", [68, 0.72, 70], Math.PI, 100),
+      vehicle(ids.heroCoupe, "hero", [64, 0.72, 50], Math.PI, 100),
     ],
     [
       ids.courier,
@@ -315,4 +316,38 @@ export function afterlightCheckpoint(
     AFTERLIGHT_CHECKPOINTS[checkpointId] ??
     AFTERLIGHT_CHECKPOINTS[AFTERLIGHT_START_CHECKPOINT_ID]
   );
+}
+
+export function hydrateAfterlightState(save: SaveGameV1): GameState {
+  const state = createInitialAfterlightState(save.seed);
+  const checkpoint = afterlightCheckpoint(save.checkpointId);
+  const actors = new Map(state.actors);
+  const player = actors.get(state.playerId);
+  if (!player)
+    throw new Error(`Cannot hydrate missing player ${state.playerId}`);
+  actors.set(state.playerId, {
+    ...player,
+    pose: save.player.pose,
+    health: Math.max(1, Math.min(100, save.player.health)),
+    life: "alive",
+    ...(save.player.equippedWeaponId
+      ? { equippedWeaponId: save.player.equippedWeaponId }
+      : {}),
+  });
+
+  const vehicles = new Map(state.vehicles);
+  const hero = vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+  if (hero && checkpoint.vehiclePose) {
+    vehicles.set(hero.id, { ...hero, pose: checkpoint.vehiclePose });
+  }
+
+  return {
+    ...state,
+    actors,
+    vehicles,
+    mission: { ...save.mission, failed: false },
+    inventory: new Set(save.inventory),
+    cash: save.cash,
+    checkpointId: save.checkpointId,
+  };
 }

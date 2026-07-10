@@ -6,7 +6,7 @@ import {
   cityLayoutFingerprint,
   cityMissionZone,
   createBayCityLayout,
-} from "./layout";
+} from "./city-layout";
 
 afterEach(() => {
   vi.restoreAllMocks();

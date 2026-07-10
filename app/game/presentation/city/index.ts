@@ -9,7 +9,7 @@ export {
   cityLayoutFingerprint,
   cityMissionZone,
   createBayCityLayout,
-} from "./layout";
+} from "./city-layout";
 export { createCityRng, hashCitySeed, stableCityOrder } from "./seed";
 export type {
   BoxInstance,

@@ -22,13 +22,11 @@ function ToggleRow({
   checked,
   icon,
   label,
-  description,
   onChange,
 }: {
   readonly checked: boolean;
   readonly icon: React.ReactNode;
   readonly label: string;
-  readonly description: string;
   readonly onChange: (checked: boolean) => void;
 }) {
   return (
@@ -36,7 +34,6 @@ function ToggleRow({
       <span className={styles.settingIcon}>{icon}</span>
       <span className={styles.settingCopy}>
         <strong>{label}</strong>
-        <small>{description}</small>
       </span>
       <button
         aria-checked={checked}
@@ -70,14 +67,12 @@ export function AfterlightSettings({
       </div>
       <ToggleRow
         checked={value.muted}
-        description="Music, effects, and radio"
         icon={<Volume2 aria-hidden="true" size={17} />}
         label="Mute audio"
         onChange={onMutedChange}
       />
       <ToggleRow
         checked={value.reducedMotion}
-        description="Camera shake and interface motion"
         icon={<Activity aria-hidden="true" size={17} />}
         label="Reduced motion"
         onChange={onReducedMotionChange}
@@ -88,7 +83,6 @@ export function AfterlightSettings({
         </span>
         <span className={styles.settingCopy}>
           <strong>Graphics quality</strong>
-          <small>Applied without restarting the mission</small>
         </span>
         <div
           aria-label="Graphics quality"

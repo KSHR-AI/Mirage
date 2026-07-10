@@ -4,7 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import { memo, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { InstancedPrimitives } from "./InstancedPrimitives";
-import { cityMissionZone } from "./layout";
+import { cityMissionZone } from "./city-layout";
 import type {
   BoxInstance,
   CityMissionZoneId,
@@ -573,11 +573,11 @@ function CourierYard({ shadows }: { shadows: boolean }) {
         "#8b5b73",
         "#3d6b5b",
       ].flatMap((color, index) => {
-        const x = 64 + (index % 3) * 5.7;
-        const z = 37 + Math.floor(index / 3) * 9.2;
+        const x = 79.5;
+        const z = 38.5 + index * 2.8;
         return [
           cityBox(`container-${index}`, [x, 1.5, z], [5.2, 2.6, 2.4], color),
-          ...(index % 2 === 0
+          ...(index === 1 || index === 4
             ? [
                 cityBox(
                   `container-${index}-top`,
@@ -593,7 +593,7 @@ function CourierYard({ shadows }: { shadows: boolean }) {
   );
   return (
     <group name="courier-yard">
-      <mesh castShadow={shadows} position={[70, 3.3, 48.2]} receiveShadow>
+      <mesh castShadow={shadows} position={[70, 3.3, 33.5]} receiveShadow>
         <boxGeometry args={[18, 6.4, 6]} />
         <meshStandardMaterial
           color="#49585b"
@@ -601,7 +601,7 @@ function CourierYard({ shadows }: { shadows: boolean }) {
           roughness={0.68}
         />
       </mesh>
-      <mesh position={[70, 6.65, 48.2]}>
+      <mesh position={[70, 6.65, 33.5]}>
         <boxGeometry args={[18.8, 0.4, 6.8]} />
         <meshStandardMaterial
           color="#252f32"

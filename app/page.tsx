@@ -1,5 +1,5 @@
-import { BayCityGame } from "./components/BayCityGame";
+import { AfterlightGame } from "./components/AfterlightGame";
 
 export default function Page() {
-  return <BayCityGame />;
+  return <AfterlightGame />;
 }

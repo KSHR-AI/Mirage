@@ -31,6 +31,15 @@ describe("InputBuffer", () => {
     expect(buffer.frame().interactPressed).toBe(true);
   });
 
+  it("does not lose a fire click released between simulation frames", () => {
+    const buffer = new InputBuffer();
+    buffer.setAction("fire", true);
+    buffer.setAction("fire", false);
+
+    expect(buffer.frame().firePressed).toBe(true);
+    expect(buffer.frame().firePressed).toBe(false);
+  });
+
   it("clears held input on blur", () => {
     const buffer = new InputBuffer();
     const keyboard = new KeyboardInputAdapter(buffer);

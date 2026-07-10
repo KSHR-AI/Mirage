@@ -148,7 +148,7 @@ export class InputBuffer {
       aim: this.#held.has("aim"),
       jumpPressed: edge("jump"),
       interactPressed: edge("interact"),
-      firePressed: this.#held.has("fire"),
+      firePressed: this.#held.has("fire") || this.#pressed.has("fire"),
       reloadPressed: edge("reload"),
       pausePressed: edge("pause"),
     };

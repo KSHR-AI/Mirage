@@ -22,8 +22,8 @@ export const AFTERLIGHT_MISSION_COVER: readonly WorldCollisionBox[] =
   Object.freeze([
     Object.freeze({
       id: "boost-yard-office",
-      center: [78, 2, 68] as Vec3,
-      halfExtents: [4, 2, 5] as Vec3,
+      center: [58.2, 2.42, 45.9] as Vec3,
+      halfExtents: [0.95, 1.75, 1.1] as Vec3,
     }),
     Object.freeze({
       id: "vault-shell",

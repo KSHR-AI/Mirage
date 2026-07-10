@@ -6,7 +6,7 @@ import { CityAtmosphere } from "./CityAtmosphere";
 import { CityLandmarks } from "./CityLandmarks";
 import { CityStreetDetails } from "./CityStreetDetails";
 import { CitySurface } from "./CitySurface";
-import { createBayCityLayout } from "./layout";
+import { createBayCityLayout } from "./city-layout";
 import type {
   CityLayout,
   CityMissionZoneId,

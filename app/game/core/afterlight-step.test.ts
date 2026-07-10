@@ -3,22 +3,108 @@ import {
   AFTERLIGHT_ITEMS,
   AFTERLIGHT_OBJECTIVE_IDS,
 } from "../missions/afterlight-job";
-import { EMPTY_INPUT_FRAME } from "./contracts";
+import {
+  EMPTY_INPUT_FRAME,
+  SIMULATION_DT,
+  SIMULATION_HZ,
+  type ActorState,
+  type GameEvent,
+  type GameState,
+  type InputFrame,
+  type Vec3,
+  type VehicleState,
+} from "./contracts";
 import {
   AFTERLIGHT_ENTITY_IDS,
   AFTERLIGHT_CHECKPOINTS,
   createInitialAfterlightState,
 } from "./afterlight-state";
 import {
+  AfterlightStepController,
   createAfterlightStep,
   restoreAfterlightCheckpointState,
 } from "./afterlight-step";
+import { RngStreams } from "./rng";
 import { createGameRuntime } from "./runtime";
 
 function input(
   values: Partial<typeof EMPTY_INPUT_FRAME>,
 ): typeof EMPTY_INPUT_FRAME {
   return { ...EMPTY_INPUT_FRAME, ...values };
+}
+
+class AfterlightScenario {
+  state: GameState;
+  readonly controller: AfterlightStepController;
+  readonly rng: RngStreams;
+
+  constructor() {
+    this.state = createInitialAfterlightState();
+    this.controller = new AfterlightStepController(this.state.seed);
+    this.rng = new RngStreams(this.state.seed);
+  }
+
+  step(values: Partial<InputFrame> = {}): readonly GameEvent[] {
+    const frame = input(values);
+    const emitted: GameEvent[] = [];
+    const result = this.controller.advance(this.state, frame, {
+      dt: SIMULATION_DT,
+      hz: SIMULATION_HZ,
+      tick: this.state.tick + 1,
+      input: frame,
+      rng: this.rng,
+      random: (streamName) => this.rng.stream(streamName),
+      emit: (event) => emitted.push(event),
+    });
+    this.state = result.state;
+    return [...emitted, ...(result.events ?? [])];
+  }
+
+  stepMany(count: number, values: Partial<InputFrame> = {}): void {
+    for (let index = 0; index < count; index += 1) this.step(values);
+  }
+
+  placeActor(
+    id: number,
+    position: Vec3,
+    rotationY = 0,
+    changes: Partial<ActorState> = {},
+  ): void {
+    const actors = new Map(this.state.actors);
+    const current = actors.get(id);
+    if (!current) throw new Error(`missing actor fixture ${id}`);
+    actors.set(id, {
+      ...current,
+      ...changes,
+      pose: { position, rotationY },
+    });
+    this.state = { ...this.state, actors };
+  }
+
+  placeVehicle(
+    id: number,
+    position: Vec3,
+    rotationY = 0,
+    changes: Partial<VehicleState> = {},
+  ): void {
+    const vehicles = new Map(this.state.vehicles);
+    const current = vehicles.get(id);
+    if (!current) throw new Error(`missing vehicle fixture ${id}`);
+    vehicles.set(id, {
+      ...current,
+      ...changes,
+      pose: { position, rotationY },
+    });
+    this.state = { ...this.state, vehicles };
+  }
+
+  readyWeapon(): void {
+    const weapons = new Map(this.state.weapons);
+    const weapon = weapons.get("signal-9");
+    if (!weapon) throw new Error("missing Signal-9 fixture");
+    weapons.set(weapon.id, { ...weapon, cooldownTicks: 0 });
+    this.state = { ...this.state, weapons };
+  }
 }
 
 describe("Afterlight step", () => {
@@ -114,6 +200,130 @@ describe("Afterlight step", () => {
     expect(first.hash()).toBe(second.hash());
   });
 
+  it("runs every required objective through the playable critical path", () => {
+    const scenario = new AfterlightScenario();
+    const ids = AFTERLIGHT_ENTITY_IDS;
+
+    scenario.step({ interactPressed: true });
+    scenario.stepMany(180, { throttle: 1 });
+    scenario.placeVehicle(ids.heroCoupe, [70, 0.72, 42], Math.PI, {
+      occupiedBy: ids.player,
+      velocity: [0, 0, 0],
+    });
+    scenario.placeActor(ids.player, [70, 1.15, 42], Math.PI);
+    scenario.stepMany(31);
+    expect(scenario.state.mission.phaseIndex).toBe(1);
+
+    scenario.placeVehicle(ids.heroCoupe, [70, 0.72, 42], Math.PI, {
+      occupiedBy: ids.player,
+      velocity: [0, 0, 12],
+    });
+    scenario.placeActor(ids.player, [70, 1.15, 42], Math.PI);
+    scenario.step();
+    expect(scenario.state.mission.completedObjectiveIds).toContain(
+      AFTERLIGHT_OBJECTIVE_IDS.disableCourier,
+    );
+
+    scenario.placeVehicle(ids.heroCoupe, [52, 0.72, 52], 0, {
+      occupiedBy: undefined,
+      velocity: [0, 0, 0],
+    });
+    scenario.placeActor(ids.player, [66, 1.15, 44], Math.PI);
+    scenario.placeActor(ids.keyholderGuardA, [66, 1.15, 36], 0, {
+      health: 1,
+      life: "alive",
+    });
+    scenario.readyWeapon();
+    scenario.step({ firePressed: true, aim: true });
+    scenario.placeActor(ids.player, [74, 1.15, 44], Math.PI);
+    scenario.placeActor(ids.keyholderGuardB, [74, 1.15, 36], 0, {
+      health: 1,
+      life: "alive",
+    });
+    scenario.readyWeapon();
+    scenario.step({ firePressed: true, aim: true });
+    expect(scenario.state.mission.completedObjectiveIds).toContain(
+      AFTERLIGHT_OBJECTIVE_IDS.defeatKeyholderGuards,
+    );
+
+    scenario.placeActor(ids.player, [70, 1.15, 42], 0);
+    scenario.step({ interactPressed: true });
+    expect(scenario.state.inventory.has(AFTERLIGHT_ITEMS.vaultCredential)).toBe(
+      true,
+    );
+    expect(scenario.state.mission.phaseIndex).toBe(2);
+
+    for (const id of [ids.policeA, ids.policeB, ids.policeC, ids.policeD]) {
+      const actor = scenario.state.actors.get(id);
+      if (!actor) throw new Error(`missing police fixture ${id}`);
+      scenario.placeActor(id, actor.pose.position, actor.pose.rotationY, {
+        health: 0,
+        life: "down",
+      });
+    }
+    scenario.placeActor(ids.player, [14, 1.15, -42], 0);
+    scenario.step({ interactPressed: true });
+    scenario.step({ interactPressed: true });
+    expect(scenario.state.inventory.has(AFTERLIGHT_ITEMS.afterlightCore)).toBe(
+      true,
+    );
+    expect(scenario.state.inventory.has(AFTERLIGHT_ITEMS.bearerBonds)).toBe(
+      true,
+    );
+    scenario.placeActor(ids.player, [14, 1.15, -30], 0);
+    scenario.step();
+    expect(scenario.state.mission.phaseIndex).toBe(3);
+
+    scenario.placeVehicle(ids.heroCoupe, [-54, 0.72, -42], 0, {
+      occupiedBy: undefined,
+      velocity: [0, 0, 0],
+    });
+    scenario.placeActor(ids.player, [-70, 1.15, -42], 0);
+    scenario.step({ interactPressed: true });
+    scenario.step();
+    scenario.stepMany(181);
+    expect(scenario.state.mission.phaseIndex).toBe(4);
+
+    scenario.placeVehicle(ids.heroCoupe, [0, 0.72, -114], 0, {
+      occupiedBy: ids.player,
+      velocity: [0, 0, 0],
+      health: 100,
+      life: "active",
+    });
+    scenario.placeActor(ids.player, [0, 1.15, -114], 0, {
+      health: 100,
+      life: "alive",
+    });
+    scenario.step({ interactPressed: true });
+    scenario.placeVehicle(ids.heroCoupe, [0, 0.72, -218], 0, {
+      occupiedBy: ids.player,
+      velocity: [0, 0, 0],
+    });
+    scenario.placeActor(ids.player, [0, 1.15, -218], 0);
+    scenario.stepMany(650);
+    expect(scenario.state.mission.phaseIndex).toBe(5);
+
+    scenario.placeVehicle(ids.heroCoupe, [0, 0.72, -232], 0, {
+      occupiedBy: ids.player,
+      velocity: [0, 0, 0],
+    });
+    scenario.placeActor(ids.player, [0, 1.15, -232], 0);
+    scenario.stepMany(31);
+    scenario.step({ interactPressed: true });
+
+    const requiredObjectiveIds = scenario.controller.definition.phases.flatMap(
+      (phase) =>
+        phase.objectives
+          .filter((objective) => !objective.optional)
+          .map((objective) => objective.id),
+    );
+    expect(scenario.state.mission.completed).toBe(true);
+    expect(scenario.state.mission.completedObjectiveIds).toEqual(
+      expect.arrayContaining(requiredObjectiveIds),
+    );
+    expect(scenario.state.checkpointId).toBe("afterlight:checkpoint:debrief");
+  });
+
   it("restores player and coupe at the current checkpoint", () => {
     const initial = createInitialAfterlightState();
     const actors = new Map(initial.actors);
@@ -138,5 +348,31 @@ describe("Afterlight step", () => {
       pose: AFTERLIGHT_CHECKPOINTS[checkpointId].pose,
     });
     expect(restored.inventory.has(AFTERLIGHT_ITEMS.vaultCredential)).toBe(true);
+  });
+
+  it("keeps the bridge escape and safehouse inside the playable world", () => {
+    const initial = createInitialAfterlightState();
+    const actors = new Map(initial.actors);
+    const player = actors.get(initial.playerId);
+    const vehicles = new Map(initial.vehicles);
+    const hero = vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    if (!player || !hero) throw new Error("missing player or coupe fixture");
+    actors.set(player.id, {
+      ...player,
+      pose: { position: [0, 1.15, -232], rotationY: 0 },
+    });
+    vehicles.set(hero.id, {
+      ...hero,
+      pose: { position: [0, 0.72, -218], rotationY: 0 },
+    });
+    const runtime = createGameRuntime(
+      { ...initial, actors, vehicles },
+      createAfterlightStep(initial.seed),
+    );
+
+    runtime.advance();
+
+    expect(runtime.state.actors.get(player.id)?.pose.position[2]).toBe(-232);
+    expect(runtime.state.vehicles.get(hero.id)?.pose.position[2]).toBe(-218);
   });
 });

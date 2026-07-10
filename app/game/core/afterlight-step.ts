@@ -51,6 +51,7 @@ const INTERACTION_DISTANCE = 7;
 const HOSTILE_STOP_DISTANCE = 9;
 const HOSTILE_FIRE_DISTANCE = 34;
 const INTERNAL_BLACKOUT_MARKER = "afterlight:blackout:active";
+const WORLD_SOUTH_BOUNDARY = -238;
 
 const KEYHOLDER_GUARDS: readonly EntityId[] = Object.freeze([
   AFTERLIGHT_ENTITY_IDS.keyholderGuardA,
@@ -105,7 +106,7 @@ function heatFloorLevel(value: number | undefined): 0 | 1 | 2 | 3 {
 }
 
 function clampWorld(position: Vec3): Vec3 {
-  const z = Math.max(-198, Math.min(98, position[2]));
+  const z = Math.max(WORLD_SOUTH_BOUNDARY, Math.min(98, position[2]));
   const bridgeHalfWidth = z < -98 ? 7.25 : 96;
   return [
     Math.max(-bridgeHalfWidth, Math.min(bridgeHalfWidth, position[0])),
@@ -351,7 +352,7 @@ export class AfterlightStepController {
     input: InputFrame,
     context: RuntimeStepContext,
   ): RuntimeStepResult {
-    if (state.mission.completed || state.mission.failed) return { state };
+    if (state.mission.failed) return { state };
 
     const events: GameEvent[] = [];
     const collections = copyCollections(state);
@@ -387,7 +388,23 @@ export class AfterlightStepController {
       collections.actors.set(player.id, player);
     }
 
-    if (input.interactPressed) {
+    const startingAfterlightRun =
+      input.interactPressed &&
+      phaseId === AFTERLIGHT_PHASE_IDS.run &&
+      driving &&
+      isNear(hero.pose.position, AFTERLIGHT_LANDMARKS.bridgeLaunch, 9) &&
+      !completed.has(AFTERLIGHT_OBJECTIVE_IDS.startAfterlightRun);
+
+    if (startingAfterlightRun) {
+      events.push(
+        interactionEvent(
+          context.tick,
+          player.id,
+          AFTERLIGHT_TAGS.startRun,
+          hero.id,
+        ),
+      );
+    } else if (input.interactPressed) {
       const distanceToHero = distanceXZ(
         player.pose.position,
         hero.pose.position,
@@ -627,19 +644,10 @@ export class AfterlightStepController {
     }
 
     if (
-      phaseId === AFTERLIGHT_PHASE_IDS.run &&
-      driving &&
-      isNear(hero.pose.position, AFTERLIGHT_LANDMARKS.bridgeLaunch, 9) &&
-      !completed.has(AFTERLIGHT_OBJECTIVE_IDS.startAfterlightRun)
-    ) {
-      events.push(interactionEvent(tick, player.id, AFTERLIGHT_TAGS.startRun));
-      return;
-    }
-
-    if (
       phaseId === AFTERLIGHT_PHASE_IDS.debrief &&
       isNear(player.pose.position, AFTERLIGHT_LANDMARKS.safehouse, 10) &&
-      collections.inventory.has(AFTERLIGHT_ITEMS.afterlightCore)
+      collections.inventory.has(AFTERLIGHT_ITEMS.afterlightCore) &&
+      !completed.has(AFTERLIGHT_OBJECTIVE_IDS.deliverAfterlightCore)
     ) {
       events.push(
         interactionEvent(tick, player.id, AFTERLIGHT_TAGS.deliverCore),
@@ -870,9 +878,11 @@ export function restoreAfterlightCheckpointState(state: GameState): GameState {
   const definition = createAfterlightJob(state.seed);
   const restored = restoreMissionState(definition, {
     ...state,
+    tick: 0,
     actors,
     vehicles,
     heat: { value: 0, wantedLevel: 0, mode: "patrol", unseenTicks: 0 },
+    mission: { ...state.mission, startedAtTick: 0 },
   });
   return restored.state;
 }
