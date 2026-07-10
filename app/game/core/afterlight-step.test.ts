@@ -26,6 +26,8 @@ import {
 } from "./afterlight-step";
 import { RngStreams } from "./rng";
 import { createGameRuntime } from "./runtime";
+import { createAfterlightCharacterWorld } from "../world/afterlight-character-world";
+import { AFTERLIGHT_CHARACTER_TUNING } from "../world/character-controller";
 
 function input(
   values: Partial<typeof EMPTY_INPUT_FRAME>,
@@ -133,6 +135,60 @@ describe("Afterlight step", () => {
     expect(
       displacement[0] * forward[0] + displacement[1] * forward[1],
     ).toBeCloseTo(Math.hypot(...displacement), 5);
+  });
+
+  it("simulates a jump arc and returns the player to the street", () => {
+    const scenario = new AfterlightScenario();
+    const before = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    if (!before) throw new Error("missing player fixture");
+
+    scenario.step({ jumpPressed: true });
+    const rising = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    if (!rising) throw new Error("missing jumping player");
+    expect(rising.pose.position[1]).toBeGreaterThan(before.pose.position[1]);
+    expect(rising.velocity[1]).toBeGreaterThan(0);
+
+    scenario.stepMany(120);
+    const landed = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    expect(landed?.pose.position[1]).toBeCloseTo(1.165);
+    expect(landed?.velocity[1]).toBeCloseTo(0);
+  });
+
+  it("slides against the same procedural building footprints that are rendered", () => {
+    const scenario = new AfterlightScenario();
+    const world = createAfterlightCharacterWorld(scenario.state.seed);
+    const obstacle = world.obstacles[0];
+    if (!obstacle) throw new Error("missing procedural building fixture");
+    const x = (obstacle.minX + obstacle.maxX) * 0.5;
+    const z = obstacle.minZ - AFTERLIGHT_CHARACTER_TUNING.radius - 0.02;
+    const ground = world.sampleGround(x, z);
+    if (!ground) throw new Error("missing ground beside building fixture");
+    scenario.placeActor(AFTERLIGHT_ENTITY_IDS.player, [x, ground.height, z], 0);
+
+    scenario.stepMany(30, { move: [0, 1] });
+    const player = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+
+    expect(player?.pose.position[2]).toBeCloseTo(
+      obstacle.minZ - AFTERLIGHT_CHARACTER_TUNING.radius,
+    );
+    expect(player?.pose.position[0]).toBeCloseTo(x);
+  });
+
+  it("stops at a parked vehicle while preserving the enter interaction", () => {
+    const scenario = new AfterlightScenario();
+
+    scenario.stepMany(60, { move: [0, 1] });
+    const stopped = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
+    const hero = scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    if (!stopped || !hero) throw new Error("missing player or coupe fixture");
+
+    expect(stopped.pose.position[2]).toBeCloseTo(
+      hero.pose.position[2] + 2.2 + AFTERLIGHT_CHARACTER_TUNING.radius,
+    );
+    scenario.step({ interactPressed: true });
+    expect(
+      scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe)?.occupiedBy,
+    ).toBe(AFTERLIGHT_ENTITY_IDS.player);
   });
 
   it("turns entering the hero coupe into the first mission objective", () => {

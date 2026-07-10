@@ -4,6 +4,7 @@ import type {
   PhysicsRaycastQuery,
 } from "../combat";
 import { CollisionLayer, layerBit } from "../physics/collision-layers";
+import { AFTERLIGHT_CHARACTER_HIT_CENTER_OFFSET } from "../world/afterlight-character-world";
 import type {
   ActorState,
   EntityId,
@@ -92,7 +93,7 @@ function actorCollider(actor: ActorState): SphereCollider {
     entityId: actor.id,
     center: [
       actor.pose.position[0],
-      actor.pose.position[1] + 0.85,
+      actor.pose.position[1] + AFTERLIGHT_CHARACTER_HIT_CENTER_OFFSET,
       actor.pose.position[2],
     ],
     radius: actor.kind === "player" ? 0.58 : 0.62,

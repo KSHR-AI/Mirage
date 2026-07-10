@@ -400,6 +400,7 @@ function AgentRig({
     const time = clock.elapsedTime + appearance.phase;
     const down = state === "down";
     const cower = state === "cower";
+    const jumping = state === "jump";
     const locomoting = state === "walk" || state === "run";
     const run = state === "run";
     const speedRatio = clampPresentationSignal(
@@ -434,7 +435,7 @@ function AgentRig({
     );
     rig.rotation.x = MathUtils.damp(
       rig.rotation.x,
-      cower ? -0.65 : run ? -0.09 : 0,
+      cower ? -0.65 : jumping ? -0.06 : run ? -0.09 : 0,
       11,
       dt,
     );
@@ -446,7 +447,7 @@ function AgentRig({
     );
     torso.rotation.x = MathUtils.damp(
       torso.rotation.x,
-      cower ? -0.32 : run ? -0.12 : 0,
+      cower ? -0.32 : jumping || run ? -0.12 : 0,
       12,
       dt,
     );
@@ -472,13 +473,19 @@ function AgentRig({
     const aimArmPitch = -Math.PI * 0.47 - targetAimPitch;
     leftArm.rotation.x = MathUtils.damp(
       leftArm.rotation.x,
-      cower ? -1.75 : isAiming ? aimArmPitch + 0.08 : stride,
+      cower ? -1.75 : isAiming ? aimArmPitch + 0.08 : jumping ? -0.45 : stride,
       17,
       dt,
     );
     rightArm.rotation.x = MathUtils.damp(
       rightArm.rotation.x,
-      cower ? -1.55 : isAiming ? aimArmPitch + fireKick : -stride,
+      cower
+        ? -1.55
+        : isAiming
+          ? aimArmPitch + fireKick
+          : jumping
+            ? -0.45
+            : -stride,
       17,
       dt,
     );
@@ -496,13 +503,13 @@ function AgentRig({
     );
     leftLeg.rotation.x = MathUtils.damp(
       leftLeg.rotation.x,
-      cower ? 0.72 : down ? -0.34 : -stride,
+      cower ? 0.72 : down ? -0.34 : jumping ? 0.7 : -stride,
       16,
       dt,
     );
     rightLeg.rotation.x = MathUtils.damp(
       rightLeg.rotation.x,
-      cower ? 0.98 : down ? 0.48 : stride,
+      cower ? 0.98 : down ? 0.48 : jumping ? 0.42 : stride,
       16,
       dt,
     );

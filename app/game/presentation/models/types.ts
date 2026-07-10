@@ -9,6 +9,7 @@ export type AgentAnimationState =
   | "idle"
   | "walk"
   | "run"
+  | "jump"
   | "aim"
   | "fire"
   | "cower"

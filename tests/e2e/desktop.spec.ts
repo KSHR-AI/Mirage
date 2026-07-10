@@ -67,6 +67,21 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
     })
     .toBeGreaterThan(0);
 
+  const groundedY = Number(await shell.getAttribute("data-player-y"));
+  await page.keyboard.press("Space");
+  await expect
+    .poll(async () => Number(await shell.getAttribute("data-player-y")), {
+      timeout: 20_000,
+    })
+    .toBeGreaterThan(groundedY + 0.12);
+  await expect
+    .poll(
+      async () =>
+        Math.abs(Number(await shell.getAttribute("data-player-y")) - groundedY),
+      { timeout: 20_000 },
+    )
+    .toBeLessThan(0.03);
+
   const yawBeforeLook = Number(await shell.getAttribute("data-player-yaw"));
   const magazineBeforeLook = Number(await shell.getAttribute("data-magazine"));
   await inputSurface.dispatchEvent("pointermove", {

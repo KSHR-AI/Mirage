@@ -21,6 +21,17 @@ import {
 } from "../missions/reducer";
 import { stepHeroCar, vehiclePlanarSpeed } from "../vehicles";
 import {
+  INITIAL_CHARACTER_MOTOR_STATE,
+  stepKinematicCharacter,
+  type CharacterMotorState,
+  type CharacterWorld,
+} from "../world/character-controller";
+import {
+  AFTERLIGHT_CHARACTER_WEAPON_OFFSET,
+  createAfterlightCharacterWorld,
+  createAfterlightVehicleObstacles,
+} from "../world/afterlight-character-world";
+import {
   AFTERLIGHT_ENTITY_IDS,
   AFTERLIGHT_LANDMARKS,
   afterlightCheckpoint,
@@ -266,18 +277,34 @@ function stepFootPlayer(
   player: ActorState,
   input: InputFrame,
   previous: LocomotionState,
+  previousMotor: CharacterMotorState,
+  world: CharacterWorld,
+  vehicles: ReadonlyMap<EntityId, VehicleState>,
   cameraYaw: number,
-): { actor: ActorState; locomotion: LocomotionState } {
+): {
+  actor: ActorState;
+  locomotion: LocomotionState;
+  motor: CharacterMotorState;
+} {
   const locomotion = stepGroundedLocomotion(previous, input, {
-    grounded: true,
+    grounded: previousMotor.grounded,
     cameraYaw,
   });
-  const velocity = locomotion.intent.horizontalVelocity;
-  const position = clampWorld([
-    player.pose.position[0] + velocity[0] * SIMULATION_DT,
-    1.15,
-    player.pose.position[2] + velocity[2] * SIMULATION_DT,
-  ]);
+  const motor = stepKinematicCharacter({
+    position: player.pose.position,
+    horizontalVelocity: locomotion.intent.horizontalVelocity,
+    jumpPressed: input.jumpPressed,
+    dt: SIMULATION_DT,
+    previous: previousMotor,
+    world,
+    additionalObstacles: createAfterlightVehicleObstacles(vehicles),
+  });
+  const position = clampWorld(motor.position);
+  const velocity: Vec3 = [
+    (position[0] - player.pose.position[0]) / SIMULATION_DT,
+    (position[1] - player.pose.position[1]) / SIMULATION_DT,
+    (position[2] - player.pose.position[2]) / SIMULATION_DT,
+  ];
   const rotationY = input.aim
     ? cameraYaw
     : (locomotion.intent.facingRotationY ?? cameraYaw);
@@ -286,9 +313,14 @@ function stepFootPlayer(
     actor: {
       ...player,
       pose: { position, rotationY },
-      velocity: [velocity[0], 0, velocity[2]],
+      velocity,
     },
-    locomotion: locomotion.state,
+    locomotion: {
+      grounded: motor.state.grounded,
+      sprinting: locomotion.state.sprinting && motor.state.grounded,
+      jumping: motor.state.jumping,
+    },
+    motor: motor.state,
   };
 }
 
@@ -340,10 +372,13 @@ export class AfterlightStepController {
     sprinting: false,
     jumping: false,
   };
+  private characterMotor: CharacterMotorState = INITIAL_CHARACTER_MOTOR_STATE;
+  private readonly characterWorld: CharacterWorld;
   private cameraYaw: number | undefined;
 
   constructor(seed: number) {
     this.definition = createAfterlightJob(seed);
+    this.characterWorld = createAfterlightCharacterWorld(seed);
     this.step = this.advance.bind(this);
   }
 
@@ -366,6 +401,7 @@ export class AfterlightStepController {
 
     let driving = hero.occupiedBy === player.id;
     if (driving) {
+      this.characterMotor = INITIAL_CHARACTER_MOTOR_STATE;
       hero = stepHeroCar(hero, input);
       hero = {
         ...hero,
@@ -394,9 +430,13 @@ export class AfterlightStepController {
         player,
         input,
         this.locomotion,
+        this.characterMotor,
+        this.characterWorld,
+        collections.vehicles,
         this.cameraYaw,
       );
       this.locomotion = stepped.locomotion;
+      this.characterMotor = stepped.motor;
       player = stepped.actor;
       collections.actors.set(player.id, player);
     }
@@ -743,7 +783,7 @@ export class AfterlightStepController {
       input,
       origin: [
         player.pose.position[0],
-        player.pose.position[1] + 1.25,
+        player.pose.position[1] + AFTERLIGHT_CHARACTER_WEAPON_OFFSET,
         player.pose.position[2],
       ],
       direction,

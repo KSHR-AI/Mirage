@@ -1280,6 +1280,7 @@ export function AfterlightGame() {
       data-mode={driving ? "car" : "foot"}
       data-magazine={weapon?.magazine ?? 0}
       data-player-x={activePosition[0].toFixed(2)}
+      data-player-y={activePosition[1].toFixed(2)}
       data-player-yaw={(player?.pose.rotationY ?? 0).toFixed(4)}
       data-player-z={activePosition[2].toFixed(2)}
       data-pointer-locked={pointerLocked ? "true" : "false"}

@@ -45,6 +45,10 @@ import {
   AfterlightVfx,
   type AfterlightVfxEvent,
 } from "../game/presentation/vfx";
+import {
+  AFTERLIGHT_CHARACTER_CENTER_TO_FEET,
+  sampleAfterlightCharacterGround,
+} from "../game/world/afterlight-character-world";
 
 export interface AfterlightSceneProps {
   readonly state: GameState;
@@ -112,6 +116,11 @@ function animationForActor(
   combatReady: boolean,
 ): AgentAnimationState {
   if (actor.life !== "alive") return "down";
+  const ground = sampleAfterlightCharacterGround(
+    actor.pose.position[0],
+    actor.pose.position[2],
+  );
+  if (ground && actor.pose.position[1] > ground.height + 0.08) return "jump";
   const speed = planarSpeed(actor.velocity);
   if (combatReady && speed < 0.3) return "aim";
   if (speed > 5.8) return "run";
@@ -121,6 +130,14 @@ function animationForActor(
 
 function mutablePosition(position: readonly [number, number, number]) {
   return [position[0], position[1], position[2]] as [number, number, number];
+}
+
+function actorVisualPosition(position: readonly [number, number, number]) {
+  return [
+    position[0],
+    position[1] - AFTERLIGHT_CHARACTER_CENTER_TO_FEET,
+    position[2],
+  ] as [number, number, number];
 }
 
 interface AmbientVehicleDefinition {
@@ -291,7 +308,7 @@ function DynamicActor({
     animation,
     direction: actor.pose.rotationY,
     entityId: actor.id,
-    position: mutablePosition(actor.pose.position),
+    position: actorVisualPosition(actor.pose.position),
     quality,
     speed: planarSpeed(actor.velocity),
   };
@@ -366,7 +383,12 @@ export const AfterlightScene = memo(function AfterlightScene({
       : phaseId === AFTERLIGHT_PHASE_IDS.vault
         ? VAULT_GUARDS
         : new Set<number>();
-  const targetPose: Pose = driving ? hero.pose : player.pose;
+  const targetPose: Pose = driving
+    ? hero.pose
+    : {
+        position: actorVisualPosition(player.pose.position),
+        rotationY: player.pose.rotationY,
+      };
   const speed = planarSpeed(driving ? hero.velocity : player.velocity);
   const cameraMode = !started
     ? "intro"
