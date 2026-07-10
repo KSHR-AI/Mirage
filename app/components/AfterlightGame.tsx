@@ -78,7 +78,9 @@ import {
 import type { AfterlightCameraImpulse } from "../game/presentation/camera";
 import {
   AfterlightHud,
+  AfterlightHudProgressTracker,
   DeathCheckpointOverlay,
+  EMPTY_HUD_OBJECTIVE_PROGRESS,
   MirageIntroOverlay,
   MissionDebriefOverlay,
   PauseMenu,
@@ -88,6 +90,7 @@ import {
   type HudMinimap,
   type HudMission,
   type HudNotification,
+  type HudObjectiveProgressById,
 } from "../game/presentation/hud";
 import type { AfterlightVfxEvent } from "../game/presentation/vfx";
 import { ReplayRecorder, scoreRun, type RunScore } from "../game/replay";
@@ -100,6 +103,7 @@ interface SessionView {
   readonly vfxEvents: readonly AfterlightVfxEvent[];
   readonly cameraImpulses: readonly AfterlightCameraImpulse[];
   readonly notifications: readonly HudNotification[];
+  readonly objectiveProgress: HudObjectiveProgressById;
 }
 
 interface RunStats {
@@ -262,32 +266,38 @@ function activePlayerPosition(state: GameState): Vec3 {
 }
 
 function missionForHud(
-  state: GameState,
+  snapshot: RenderSnapshot,
   definition: AfterlightJobDefinition,
+  objectiveProgress: HudObjectiveProgressById,
 ): HudMission {
-  const phase = definition.phases[state.mission.phaseIndex];
-  const completed = new Set(state.mission.completedObjectiveIds);
+  const phase = definition.phases[snapshot.mission.phaseIndex];
+  const completed = new Set(snapshot.mission.completedObjectiveIds);
   const activeRequired = phase.objectives.find(
     (objective) => !objective.optional && !completed.has(objective.id),
   );
   return {
     title: definition.title,
     chapter: phase.chapter,
-    chapterIndex: state.mission.phaseIndex,
+    chapterIndex: snapshot.mission.phaseIndex,
     chapterCount: definition.phases.length,
     location: phase.location,
-    objectives: phase.objectives.map((objective) => ({
-      id: objective.id,
-      label:
-        getAfterlightObjectivePrompt(
-          objective.id as Parameters<typeof getAfterlightObjectivePrompt>[0],
-        )?.text ?? objective.label,
-      completed: completed.has(objective.id),
-      optional: objective.optional,
-      active: objective.optional
-        ? !completed.has(objective.id)
-        : objective.id === activeRequired?.id,
-    })),
+    objectives: phase.objectives.map((objective) => {
+      const objectiveCompleted = completed.has(objective.id);
+      const progress = objectiveProgress[objective.id];
+      return {
+        id: objective.id,
+        label:
+          getAfterlightObjectivePrompt(
+            objective.id as Parameters<typeof getAfterlightObjectivePrompt>[0],
+          )?.text ?? objective.label,
+        completed: objectiveCompleted,
+        optional: objective.optional,
+        active: objective.optional
+          ? !objectiveCompleted
+          : objective.id === activeRequired?.id,
+        ...(!objectiveCompleted && progress ? { progress } : {}),
+      };
+    }),
   };
 }
 
@@ -524,6 +534,7 @@ function freshView(
     vfxEvents: EMPTY_VFX_EVENTS,
     cameraImpulses: EMPTY_CAMERA_IMPULSES,
     notifications: [initialNotification(state)],
+    objectiveProgress: EMPTY_HUD_OBJECTIVE_PROGRESS,
   };
 }
 
@@ -586,6 +597,7 @@ export function AfterlightGame() {
   const notificationRef = useRef<readonly HudNotification[]>([
     initialSession.notification,
   ]);
+  const hudProgressTrackerRef = useRef(new AfterlightHudProgressTracker());
   const impulseSequenceRef = useRef(0);
   const qualityRef = useRef<GameQualityTier>("medium");
   const lookSensitivityRef = useRef(1);
@@ -720,6 +732,7 @@ export function AfterlightGame() {
     vfxRef.current = EMPTY_VFX_EVENTS;
     impulsesRef.current = EMPTY_CAMERA_IMPULSES;
     notificationRef.current = [initialNotification(state)];
+    hudProgressTrackerRef.current.reset();
     const nextView = freshView(state, runtime);
     viewRef.current = nextView;
     setView(nextView);
@@ -919,6 +932,11 @@ export function AfterlightGame() {
           vfxEvents: vfxRef.current,
           cameraImpulses: impulsesRef.current,
           notifications: notificationRef.current,
+          objectiveProgress: hudProgressTrackerRef.current.sample(
+            definition,
+            frame.snapshot,
+            frame.events,
+          ),
         };
         viewRef.current = nextView;
         setView(nextView);
@@ -1359,7 +1377,11 @@ export function AfterlightGame() {
           health={player?.health ?? 0}
           location={location}
           minimap={minimapForState(view.state, definition, location)}
-          mission={missionForHud(view.state, definition)}
+          mission={missionForHud(
+            view.snapshot,
+            definition,
+            view.objectiveProgress,
+          )}
           muted={muted}
           notifications={view.notifications}
           onPause={() => setPause(true)}

@@ -1,4 +1,4 @@
-import type { HudMapPoint, HudObjective } from "./types";
+import type { HudMapPoint, HudObjective, HudObjectiveProgress } from "./types";
 
 const CASH_FORMATTER = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
@@ -42,6 +42,14 @@ export function formatSpeed(value: number): string {
   return Math.round(Math.max(0, finiteOrZero(value)))
     .toString()
     .padStart(3, "0");
+}
+
+export function formatObjectiveProgress(
+  progress: HudObjectiveProgress,
+): string {
+  const total = Math.max(0, finiteOrZero(progress.total));
+  const current = clamp(progress.current, 0, total);
+  return `${current}/${total}`;
 }
 
 export function formatElapsedTicks(ticks: number, simulationHz = 60): string {

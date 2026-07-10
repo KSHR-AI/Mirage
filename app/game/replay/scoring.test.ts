@@ -37,17 +37,32 @@ describe("run scoring", () => {
     ]);
   });
 
+  it("uses a fixed five-minute target and proportionally scaled pace curve", () => {
+    expect(RUN_SCORE_RULES.targetCompletionTicks).toBe(18_000);
+    expect(RUN_SCORE_RULES.zeroPaceTicks).toBe(31_500);
+    expect(scoreRun(perfect).breakdown[0]?.points).toBe(350);
+    expect(
+      scoreRun({ ...perfect, completionTicks: 22_500 }).breakdown[0]?.points,
+    ).toBe(233);
+    expect(
+      scoreRun({
+        ...perfect,
+        completionTicks: RUN_SCORE_RULES.zeroPaceTicks,
+      }).breakdown[0]?.points,
+    ).toBe(0);
+  });
+
   it("produces stable A, B, and C examples", () => {
     const rankA = scoreRun({
       ...perfect,
-      completionTicks: 25 * 60 * 60,
+      completionTicks: 22_500,
       optionalObjectivesCompleted: 4,
       shotsHit: 18,
       vehicleDamage: 20,
     });
     const rankB = scoreRun({
       ...perfect,
-      completionTicks: 30 * 60 * 60,
+      completionTicks: 27_000,
       deaths: 1,
       optionalObjectivesCompleted: 3,
       shotsHit: 14,
@@ -138,7 +153,7 @@ describe("run scoring", () => {
       "vehicle",
     ]);
     expect(score.breakdown.map(({ detail }) => detail)).toEqual([
-      "20:00 + 0t (72000 ticks)",
+      "5:00 + 0t (18000 ticks)",
       "1 death",
       "5 / 5 complete",
       "24 / 24 hits (100%)",

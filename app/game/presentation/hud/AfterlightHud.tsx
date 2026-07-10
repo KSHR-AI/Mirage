@@ -17,6 +17,7 @@ import {
   calculateMapRoadLayout,
   clampPercent,
   formatCash,
+  formatObjectiveProgress,
   formatSpeed,
   mapPointToPercent,
   summarizeObjectives,
@@ -305,10 +306,7 @@ export function AfterlightHud({
                   {objective.optional ? <small>OPTIONAL</small> : null}
                 </span>
                 {progress ? (
-                  <strong>
-                    {Math.min(progress.total, Math.max(0, progress.current))}/
-                    {progress.total}
-                  </strong>
+                  <strong>{formatObjectiveProgress(progress)}</strong>
                 ) : null}
               </li>
             );

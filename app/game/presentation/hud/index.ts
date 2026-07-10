@@ -10,10 +10,15 @@ export {
   clampPercent,
   formatCash,
   formatElapsedTicks,
+  formatObjectiveProgress,
   formatSpeed,
   mapPointToPercent,
   summarizeObjectives,
 } from "./format";
+export {
+  AfterlightHudProgressTracker,
+  EMPTY_HUD_OBJECTIVE_PROGRESS,
+} from "./mission-progress";
 export type {
   AfterlightHudProps,
   AfterlightSettingsProps,
@@ -28,6 +33,8 @@ export type {
   HudNotification,
   HudNotificationTone,
   HudObjective,
+  HudObjectiveProgress,
+  HudObjectiveProgressById,
   HudQuality,
   HudRank,
   HudVehicle,

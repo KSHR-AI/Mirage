@@ -4,6 +4,7 @@ import {
   clampPercent,
   formatCash,
   formatElapsedTicks,
+  formatObjectiveProgress,
   formatSpeed,
   mapPointToPercent,
   summarizeObjectives,
@@ -33,6 +34,16 @@ describe("HUD formatting", () => {
 });
 
 describe("HUD objective progress", () => {
+  it("formats timed and search gates as deterministic tick counts", () => {
+    expect(formatObjectiveProgress({ current: 90, total: 180 })).toBe("90/180");
+    expect(formatObjectiveProgress({ current: 599, total: 600 })).toBe(
+      "599/600",
+    );
+    expect(formatObjectiveProgress({ current: 601, total: 600 })).toBe(
+      "600/600",
+    );
+  });
+
   it("keeps required and optional progress separate", () => {
     expect(
       summarizeObjectives([

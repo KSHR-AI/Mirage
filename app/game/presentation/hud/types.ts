@@ -7,17 +7,23 @@ export type HudQuality = "low" | "medium" | "high";
 export type HudRank = "S" | "A" | "B" | "C";
 export type HudNotificationTone = "neutral" | "success" | "danger" | "reward";
 
+export interface HudObjectiveProgress {
+  readonly current: number;
+  readonly total: number;
+}
+
 export interface HudObjective {
   readonly id: string;
   readonly label: string;
   readonly completed: boolean;
   readonly optional?: boolean;
   readonly active?: boolean;
-  readonly progress?: {
-    readonly current: number;
-    readonly total: number;
-  };
+  readonly progress?: HudObjectiveProgress;
 }
+
+export type HudObjectiveProgressById = Readonly<
+  Record<string, HudObjectiveProgress>
+>;
 
 export interface HudMission {
   readonly title: string;

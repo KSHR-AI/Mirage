@@ -38,8 +38,8 @@ export interface RunScore {
 }
 
 export const RUN_SCORE_RULES = Object.freeze({
-  targetCompletionTicks: 20 * 60 * SIMULATION_HZ,
-  zeroPaceTicks: 35 * 60 * SIMULATION_HZ,
+  targetCompletionTicks: 18_000,
+  zeroPaceTicks: 31_500,
   points: Object.freeze({
     pace: 350,
     survival: 200,
