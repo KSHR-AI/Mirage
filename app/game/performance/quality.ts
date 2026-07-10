@@ -49,7 +49,7 @@ export const QUALITY_SETTINGS: Readonly<
 > = Object.freeze({
   low: Object.freeze({
     tier: "low",
-    dpr: Object.freeze([0.7, 0.9]),
+    dpr: Object.freeze([0.7, 0.9] as const),
     antialias: false,
     shadows: false,
     shadowMapSize: 512,
@@ -62,7 +62,7 @@ export const QUALITY_SETTINGS: Readonly<
   }),
   medium: Object.freeze({
     tier: "medium",
-    dpr: Object.freeze([0.85, 1.1]),
+    dpr: Object.freeze([0.85, 1.1] as const),
     antialias: true,
     shadows: true,
     shadowMapSize: 1024,
@@ -75,7 +75,7 @@ export const QUALITY_SETTINGS: Readonly<
   }),
   high: Object.freeze({
     tier: "high",
-    dpr: Object.freeze([1, 1.35]),
+    dpr: Object.freeze([1, 1.35] as const),
     antialias: true,
     shadows: true,
     shadowMapSize: 2048,
