@@ -9,6 +9,10 @@ export {
 export { ReplayPlayer, replaySteps } from "./player";
 export { ReplayRecorder } from "./recorder";
 export {
+  ReplaySessionRecorder,
+  type ReplaySessionOutcome,
+} from "./session-recorder";
+export {
   formatReplayTicks,
   RUN_SCORE_RULES,
   scoreReplayOutcome,

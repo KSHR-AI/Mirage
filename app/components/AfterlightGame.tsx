@@ -94,7 +94,12 @@ import {
   type HudObjectiveProgressById,
 } from "../game/presentation/hud";
 import type { AfterlightVfxEvent } from "../game/presentation/vfx";
-import { ReplayRecorder, scoreRun, type RunScore } from "../game/replay";
+import {
+  ReplaySessionRecorder,
+  scoreRun,
+  type ReplayTapeV1,
+  type RunScore,
+} from "../game/replay";
 import { AfterlightScene, AFTERLIGHT_SCENE_TARGETS } from "./AfterlightScene";
 
 interface SessionView {
@@ -565,7 +570,7 @@ export function AfterlightGame() {
       runtime,
       input,
       keyboard: new KeyboardInputAdapter(input),
-      recorder: new ReplayRecorder(state.seed),
+      recorder: new ReplaySessionRecorder(state.seed, state.tick),
       notification: initialNotification(state),
     };
   });
@@ -577,6 +582,7 @@ export function AfterlightGame() {
   const loopRef = useRef<BrowserGameLoop | null>(null);
   const audioRef = useRef(new AfterlightAudioDirector());
   const recorderRef = useRef(initialSession.recorder);
+  const completedReplayRef = useRef<ReplayTapeV1 | null>(null);
   const saveRepositoryRef = useRef<SaveGameRepository | null>(null);
   const continueSaveRef = useRef<SaveGameV1 | null>(null);
   const lastInputRef = useRef<InputFrame>(EMPTY_INPUT_FRAME);
@@ -724,7 +730,7 @@ export function AfterlightGame() {
     touchLookRef.current = [0, 0];
     const runtime = createGameRuntime(state, createAfterlightStep(state.seed));
     runtimeRef.current = runtime;
-    recorderRef.current = new ReplayRecorder(state.seed);
+    recorderRef.current = new ReplaySessionRecorder(state.seed, state.tick);
     statsRef.current = {
       deaths,
       shotsFired: 0,
@@ -788,7 +794,9 @@ export function AfterlightGame() {
         }
         const input = inputRef.current.frame();
         lastInputRef.current = input;
-        recorderRef.current.appendFrame(input);
+        if (!recorderRef.current.finished) {
+          recorderRef.current.appendFrame(input);
+        }
         return input;
       },
       render: (frame) => {
@@ -901,11 +909,12 @@ export function AfterlightGame() {
         }
 
         if (
+          !recorderRef.current.finished &&
           state.tick > 0 &&
           state.tick % 300 === 0 &&
           state.tick !== lastHashTickRef.current
         ) {
-          recorderRef.current.recordHash(state.tick, runtime.hash());
+          recorderRef.current.recordStateHash(state.tick, runtime.hash());
           lastHashTickRef.current = state.tick;
         }
 
@@ -937,10 +946,10 @@ export function AfterlightGame() {
             vehicleDamage,
           });
           setRunScore(score);
-          recorderRef.current.finish({
+          completedReplayRef.current = recorderRef.current.finish({
             missionId: state.mission.missionId,
             status: "completed",
-            completionTick: state.tick,
+            completionStateTick: state.tick,
             deaths: statsRef.current.deaths,
             optionalObjectiveIds: optionalCompleted.map(
               (objective) => objective.id,

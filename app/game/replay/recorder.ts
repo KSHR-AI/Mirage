@@ -90,7 +90,7 @@ export class ReplayRecorder {
     return tick;
   }
 
-  /** Records a hash for an exact GameState.tick, usually after runtime.advance(). */
+  /** Records a hash at a session-relative tape state tick. */
   recordHash(tick: Tick, hash: string): void {
     this.#assertOpen();
     replayTick(tick, this.#tickCount, "Hash checkpoint tick");

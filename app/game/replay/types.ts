@@ -15,14 +15,14 @@ export const REPLAY_LIMITS = Object.freeze({
 export type ReplayOutcomeStatus = "completed" | "failed" | "abandoned";
 
 export interface ReplayInputRunV1 {
-  /** First simulation tick whose input is represented by this run. */
+  /** First session-relative tape tick whose input is represented by this run. */
   readonly tick: Tick;
   readonly ticks: number;
   readonly input: InputFrame;
 }
 
 export interface ReplayHashCheckpointV1 {
-  /** The exact GameState.tick represented by this hash. */
+  /** Session-relative resulting state tick represented by this hash. */
   readonly tick: Tick;
   readonly hash: string;
 }
@@ -30,6 +30,7 @@ export interface ReplayHashCheckpointV1 {
 export interface ReplayOutcomeV1 {
   readonly missionId: string;
   readonly status: ReplayOutcomeStatus;
+  /** Session-relative tape tick at completion. */
   readonly completionTick?: Tick;
   readonly deaths: number;
   readonly optionalObjectiveIds: readonly string[];
