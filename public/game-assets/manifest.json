@@ -154,14 +154,14 @@
         "Selected the three prebuilt buildings included in the free Standard archive.",
         "Merged the buildings into one scene so all instances share 19 texture maps instead of duplicating payloads.",
         "Preserved named building roots, deduplicated and welded geometry, pruned unused data, and applied high-level Meshopt compression.",
-        "Resized texture maps to a maximum 960px and encoded base colors as ETC1S plus normal and metallic-roughness maps as UASTC KTX2."
+        "Resized texture maps to a maximum 640px and encoded base colors as ETC1S plus normal and metallic-roughness maps as UASTC KTX2."
       ],
       "files": [
         {
           "path": "public/game-assets/models/downtown-buildings.glb",
           "role": "two-block-authored-architecture",
-          "bytes": 7648560,
-          "sha256": "bfa899e9d57431ca8aea97d7e446f6710fb6d00e4a7b778da33e34ed5abf613f"
+          "bytes": 4381544,
+          "sha256": "f498588a549cafc7d1756751971ffb2190512eb97937792a42745747f4d0971e"
         }
       ]
     },

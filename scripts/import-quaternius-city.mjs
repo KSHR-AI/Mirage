@@ -76,7 +76,7 @@ try {
       "--texture-compress",
       "ktx2",
       "--texture-size",
-      "960",
+      "640",
     ],
     { maxBuffer: 16 * 1024 * 1024 },
   );
