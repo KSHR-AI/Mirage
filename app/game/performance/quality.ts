@@ -34,6 +34,7 @@ export interface PerformanceGovernorOptions {
   readonly evaluationWindow?: number;
   readonly minimumSamples?: number;
   readonly degradeCooldownSamples?: number;
+  readonly catastrophicFrameMs?: number;
 }
 
 export interface PerformanceReport {
@@ -49,12 +50,12 @@ export const QUALITY_SETTINGS: Readonly<
 > = Object.freeze({
   low: Object.freeze({
     tier: "low",
-    dpr: Object.freeze([0.7, 0.9] as const),
+    dpr: Object.freeze([0.65, 0.85] as const),
     antialias: false,
     shadows: false,
     shadowMapSize: 512,
-    trafficCount: 8,
-    civilianCount: 10,
+    trafficCount: 6,
+    civilianCount: 6,
     policeUnitCap: 2,
     buildingDetail: 0.55,
     particles: 28,
@@ -62,12 +63,12 @@ export const QUALITY_SETTINGS: Readonly<
   }),
   medium: Object.freeze({
     tier: "medium",
-    dpr: Object.freeze([0.85, 1.1] as const),
+    dpr: Object.freeze([0.8, 1] as const),
     antialias: true,
     shadows: true,
     shadowMapSize: 1024,
-    trafficCount: 14,
-    civilianCount: 18,
+    trafficCount: 9,
+    civilianCount: 10,
     policeUnitCap: 3,
     buildingDetail: 0.78,
     particles: 58,
@@ -75,13 +76,13 @@ export const QUALITY_SETTINGS: Readonly<
   }),
   high: Object.freeze({
     tier: "high",
-    dpr: Object.freeze([1, 1.35] as const),
+    dpr: Object.freeze([1, 1.25] as const),
     antialias: true,
     shadows: true,
-    shadowMapSize: 2048,
-    trafficCount: 22,
-    civilianCount: 30,
-    policeUnitCap: 4,
+    shadowMapSize: 1024,
+    trafficCount: 12,
+    civilianCount: 16,
+    policeUnitCap: 3,
     buildingDetail: 1,
     particles: 92,
     postEffects: true,
@@ -134,6 +135,7 @@ export class PerformanceGovernor {
   private readonly evaluationWindow: number;
   private readonly minimumSamples: number;
   private readonly degradeCooldownSamples: number;
+  private readonly catastrophicFrameMs: number;
   private cooldown = 0;
 
   constructor(options: PerformanceGovernorOptions) {
@@ -149,6 +151,10 @@ export class PerformanceGovernor {
     this.degradeCooldownSamples = Math.max(
       1,
       Math.floor(options.degradeCooldownSamples ?? 300),
+    );
+    this.catastrophicFrameMs = Math.max(
+      50,
+      finiteOr(options.catastrophicFrameMs, 80),
     );
   }
 
@@ -191,19 +197,24 @@ export class PerformanceGovernor {
       0,
     );
 
+    const catastrophic =
+      this.samples.length >= 6 && averageFrameMs >= this.catastrophicFrameMs;
     const shouldDegrade =
       this.tier !== "low" &&
-      this.cooldown === 0 &&
-      this.samples.length >= this.minimumSamples &&
-      (slowFrameRatio >= 0.22 ||
-        averageFrameMs >= (this.tier === "high" ? 21 : 31) ||
-        droppedSimulationSeconds >= 0.2);
+      (catastrophic ||
+        (this.cooldown === 0 &&
+          this.samples.length >= this.minimumSamples &&
+          (slowFrameRatio >= 0.22 ||
+            averageFrameMs >= (this.tier === "high" ? 21 : 31) ||
+            droppedSimulationSeconds >= 0.2)));
 
     let changed = false;
     if (shouldDegrade) {
       this.tier = lowerQuality(this.tier);
       this.samples.length = 0;
-      this.cooldown = this.degradeCooldownSamples;
+      this.cooldown = catastrophic
+        ? Math.min(12, this.degradeCooldownSamples)
+        : this.degradeCooldownSamples;
       changed = true;
     }
 

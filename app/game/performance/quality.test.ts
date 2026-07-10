@@ -44,10 +44,12 @@ describe("quality selection", () => {
 
   it("returns stable immutable quality settings", () => {
     expect(qualitySettings("medium")).toMatchObject({
-      trafficCount: 14,
-      civilianCount: 18,
+      trafficCount: 9,
+      civilianCount: 10,
       shadowMapSize: 1024,
     });
+    expect(qualitySettings("high").dpr[1]).toBeLessThanOrEqual(1.25);
+    expect(qualitySettings("low").dpr[1]).toBeLessThanOrEqual(1);
     expect(Object.isFrozen(qualitySettings("medium"))).toBe(true);
   });
 });
@@ -95,5 +97,26 @@ describe("PerformanceGovernor", () => {
     }
 
     expect(governor.currentTier).toBe("low");
+  });
+
+  it("degrades catastrophic frame pacing after six samples", () => {
+    const governor = new PerformanceGovernor({
+      initialTier: "medium",
+      minimumSamples: 90,
+      catastrophicFrameMs: 80,
+    });
+
+    for (let index = 0; index < 5; index += 1) {
+      expect(
+        governor.sample({ frameMs: 120, droppedSimulationSeconds: 0 }).changed,
+      ).toBe(false);
+    }
+    const report = governor.sample({
+      frameMs: 120,
+      droppedSimulationSeconds: 0,
+    });
+
+    expect(report.changed).toBe(true);
+    expect(report.tier).toBe("low");
   });
 });
