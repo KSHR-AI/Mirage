@@ -3,6 +3,7 @@
 import { useFrame } from "@react-three/fiber";
 import { memo, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { CourierYard } from "./CourierYard";
 import { InstancedPrimitives } from "./InstancedPrimitives";
 import { cityMissionZone } from "./city-layout";
 import {
@@ -715,63 +716,6 @@ function BreakwaterTerminal({
           position={[100, 13, 14]}
         />
       ) : null}
-    </group>
-  );
-}
-
-function CourierYard({ shadows }: { shadows: boolean }) {
-  const containers = useMemo<BoxInstance[]>(
-    () =>
-      [
-        "#9a4e47",
-        "#2c7778",
-        "#c4893d",
-        "#4d5f68",
-        "#8b5b73",
-        "#3d6b5b",
-      ].flatMap((color, index) => {
-        const x = 79.5;
-        const z = 38.5 + index * 2.8;
-        return [
-          cityBox(`container-${index}`, [x, 1.5, z], [5.2, 2.6, 2.4], color),
-          ...(index === 1 || index === 4
-            ? [
-                cityBox(
-                  `container-${index}-top`,
-                  [x, 4.15, z],
-                  [5.2, 2.6, 2.4],
-                  color,
-                ),
-              ]
-            : []),
-        ];
-      }),
-    [],
-  );
-  return (
-    <group name="courier-yard">
-      <mesh castShadow={shadows} position={[70, 3.3, 33.5]} receiveShadow>
-        <boxGeometry args={[18, 6.4, 6]} />
-        <meshStandardMaterial
-          color="#49585b"
-          metalness={0.18}
-          roughness={0.68}
-        />
-      </mesh>
-      <mesh position={[70, 6.65, 33.5]}>
-        <boxGeometry args={[18.8, 0.4, 6.8]} />
-        <meshStandardMaterial
-          color="#252f32"
-          metalness={0.52}
-          roughness={0.43}
-        />
-      </mesh>
-      <InstancedPrimitives
-        castShadow={shadows}
-        instances={containers}
-        metalness={0.28}
-        roughness={0.56}
-      />
     </group>
   );
 }
