@@ -48,7 +48,7 @@ describe("quality selection", () => {
       civilianCount: 10,
       shadowMapSize: 1024,
     });
-    expect(qualitySettings("high").dpr[1]).toBeLessThanOrEqual(1.25);
+    expect(qualitySettings("high").dpr).toEqual([1, 1.1]);
     expect(qualitySettings("low").dpr[1]).toBeLessThanOrEqual(1);
     expect(Object.isFrozen(qualitySettings("medium"))).toBe(true);
   });

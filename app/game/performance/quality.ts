@@ -76,7 +76,7 @@ export const QUALITY_SETTINGS: Readonly<
   }),
   high: Object.freeze({
     tier: "high",
-    dpr: Object.freeze([1, 1.25] as const),
+    dpr: Object.freeze([1, 1.1] as const),
     antialias: true,
     shadows: true,
     shadowMapSize: 1024,

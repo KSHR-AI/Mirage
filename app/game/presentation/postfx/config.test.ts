@@ -17,7 +17,6 @@ describe("resolveAfterlightPostFxConfig", () => {
     const config = resolveAfterlightPostFxConfig("high", false);
 
     expect(config.enabled).toBe(true);
-    expect(config.ao.samples).toBeLessThanOrEqual(8);
     expect(config.bloom.threshold).toBeGreaterThan(1);
     expect(config.bloom.intensity).toBeLessThan(0.75);
     expect(config.vignette.darkness).toBeLessThan(0.5);

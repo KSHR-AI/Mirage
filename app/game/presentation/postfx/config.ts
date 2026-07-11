@@ -2,12 +2,6 @@ import type { GameQualityTier } from "../../performance";
 
 export interface AfterlightPostFxConfig {
   readonly enabled: boolean;
-  readonly ao: {
-    readonly radius: number;
-    readonly intensity: number;
-    readonly samples: number;
-    readonly denoiseSamples: number;
-  };
   readonly bloom: {
     readonly intensity: number;
     readonly threshold: number;
@@ -21,12 +15,6 @@ export interface AfterlightPostFxConfig {
 
 const DISABLED_POST_FX: AfterlightPostFxConfig = Object.freeze({
   enabled: false,
-  ao: Object.freeze({
-    radius: 0,
-    intensity: 0,
-    samples: 0,
-    denoiseSamples: 0,
-  }),
   bloom: Object.freeze({
     intensity: 0,
     threshold: 1,
@@ -40,12 +28,6 @@ const DISABLED_POST_FX: AfterlightPostFxConfig = Object.freeze({
 
 const HIGH_POST_FX: AfterlightPostFxConfig = Object.freeze({
   enabled: true,
-  ao: Object.freeze({
-    radius: 2.2,
-    intensity: 0.72,
-    samples: 8,
-    denoiseSamples: 2,
-  }),
   bloom: Object.freeze({
     intensity: 0.52,
     threshold: 1.08,

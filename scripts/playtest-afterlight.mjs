@@ -305,7 +305,12 @@ async function inspectCanvas(scenario, page, outDir, name) {
   const canvas = page.locator("canvas#afterlight-renderer");
   await canvas.waitFor({ state: "visible", timeout: 30_000 });
   await waitForStablePaint(page);
-  const png = await canvas.screenshot({ path: path.join(outDir, fileName) });
+  const bounds = await canvas.boundingBox();
+  if (!bounds) throw new Error("Afterlight canvas has no visible bounds");
+  const png = await page.screenshot({
+    clip: bounds,
+    path: path.join(outDir, fileName),
+  });
   const stats = renderedPixelStats(png);
   scenario.screenshots.push(fileName);
   scenario.canvas = stats;
@@ -330,6 +335,14 @@ async function startGame(page, scenario, outDir) {
   await page.getByRole("button", { name: "Start the job" }).click();
   const shell = page.getByTestId("afterlight-game");
   await shell.waitFor({ state: "visible", timeout: 30_000 });
+  await waitForAttribute(
+    page,
+    shell,
+    "scene-ready",
+    (value) => value === "true",
+    45_000,
+  );
+  addCheck(scenario, "scene-ready", true, "true", "true");
   await inspectCanvas(scenario, page, outDir, "start");
   const startTick = await numberAttribute(shell, "data-tick");
   await waitForTick(page, shell, startTick + 5);

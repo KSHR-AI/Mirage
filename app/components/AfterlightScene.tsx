@@ -1,7 +1,7 @@
 "use client";
 
-import { useFrame } from "@react-three/fiber";
-import { lazy, memo, Suspense, useMemo, useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { lazy, memo, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import {
   AFTERLIGHT_ENTITY_IDS,
@@ -65,6 +65,7 @@ export interface AfterlightSceneProps {
   readonly cameraImpulses: readonly AfterlightCameraImpulse[];
   readonly cameraYaw: number;
   readonly cameraPitch: number;
+  readonly onReady?: () => void;
 }
 
 const KEYHOLDER_GUARDS = new Set<number>([
@@ -409,7 +410,28 @@ export const AfterlightScene = memo(function AfterlightScene({
   quality,
   vfxEvents,
   cameraImpulses,
+  onReady,
 }: AfterlightSceneProps) {
+  const camera = useThree((three) => three.camera);
+  const gl = useThree((three) => three.gl);
+  const rootScene = useThree((three) => three.scene);
+
+  useEffect(() => {
+    if (!onReady) return;
+    let cancelled = false;
+    const compilation = gl.extensions.has("KHR_parallel_shader_compile")
+      ? gl.compileAsync(rootScene, camera)
+      : Promise.resolve(gl.compile(rootScene, camera));
+    void compilation
+      .catch(() => undefined)
+      .then(() => {
+        if (!cancelled) onReady();
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [camera, gl, onReady, quality, rootScene]);
+
   const definition = useMemo(
     () => createAfterlightJob(state.seed),
     [state.seed],
@@ -643,12 +665,10 @@ export const AfterlightScene = memo(function AfterlightScene({
       />
 
       {quality === "high" && !reducedMotion ? (
-        <Suspense fallback={null}>
-          <AfterlightPostEffects
-            quality={quality}
-            reducedMotion={reducedMotion}
-          />
-        </Suspense>
+        <AfterlightPostEffects
+          quality={quality}
+          reducedMotion={reducedMotion}
+        />
       ) : null}
     </>
   );

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-10T20:46:50.000Z",
+  "generatedAt": "2026-07-11T20:36:13.000Z",
   "policy": {
     "commercialUseRequired": true,
     "standaloneRedistribution": false,
@@ -175,38 +175,40 @@
       ]
     },
     {
-      "id": "quaternius-zombie-sports-vehicle",
-      "name": "Zombie Apocalypse Kit - Sports Vehicle",
-      "kind": "optimized-gltf-hero-vehicle",
+      "id": "khronos-car-concept",
+      "name": "Car Concept - Mirage Hero Coupe",
+      "kind": "optimized-pbr-gltf-hero-vehicle",
       "source": {
-        "provider": "Quaternius",
-        "pageUrl": "https://quaternius.com/packs/zombieapocalypsekit.html",
-        "downloadUrl": "https://drive.google.com/drive/folders/1gU4EDvCbI5DCXBUskqYRzmps5Du3KUvF",
+        "provider": "Khronos glTF Sample Assets",
+        "pageUrl": "https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept",
+        "downloadUrl": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/CarConcept/glTF-Binary/CarConcept.glb",
         "authors": [
-          "Quaternius"
+          "Eric Chadwick",
+          "Darmstadt Graphics Group GmbH",
+          "Unity Fan"
         ]
       },
       "license": {
-        "spdx": "CC0-1.0",
-        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "spdx": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/",
         "commercialUse": true,
         "redistributableInLargerWork": true,
-        "attributionRequired": false,
-        "attributionRequirements": "None; Quaternius credit is appreciated."
+        "attributionRequired": true,
+        "attributionRequirements": "Credit Eric Chadwick and Darmstadt Graphics Group GmbH for the model and textures under CC BY 4.0; the source was derived from a public-domain model by Unity Fan."
       },
-      "acquiredAt": "2026-07-10",
+      "acquiredAt": "2026-07-11",
       "modifications": [
-        "Selected the unarmored Sports vehicle with separate front-wheel nodes from the free CC0 glTF export.",
-        "Preserved wheel nodes and material layout while pruning unused data, welding geometry, quantizing attributes, and applying high-level Meshopt compression.",
-        "Added original Mirage headlights, brake lights, damage treatment, steering, and wheel animation at runtime."
+        "Removed configurator-only material variants, iridescence, expensive transmission, hidden mechanical parts, pedal hardware, door interiors, and open-panel geometry not visible in third-person play.",
+        "Joined static body panels by material while preserving a separate four-wheel hierarchy, then simplified visible geometry to 45 percent within a 0.2 percent error bound, resized textures to 1024px, encoded WebP textures, and applied high-level Meshopt compression.",
+        "Applied original Mirage coral, teal, and acid-lime PBR art direction plus dynamic headlight, brake-light, damage, steering, wheel-spin, and shadow behavior at runtime."
       ],
       "files": [
         {
           "path": "public/game-assets/models/hero-coupe.glb",
           "role": "hero-vehicle",
-          "maxTriangles": 6000,
-          "bytes": 62444,
-          "sha256": "7b37725b76a04b6b8521f62d77e645f1e8647f4be12650467e97acd92f1413a0"
+          "maxTriangles": 81000,
+          "bytes": 1242532,
+          "sha256": "3aeb1938489166bb5aba549b554d7d0b3bca7ad58c05b9ae6a972be4524fc0fc"
         }
       ]
     },

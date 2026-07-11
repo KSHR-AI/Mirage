@@ -3,7 +3,6 @@
 import {
   Bloom,
   EffectComposer,
-  N8AO,
   ToneMapping,
   Vignette,
 } from "@react-three/postprocessing";
@@ -30,17 +29,6 @@ export function AfterlightPostEffects({
       multisampling={0}
       stencilBuffer={false}
     >
-      <N8AO
-        aoRadius={config.ao.radius}
-        aoSamples={config.ao.samples}
-        denoiseRadius={4}
-        denoiseSamples={config.ao.denoiseSamples}
-        depthAwareUpsampling
-        distanceFalloff={0.8}
-        halfRes
-        intensity={config.ao.intensity}
-        quality="performance"
-      />
       <Bloom
         intensity={config.bloom.intensity}
         luminanceSmoothing={config.bloom.smoothing}

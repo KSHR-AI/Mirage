@@ -131,6 +131,9 @@ interface TouchDrag {
   y: number;
 }
 
+const PERFORMANCE_WARMUP_FRAMES = 240;
+const PERFORMANCE_CATASTROPHIC_FRAME_MS = 80;
+
 function capturePointerIfAvailable(element: HTMLElement, pointerId: number) {
   try {
     element.setPointerCapture(pointerId);
@@ -646,8 +649,13 @@ export function AfterlightGame() {
   const invertLookYRef = useRef(false);
   const keyboardBindingsRef = useRef<KeyboardLayout>(DEFAULT_KEYBOARD_LAYOUT);
   const governorRef = useRef(
-    new PerformanceGovernor({ initialTier: "medium" }),
+    new PerformanceGovernor({
+      initialTier: "medium",
+      catastrophicFrameMs: PERFORMANCE_CATASTROPHIC_FRAME_MS,
+    }),
   );
+  const sceneReadyRef = useRef(false);
+  const performanceWarmupFramesRef = useRef(0);
 
   const [view, setView] = useState<SessionView>(() =>
     freshView(initialSession.state, initialSession.runtime),
@@ -660,6 +668,7 @@ export function AfterlightGame() {
   const [muted, setMuted] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [quality, setQuality] = useState<GameQualityTier>("medium");
+  const [profileReady, setProfileReady] = useState(false);
   const [lookSensitivity, setLookSensitivity] = useState(1);
   const [invertLookY, setInvertLookY] = useState(false);
   const [keyboardBindings, setKeyboardBindings] = useState<KeyboardLayout>(
@@ -668,10 +677,17 @@ export function AfterlightGame() {
   const [continueAvailable, setContinueAvailable] = useState(false);
   const [debriefDismissed, setDebriefDismissed] = useState(false);
   const [runScore, setRunScore] = useState<RunScore | null>(null);
+  const [sceneReady, setSceneReady] = useState(false);
   const startedRef = useRef(started);
   const pausedRef = useRef(paused);
   const reducedMotionRef = useRef(reducedMotion);
   const mutedRef = useRef(muted);
+  const markSceneReady = useCallback(() => {
+    sceneReadyRef.current = true;
+    performanceWarmupFramesRef.current = PERFORMANCE_WARMUP_FRAMES;
+    governorRef.current.reset(qualityRef.current);
+    setSceneReady(true);
+  }, []);
 
   useEffect(() => {
     document.body.classList.add("bay-city-active");
@@ -694,6 +710,7 @@ export function AfterlightGame() {
     queueMicrotask(() => {
       if (cancelled) return;
       setQuality(initialQuality);
+      setProfileReady(true);
       setReducedMotion(profile.reducedMotion);
       setLookSensitivity(controls.lookSensitivity);
       setInvertLookY(controls.invertLookY);
@@ -1005,10 +1022,47 @@ export function AfterlightGame() {
         vfxRef.current = Object.freeze(nextVfx.slice(-48));
         impulsesRef.current = Object.freeze(nextImpulses.slice(-12));
         notificationRef.current = Object.freeze(nextNotifications.slice(-3));
-        const performance = governorRef.current.sample({
-          frameMs: frame.elapsedSeconds * 1000,
-          droppedSimulationSeconds: frame.droppedSeconds,
-        });
+        const frameMs = frame.elapsedSeconds * 1000;
+        const warmingPerformance =
+          sceneReadyRef.current && performanceWarmupFramesRef.current > 0;
+        let performance: PerformanceReport;
+        if (!sceneReadyRef.current) {
+          performance = {
+            tier: qualityRef.current,
+            changed: false,
+            averageFrameMs: frameMs,
+            slowFrameRatio: frameMs > 24 ? 1 : 0,
+            droppedSimulationSeconds: frame.droppedSeconds,
+          };
+        } else if (warmingPerformance) {
+          performanceWarmupFramesRef.current -= 1;
+          if (frameMs >= PERFORMANCE_CATASTROPHIC_FRAME_MS) {
+            performance = governorRef.current.sample({
+              frameMs,
+              droppedSimulationSeconds: frame.droppedSeconds,
+            });
+          } else {
+            governorRef.current.reset(qualityRef.current);
+            performance = {
+              tier: qualityRef.current,
+              changed: false,
+              averageFrameMs: frameMs,
+              slowFrameRatio: frameMs > 24 ? 1 : 0,
+              droppedSimulationSeconds: frame.droppedSeconds,
+            };
+          }
+          if (
+            performanceWarmupFramesRef.current === 0 &&
+            !performance.changed
+          ) {
+            governorRef.current.reset(performance.tier);
+          }
+        } else {
+          performance = governorRef.current.sample({
+            frameMs,
+            droppedSimulationSeconds: frame.droppedSeconds,
+          });
+        }
         if (performance.changed) {
           qualityRef.current = performance.tier;
           setQuality(performance.tier);
@@ -1456,6 +1510,7 @@ export function AfterlightGame() {
       data-player-z={activePosition[2].toFixed(2)}
       data-pointer-locked={pointerLocked ? "true" : "false"}
       data-quality={quality}
+      data-scene-ready={sceneReady ? "true" : "false"}
       data-frame-ms={view.performance.averageFrameMs.toFixed(2)}
       data-slow-frame-ratio={view.performance.slowFrameRatio.toFixed(3)}
       data-dropped-seconds={view.performance.droppedSimulationSeconds.toFixed(
@@ -1509,6 +1564,7 @@ export function AfterlightGame() {
               cameraPitch={view.cameraPitch}
               cameraYaw={view.cameraYaw}
               input={view.input}
+              onReady={profileReady ? markSceneReady : undefined}
               paused={paused || blocked}
               quality={quality}
               reducedMotion={reducedMotion}

@@ -13,7 +13,7 @@
     "assets:import:audio": "node scripts/import-kenney-audio.mjs",
     "assets:import:quaternius:city": "node scripts/import-quaternius-city.mjs",
     "assets:import:quaternius:characters": "node scripts/import-quaternius-characters.mjs",
-    "assets:import:quaternius:vehicle": "node scripts/import-quaternius-vehicle.mjs",
+    "assets:import:khronos:vehicle": "node scripts/import-khronos-vehicle.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

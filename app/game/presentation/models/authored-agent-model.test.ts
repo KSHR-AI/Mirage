@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   AUTHORED_AGENT_CLIP_CANDIDATES,
   AUTHORED_AGENT_MODEL_URLS,
+  getAuthoredAgentMaterialTreatment,
   getAuthoredAgentTimeScale,
   getAuthoredAgentVariation,
   resolveAuthoredAgentAnimation,
   resolveAuthoredAgentClipName,
 } from "./authored-agent-model";
+import { getAgentAppearance } from "./appearance";
 
 const SOURCE_CLIPS = [
   "Death",
@@ -115,5 +117,30 @@ describe("authored agent model helpers", () => {
       animationPhase: 0,
       playbackRate: 1,
     });
+  });
+
+  it("maps source material names into the role-specific Mirage palette", () => {
+    const player = getAgentAppearance("hero", "player");
+    const police = getAgentAppearance("unit-2", "police");
+
+    expect(
+      getAuthoredAgentMaterialTreatment("Green", player, "player"),
+    ).toMatchObject({ color: player.jacket, roughness: 0.54 });
+    const secondaryTrousers = getAuthoredAgentMaterialTreatment(
+      "Brown2",
+      player,
+      "player",
+    );
+    expect(secondaryTrousers).toMatchObject({ roughness: 0.65 });
+    expect(secondaryTrousers?.color).not.toBe(player.trousers);
+    expect(
+      getAuthoredAgentMaterialTreatment("Swat_Black", police, "police"),
+    ).toMatchObject({ color: police.trousers, roughness: 0.61 });
+    expect(
+      getAuthoredAgentMaterialTreatment("Visor", police, "police"),
+    ).toMatchObject({ opacity: 0.82, transparent: true });
+    expect(
+      getAuthoredAgentMaterialTreatment("Unknown", player, "player"),
+    ).toBeNull();
   });
 });

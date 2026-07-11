@@ -3,18 +3,23 @@
 import { useAnimations, useGLTF } from "@react-three/drei";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
+  Color,
   LoopOnce,
   LoopRepeat,
+  Material,
   MathUtils,
   Mesh,
+  MeshStandardMaterial,
   type AnimationAction,
   type AnimationClip,
+  type Object3D,
 } from "three";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 
 import {
   getAgentAppearance,
   hashVisualId,
+  type AgentAppearance,
   type AgentVisualRole,
 } from "./appearance";
 import { MuzzleFlash } from "./effects";
@@ -28,6 +33,21 @@ export interface AuthoredAgentVariation {
   readonly animationPhase: number;
   readonly playbackRate: number;
   readonly scale: number;
+}
+
+export interface AuthoredAgentMaterialTreatment {
+  readonly color: string;
+  readonly emissive?: string;
+  readonly emissiveIntensity?: number;
+  readonly metalness: number;
+  readonly opacity?: number;
+  readonly roughness: number;
+  readonly transparent?: boolean;
+}
+
+interface PreparedAgentModel {
+  readonly materials: readonly Material[];
+  readonly scene: Object3D;
 }
 
 export const AUTHORED_AGENT_MODEL_URLS: Readonly<
@@ -64,6 +84,137 @@ const ONE_SHOT_STATES: ReadonlySet<AgentAnimationState> = new Set([
   "fire",
   "down",
 ]);
+
+function shadedColor(color: string, intensity: number): string {
+  return `#${new Color(color).multiplyScalar(intensity).getHexString()}`;
+}
+
+function agentMaterialTreatment(
+  color: string,
+  roughness: number,
+  metalness = 0.03,
+  options: Pick<
+    AuthoredAgentMaterialTreatment,
+    "emissive" | "emissiveIntensity" | "opacity" | "transparent"
+  > = {},
+): AuthoredAgentMaterialTreatment {
+  return Object.freeze({ color, metalness, roughness, ...options });
+}
+
+export function getAuthoredAgentMaterialTreatment(
+  materialName: string,
+  appearance: AgentAppearance,
+  role: AgentVisualRole,
+): AuthoredAgentMaterialTreatment | null {
+  const canonicalName = materialName.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  switch (canonicalName) {
+    case "skin":
+      return agentMaterialTreatment(appearance.skin, 0.62, 0);
+    case "green":
+    case "purple":
+    case "swat":
+      return agentMaterialTreatment(appearance.jacket, 0.54);
+    case "lightgreen":
+    case "white":
+      return agentMaterialTreatment(appearance.shirt, 0.58, 0.01);
+    case "brown":
+    case "lightblue":
+    case "swatblack":
+      return agentMaterialTreatment(appearance.trousers, 0.61);
+    case "brown2":
+      return agentMaterialTreatment(
+        shadedColor(appearance.trousers, 0.68),
+        0.65,
+      );
+    case "grey":
+      return agentMaterialTreatment(
+        role === "guard" || role === "police"
+          ? shadedColor(appearance.jacket, 0.72)
+          : appearance.shoes,
+        0.56,
+        0.08,
+      );
+    case "black":
+    case "darkbrown":
+      return agentMaterialTreatment(appearance.shoes, 0.5, 0.12);
+    case "hair":
+    case "eyebrows":
+      return agentMaterialTreatment(appearance.hair, 0.67, 0);
+    case "eye":
+      return agentMaterialTreatment("#11191b", 0.28, 0, {
+        emissive: "#7fb2ae",
+        emissiveIntensity: 0.035,
+      });
+    case "gold":
+      return agentMaterialTreatment(appearance.accent, 0.24, 0.72, {
+        emissive: appearance.accent,
+        emissiveIntensity: 0.045,
+      });
+    case "visor":
+      return agentMaterialTreatment("#102a31", 0.16, 0.28, {
+        opacity: 0.82,
+        transparent: true,
+      });
+    default:
+      return null;
+  }
+}
+
+function applyAgentMaterialTreatment(
+  material: Material,
+  appearance: AgentAppearance,
+  role: AgentVisualRole,
+) {
+  if (!(material instanceof MeshStandardMaterial)) return;
+  const treatment = getAuthoredAgentMaterialTreatment(
+    material.name,
+    appearance,
+    role,
+  );
+  if (!treatment) return;
+
+  material.color.set(treatment.color);
+  material.metalness = treatment.metalness;
+  material.roughness = treatment.roughness;
+  material.envMapIntensity = role === "player" ? 1.15 : 0.92;
+  material.emissive.set(treatment.emissive ?? "#000000");
+  material.emissiveIntensity = treatment.emissiveIntensity ?? 0;
+  material.opacity = treatment.opacity ?? 1;
+  material.transparent = treatment.transparent ?? false;
+  material.depthWrite = !material.transparent;
+  material.needsUpdate = true;
+}
+
+function prepareAuthoredAgentModel(
+  source: Object3D,
+  appearance: AgentAppearance,
+  role: AgentVisualRole,
+): PreparedAgentModel {
+  const scene = SkeletonUtils.clone(source);
+  const materialClones = new Map<Material, Material>();
+
+  scene.traverse((object) => {
+    if (!(object instanceof Mesh)) return;
+    const sourceMaterials = Array.isArray(object.material)
+      ? object.material
+      : [object.material];
+    const materials = sourceMaterials.map((sourceMaterial) => {
+      const existing = materialClones.get(sourceMaterial);
+      if (existing) return existing;
+      const clone = sourceMaterial.clone();
+      applyAgentMaterialTreatment(clone, appearance, role);
+      materialClones.set(sourceMaterial, clone);
+      return clone;
+    });
+    object.material = Array.isArray(object.material) ? materials : materials[0];
+  });
+
+  return {
+    materials: [...materialClones.values()],
+    scene,
+  };
+}
 
 interface ActiveActionState {
   readonly action: AnimationAction;
@@ -267,7 +418,15 @@ export function AuthoredAgentModel({
 }: AuthoredAgentModelProps) {
   const modelUrl = AUTHORED_AGENT_MODEL_URLS[role];
   const { animations, scene } = useGLTF(modelUrl);
-  const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene]);
+  const appearance = useMemo(
+    () => getAgentAppearance(entityId, role),
+    [entityId, role],
+  );
+  const preparedModel = useMemo(
+    () => prepareAuthoredAgentModel(scene, appearance, role),
+    [appearance, role, scene],
+  );
+  const clonedScene = preparedModel.scene;
   const variation = useMemo(
     () => getAuthoredAgentVariation(entityId, role),
     [entityId, role],
@@ -300,6 +459,13 @@ export function AuthoredAgentModel({
   );
   const activeAction = activeClipName ? actions[activeClipName] : null;
   const activeActionRef = useRef<ActiveActionState | null>(null);
+
+  useEffect(
+    () => () => {
+      for (const material of preparedModel.materials) material.dispose();
+    },
+    [preparedModel],
+  );
 
   useLayoutEffect(() => {
     clonedScene.traverse((object) => {
