@@ -500,7 +500,11 @@ export const AfterlightScene = memo(function AfterlightScene({
   return (
     <>
       <BayCityWorld
-        activeZone={started ? zoneForPhase(phaseId) : null}
+        activeZone={
+          started && phaseId !== AFTERLIGHT_PHASE_IDS.boost
+            ? zoneForPhase(phaseId)
+            : null
+        }
         powerState={cityPowerState}
         missionProgress={
           state.mission.phaseIndex / Math.max(1, definition.phases.length - 1)

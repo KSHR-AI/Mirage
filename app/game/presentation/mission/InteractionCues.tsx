@@ -36,12 +36,13 @@ function InteractCue({
   readonly color: string;
   readonly reducedMotion: boolean;
 }) {
-  const tickOffset = cue.radius * 0.82;
+  const visualRadius = Math.min(1.8, cue.radius * 0.65);
+  const tickOffset = visualRadius * 0.9;
   return (
     <group name={`mission-cue-${cue.id}`} position={cue.position}>
       <mesh renderOrder={8} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[cue.radius, 0.055, 6, 28]} />
-        <CueMaterial color={color} />
+        <torusGeometry args={[visualRadius, 0.035, 5, 28]} />
+        <CueMaterial color={color} opacity={0.62} />
       </mesh>
       {!reducedMotion ? (
         <mesh
@@ -49,8 +50,8 @@ function InteractCue({
           renderOrder={8}
           rotation={[Math.PI / 2, 0, Math.PI / 4]}
         >
-          <torusGeometry args={[cue.radius * 0.67, 0.022, 5, 20]} />
-          <CueMaterial color={color} opacity={0.48} />
+          <ringGeometry args={[visualRadius * 0.52, visualRadius * 0.55, 24]} />
+          <CueMaterial color={color} opacity={0.24} />
         </mesh>
       ) : null}
       {[
@@ -65,21 +66,21 @@ function InteractCue({
           renderOrder={8}
           rotation={[0, (Math.PI / 2) * index, 0]}
         >
-          <boxGeometry args={[0.08, 0.12, cue.radius * 0.34]} />
-          <CueMaterial color={color} />
+          <boxGeometry args={[0.055, 0.08, visualRadius * 0.2]} />
+          <CueMaterial color={color} opacity={0.66} />
         </mesh>
       ))}
       <mesh
-        position={[0, 1.05, 0]}
+        position={[0, 1.22, 0]}
         renderOrder={8}
         rotation={[0, Math.PI / 4, 0]}
       >
-        <octahedronGeometry args={[0.2, 0]} />
-        <CueMaterial color={color} />
+        <octahedronGeometry args={[0.16, 0]} />
+        <CueMaterial color={color} opacity={0.82} />
       </mesh>
-      <mesh position={[0, 0.54, 0]} renderOrder={8}>
-        <boxGeometry args={[0.035, 0.78, 0.035]} />
-        <CueMaterial color={color} opacity={0.62} />
+      <mesh position={[0, 0.68, 0]} renderOrder={8}>
+        <boxGeometry args={[0.025, 0.86, 0.025]} />
+        <CueMaterial color={color} opacity={0.38} />
       </mesh>
     </group>
   );

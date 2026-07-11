@@ -114,9 +114,9 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
           <mesh
             castShadow={shadows}
             key={`boost-canopy-post-${side}`}
-            position={[side * 4.92, 1.82, -3.65]}
+            position={[side * 4.92, 2.32, -3.65]}
           >
-            <boxGeometry args={[0.32, 4.5, 0.32]} />
+            <boxGeometry args={[0.28, 5.5, 0.28]} />
             <StandardMaterial
               color="#3d484a"
               metalness={0.62}
@@ -125,9 +125,23 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
           </mesh>
         ))}
 
+        {decorated ? (
+          <mesh position={[0, 5.04, 0]}>
+            <boxGeometry args={[9.5, 0.06, 7.1]} />
+            <meshStandardMaterial
+              color="#607276"
+              depthWrite={false}
+              metalness={0.22}
+              opacity={0.14}
+              roughness={0.36}
+              transparent
+            />
+          </mesh>
+        ) : null}
+
         {[-3.65, 3.65].map((z) => (
-          <mesh castShadow={shadows} key={z} position={[0, 4.06, z]}>
-            <boxGeometry args={[10.16, 0.34, 0.4]} />
+          <mesh castShadow={shadows} key={z} position={[0, 5.06, z]}>
+            <boxGeometry args={[10.16, 0.26, 0.3]} />
             <StandardMaterial
               color="#333e40"
               metalness={0.66}
@@ -140,9 +154,9 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
           <mesh
             castShadow={shadows}
             key={`boost-canopy-rail-${side}`}
-            position={[side * 4.92, 4.06, 0]}
+            position={[side * 4.92, 5.06, 0]}
           >
-            <boxGeometry args={[0.4, 0.34, 7.3]} />
+            <boxGeometry args={[0.3, 0.26, 7.3]} />
             <StandardMaterial
               color="#333e40"
               metalness={0.66}
@@ -153,7 +167,7 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
 
         {[-1, 1].map((side) => (
           <group key={`boost-practical-${side}`}>
-            <mesh position={[side * 2.15, 3.84, -0.25]}>
+            <mesh position={[side * 2.15, 4.84, -0.25]}>
               <boxGeometry args={[2.75, 0.08, 0.24]} />
               <StandardMaterial
                 color="#f0eee5"
@@ -213,17 +227,6 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
 
         {decorated ? (
           <>
-            {[-2.4, 0, 2.4].map((z) => (
-              <mesh castShadow={shadows} key={z} position={[0, 3.98, z]}>
-                <boxGeometry args={[9.5, 0.16, 0.24]} />
-                <StandardMaterial
-                  color="#556063"
-                  metalness={0.58}
-                  roughness={0.4}
-                />
-              </mesh>
-            ))}
-
             {[-1, 1].map((side) => (
               <mesh
                 castShadow={shadows}
@@ -272,7 +275,7 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
             {[-1, 1].map((side) => (
               <mesh
                 key={`boost-canopy-brace-${side}`}
-                position={[side * 4.76, 3.25, 0]}
+                position={[side * 4.76, 4.18, 0]}
                 rotation={[Math.PI / 4, 0, 0]}
               >
                 <boxGeometry args={[0.12, 0.12, 1.8]} />
