@@ -96,6 +96,8 @@ async function telemetry(shell) {
     "aiming",
     "camera-yaw",
     "camera-pitch",
+    "dropped-seconds",
+    "frame-ms",
     "look-x",
     "look-y",
     "mode",
@@ -106,6 +108,7 @@ async function telemetry(shell) {
     "player-z",
     "pointer-locked",
     "quality",
+    "slow-frame-ratio",
     "speed",
     "tick",
   ];
@@ -114,6 +117,43 @@ async function telemetry(shell) {
     values[name] = await shell.getAttribute(`data-${name}`);
   }
   return values;
+}
+
+async function graphicsInfo(page) {
+  return page.evaluate(() => {
+    const canvas = document.querySelector("canvas#afterlight-renderer");
+    const context = canvas?.getContext("webgl2") ?? canvas?.getContext("webgl");
+    if (!context) return { renderer: "unavailable", software: true };
+    const debug = context.getExtension("WEBGL_debug_renderer_info");
+    const renderer = debug
+      ? context.getParameter(debug.UNMASKED_RENDERER_WEBGL)
+      : context.getParameter(context.RENDERER);
+    const label = String(renderer ?? "unknown");
+    return {
+      renderer: label,
+      software: /swiftshader|software|llvmpipe/i.test(label),
+    };
+  });
+}
+
+function addPerformanceCheck(scenario, id, frameMs, budget) {
+  if (scenario.graphics.software) {
+    addCheck(
+      scenario,
+      `${id}-software-fallback`,
+      scenario.telemetry.quality === "low",
+      { frameMs, quality: scenario.telemetry.quality },
+      "software renderer adapts to low quality",
+    );
+    return;
+  }
+  addCheck(
+    scenario,
+    id,
+    frameMs > 0 && frameMs < budget,
+    frameMs,
+    `0..${budget} ms average`,
+  );
 }
 
 function addCheck(scenario, id, passed, actual, expected) {
@@ -233,6 +273,14 @@ async function desktopScenario(browser, baseURL, outDir, headed) {
   });
   page.on("pageerror", (error) => errors.push(`page: ${error.message}`));
   await page.addInitScript(() => {
+    Object.defineProperty(navigator, "hardwareConcurrency", {
+      configurable: true,
+      value: 8,
+    });
+    Object.defineProperty(navigator, "deviceMemory", {
+      configurable: true,
+      value: 8,
+    });
     let pointerLockElement = null;
     Object.defineProperty(Document.prototype, "pointerLockElement", {
       configurable: true,
@@ -341,6 +389,9 @@ async function desktopScenario(browser, baseURL, outDir, headed) {
     await page.keyboard.up("w");
     addCheck(scenario, "vehicle-throttle", speed > 1, speed, "> 1 kph");
     scenario.telemetry = await telemetry(shell);
+    scenario.graphics = await graphicsInfo(page);
+    const frameMs = Number(scenario.telemetry["frame-ms"]);
+    addPerformanceCheck(scenario, "desktop-frame-budget", frameMs, 34);
     await capture(scenario, page, outDir, "car");
     addCheck(scenario, "runtime-errors", errors.length === 0, errors, "none");
     completeScenario(scenario);
@@ -365,6 +416,16 @@ async function narrowScenario(browser, baseURL, outDir, headed) {
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "hardwareConcurrency", {
+      configurable: true,
+      value: 8,
+    });
+    Object.defineProperty(navigator, "deviceMemory", {
+      configurable: true,
+      value: 8,
+    });
+  });
   try {
     const shell = await startGame(page, scenario, outDir);
     const touchCount = await page
@@ -434,6 +495,9 @@ async function narrowScenario(browser, baseURL, outDir, headed) {
       "forward > 3 and |lateral| < 0.5",
     );
     scenario.telemetry = await telemetry(shell);
+    scenario.graphics = await graphicsInfo(page);
+    const frameMs = Number(scenario.telemetry["frame-ms"]);
+    addPerformanceCheck(scenario, "narrow-frame-budget", frameMs, 42);
     await capture(scenario, page, outDir, "walk");
     addCheck(scenario, "runtime-errors", errors.length === 0, errors, "none");
     completeScenario(scenario);
@@ -480,6 +544,14 @@ async function mobileScenario(browser, baseURL, outDir, headed) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.addInitScript(() => {
+    Object.defineProperty(navigator, "hardwareConcurrency", {
+      configurable: true,
+      value: 8,
+    });
+    Object.defineProperty(navigator, "deviceMemory", {
+      configurable: true,
+      value: 8,
+    });
     HTMLElement.prototype.setPointerCapture = () => undefined;
     HTMLElement.prototype.releasePointerCapture = () => undefined;
   });
@@ -555,6 +627,9 @@ async function mobileScenario(browser, baseURL, outDir, headed) {
     await waitForAttribute(page, shell, "mode", (value) => value === "car");
     addCheck(scenario, "vehicle-entry", true, "car", "car");
     scenario.telemetry = await telemetry(shell);
+    scenario.graphics = await graphicsInfo(page);
+    const frameMs = Number(scenario.telemetry["frame-ms"]);
+    addPerformanceCheck(scenario, "mobile-frame-budget", frameMs, 48);
     await capture(scenario, page, outDir, "car");
     addCheck(scenario, "runtime-errors", errors.length === 0, errors, "none");
     completeScenario(scenario);

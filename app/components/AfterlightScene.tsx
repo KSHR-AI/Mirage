@@ -365,6 +365,23 @@ function DynamicHeroVehicle({
   );
 }
 
+function VehicleCameraCollisionProxy({
+  vehicle,
+}: {
+  readonly vehicle: VehicleState;
+}) {
+  return (
+    <mesh
+      position={mutablePosition(vehicle.pose.position)}
+      rotation={[0, vehicle.pose.rotationY, 0]}
+      userData={{ cameraCollisionRoot: true }}
+    >
+      <boxGeometry args={[2.2, 2.8, 4.9]} />
+      <meshBasicMaterial visible={false} />
+    </mesh>
+  );
+}
+
 export const AfterlightScene = memo(function AfterlightScene({
   cameraPitch,
   cameraYaw,
@@ -557,7 +574,10 @@ export const AfterlightScene = memo(function AfterlightScene({
       })}
 
       {showRuntimeHero ? (
-        <DynamicHeroVehicle quality={visualQuality} vehicle={hero} />
+        <>
+          <DynamicHeroVehicle quality={visualQuality} vehicle={hero} />
+          {!driving ? <VehicleCameraCollisionProxy vehicle={hero} /> : null}
+        </>
       ) : null}
 
       <AfterlightVfx

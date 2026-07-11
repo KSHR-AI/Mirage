@@ -76,6 +76,7 @@ import {
   readBrowserDeviceProfile,
   selectInitialQuality,
   type GameQualityTier,
+  type PerformanceReport,
 } from "../game/performance";
 import type { AfterlightCameraImpulse } from "../game/presentation/camera";
 import {
@@ -114,6 +115,7 @@ interface SessionView {
   readonly cameraImpulses: readonly AfterlightCameraImpulse[];
   readonly notifications: readonly HudNotification[];
   readonly objectiveProgress: HudObjectiveProgressById;
+  readonly performance: PerformanceReport;
 }
 
 interface RunStats {
@@ -564,6 +566,13 @@ function freshView(
     cameraImpulses: EMPTY_CAMERA_IMPULSES,
     notifications: [initialNotification(state)],
     objectiveProgress: EMPTY_HUD_OBJECTIVE_PROGRESS,
+    performance: {
+      tier: "medium",
+      changed: false,
+      averageFrameMs: 0,
+      slowFrameRatio: 0,
+      droppedSimulationSeconds: 0,
+    },
   };
 }
 
@@ -996,6 +1005,15 @@ export function AfterlightGame() {
         vfxRef.current = Object.freeze(nextVfx.slice(-48));
         impulsesRef.current = Object.freeze(nextImpulses.slice(-12));
         notificationRef.current = Object.freeze(nextNotifications.slice(-3));
+        const performance = governorRef.current.sample({
+          frameMs: frame.elapsedSeconds * 1000,
+          droppedSimulationSeconds: frame.droppedSeconds,
+        });
+        if (performance.changed) {
+          qualityRef.current = performance.tier;
+          setQuality(performance.tier);
+        }
+
         const hero = state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
         const driving = hero?.occupiedBy === state.playerId;
         const player = state.actors.get(state.playerId);
@@ -1017,6 +1035,7 @@ export function AfterlightGame() {
             frame.snapshot,
             frame.events,
           ),
+          performance,
         };
         viewRef.current = nextView;
         setView(nextView);
@@ -1077,15 +1096,6 @@ export function AfterlightGame() {
                 : [];
             }),
         });
-
-        const report = governorRef.current.sample({
-          frameMs: frame.elapsedSeconds * 1000,
-          droppedSimulationSeconds: frame.droppedSeconds,
-        });
-        if (report.changed) {
-          qualityRef.current = report.tier;
-          setQuality(report.tier);
-        }
       },
     });
     loopRef.current = loop;
@@ -1441,6 +1451,11 @@ export function AfterlightGame() {
       data-player-z={activePosition[2].toFixed(2)}
       data-pointer-locked={pointerLocked ? "true" : "false"}
       data-quality={quality}
+      data-frame-ms={view.performance.averageFrameMs.toFixed(2)}
+      data-slow-frame-ratio={view.performance.slowFrameRatio.toFixed(3)}
+      data-dropped-seconds={view.performance.droppedSimulationSeconds.toFixed(
+        3,
+      )}
       data-speed={speedKph.toFixed(2)}
       data-tick={view.state.tick}
       data-testid="afterlight-game"

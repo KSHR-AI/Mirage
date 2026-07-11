@@ -65,8 +65,8 @@ export const AFTERLIGHT_CHECKPOINTS: Readonly<
       rotationY: -2.35,
     }),
     vehiclePose: Object.freeze({
-      position: [70, 0.72, 50] as Vec3,
-      rotationY: Math.PI,
+      position: [67, 0.72, 48] as Vec3,
+      rotationY: Math.PI / 2,
     }),
   }),
   [AFTERLIGHT_CHECKPOINT_IDS.vault]: Object.freeze({

@@ -82,6 +82,24 @@ describe("initial Afterlight state", () => {
     );
   });
 
+  it("stages the keyholder checkpoint beside the coupe without overlapping it", () => {
+    const checkpoint = afterlightCheckpoint(
+      AFTERLIGHT_CHECKPOINT_IDS.keyholder,
+    );
+    if (!checkpoint.vehiclePose)
+      throw new Error("missing keyholder vehicle pose");
+    const player = checkpoint.pose.position;
+    const vehicle = checkpoint.vehiclePose.position;
+    const separation = Math.hypot(
+      player[0] - vehicle[0],
+      player[2] - vehicle[2],
+    );
+
+    expect(separation).toBeGreaterThanOrEqual(3);
+    expect(separation).toBeLessThanOrEqual(3.5);
+    expect(Math.abs(player[0] - vehicle[0])).toBeGreaterThanOrEqual(3);
+  });
+
   it("hydrates a checkpoint save without reviving a failed mission", () => {
     const initial = createInitialAfterlightState();
     const player = initial.actors.get(initial.playerId);
