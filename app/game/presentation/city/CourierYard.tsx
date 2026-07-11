@@ -1,6 +1,9 @@
 "use client";
 
+import { useTexture } from "@react-three/drei";
+import { useEffect, useMemo } from "react";
 import { InstancedPrimitives } from "./InstancedPrimitives";
+import { createPbrTextureSet, disposePbrTextureSet } from "./surface-textures";
 import type { BoxInstance, CityVec3 } from "./types";
 
 interface CourierContainerDefinition {
@@ -13,13 +16,16 @@ interface CourierContainerDefinition {
 const CONTAINER_SIZE = [5.2, 2.6, 2.4] as const satisfies CityVec3;
 const DEPOT_DOOR_CENTERS = [64.6, 70, 75.4] as const;
 const CONTAINER_PALETTE = [
-  { body: "#864942", trim: "#3c2826" },
-  { body: "#286b6d", trim: "#183b3d" },
-  { body: "#aa7335", trim: "#50391f" },
-  { body: "#46575f", trim: "#273238" },
-  { body: "#795064", trim: "#402d37" },
-  { body: "#365e50", trim: "#203a32" },
+  { body: "#b96559", trim: "#3c2826" },
+  { body: "#3f8b8c", trim: "#183b3d" },
+  { body: "#c58b46", trim: "#50391f" },
+  { body: "#718087", trim: "#273238" },
+  { body: "#986b82", trim: "#402d37" },
+  { body: "#4d7d68", trim: "#203a32" },
 ] as const;
+
+const CONCRETE_TEXTURE_ROOT = "/game-assets/textures/concrete-wall-007";
+const CORRUGATED_TEXTURE_ROOT = "/game-assets/textures/corrugated-iron-02";
 
 function box(
   id: string,
@@ -174,7 +180,7 @@ const DEPOT_DOOR_PANELS = DEPOT_DOOR_CENTERS.map((x, index) =>
     `courier-depot-door-${index}`,
     [x, 2.42, 36.53],
     [4.35, 4.35, 0.12],
-    index === 1 ? "#26363a" : "#303b3d",
+    index === 1 ? "#536366" : "#647173",
   ),
 );
 const DEPOT_DOOR_DETAILS = createDepotDoorDetails();
@@ -184,15 +190,182 @@ const DEPOT_ROOF_DETAILS = [
   box("courier-depot-duct", [69.5, 7.02, 33.5], [4.2, 0.34, 0.5], "#222c2f"),
 ] as const satisfies readonly BoxInstance[];
 
+const DEPOT_STRUCTURE = [
+  box(
+    "courier-depot-west-pier",
+    [60.9, 3.3, 36.55],
+    [0.48, 6.5, 0.58],
+    "#7e8987",
+  ),
+  box(
+    "courier-depot-east-pier",
+    [79.1, 3.3, 36.55],
+    [0.48, 6.5, 0.58],
+    "#7e8987",
+  ),
+  box("courier-depot-gutter", [70, 6.25, 36.68], [18.3, 0.18, 0.24], "#17262a"),
+  box(
+    "courier-depot-west-downpipe",
+    [61.15, 3.15, 36.82],
+    [0.16, 5.8, 0.18],
+    "#26373a",
+  ),
+  box(
+    "courier-depot-east-downpipe",
+    [78.85, 3.15, 36.82],
+    [0.16, 5.8, 0.18],
+    "#26373a",
+  ),
+  box(
+    "courier-depot-sign-back",
+    [70, 6.02, 36.78],
+    [8.7, 0.9, 0.16],
+    "#13262c",
+  ),
+  box(
+    "courier-depot-sign-coral",
+    [67.35, 6.02, 36.89],
+    [2.35, 0.12, 0.04],
+    "#ff7161",
+  ),
+  box(
+    "courier-depot-sign-teal",
+    [70, 6.02, 36.89],
+    [2.35, 0.12, 0.04],
+    "#58d4cf",
+  ),
+  box(
+    "courier-depot-sign-acid",
+    [72.65, 6.02, 36.89],
+    [2.35, 0.12, 0.04],
+    "#d8ff5f",
+  ),
+] as const satisfies readonly BoxInstance[];
+
+const DEPOT_AWNINGS = DEPOT_DOOR_CENTERS.map((x, index) =>
+  box(
+    `courier-depot-awning-${index}`,
+    [x, 5.15, 37.03],
+    [4.75, 0.16, 1.02],
+    "#26383c",
+  ),
+);
+
+const DEPOT_BUMPERS = DEPOT_DOOR_CENTERS.flatMap((x, doorIndex) =>
+  [-1.72, 1.72].map((offset, bumperIndex) =>
+    box(
+      `courier-depot-bumper-${doorIndex}-${bumperIndex}`,
+      [x + offset, 0.72, 36.86],
+      [0.22, 1.15, 0.32],
+      "#11191b",
+    ),
+  ),
+);
+
+const YARD_HAZARD_STRIPES = Array.from({ length: 13 }, (_, index) =>
+  box(
+    `courier-yard-hazard-${index}`,
+    [61.5 + index * 1.4, 0.315, 38.3],
+    [0.72, 0.025, 0.26],
+    index % 2 === 0 ? "#e9ce45" : "#242b2d",
+  ),
+);
+
+const YARD_EDGE_DETAILS = [
+  box(
+    "courier-yard-west-curb",
+    [59.85, 0.26, 46.2],
+    [0.32, 0.42, 19],
+    "#697474",
+  ),
+  box(
+    "courier-yard-east-curb",
+    [80.15, 0.26, 46.2],
+    [0.32, 0.42, 19],
+    "#697474",
+  ),
+  box(
+    "courier-yard-west-rail",
+    [60.05, 1.1, 44.4],
+    [0.14, 1.72, 12.8],
+    "#243438",
+  ),
+  box(
+    "courier-yard-east-rail",
+    [79.95, 1.1, 44.4],
+    [0.14, 1.72, 12.8],
+    "#243438",
+  ),
+] as const satisfies readonly BoxInstance[];
+
 export function CourierYard({ shadows }: { readonly shadows: boolean }) {
+  const concrete = useTexture({
+    arm: `${CONCRETE_TEXTURE_ROOT}/arm.jpg`,
+    color: `${CONCRETE_TEXTURE_ROOT}/base-color.jpg`,
+    normal: `${CONCRETE_TEXTURE_ROOT}/normal-gl.jpg`,
+  });
+  const corrugated = useTexture({
+    arm: `${CORRUGATED_TEXTURE_ROOT}/arm.jpg`,
+    color: `${CORRUGATED_TEXTURE_ROOT}/base-color.jpg`,
+    normal: `${CORRUGATED_TEXTURE_ROOT}/normal-gl.jpg`,
+  });
+  const textures = useMemo(() => {
+    const concreteSources = [
+      concrete.color,
+      concrete.normal,
+      concrete.arm,
+    ] as const;
+    const corrugatedSources = [
+      corrugated.color,
+      corrugated.normal,
+      corrugated.arm,
+    ] as const;
+    return {
+      concreteFacade: createPbrTextureSet(concreteSources, [4, 2]),
+      concreteYard: createPbrTextureSet(concreteSources, [6, 6]),
+      container: createPbrTextureSet(corrugatedSources, [3, 2]),
+      door: createPbrTextureSet(corrugatedSources, [2, 2]),
+    };
+  }, [
+    concrete.arm,
+    concrete.color,
+    concrete.normal,
+    corrugated.arm,
+    corrugated.color,
+    corrugated.normal,
+  ]);
+  useEffect(
+    () => () => Object.values(textures).forEach(disposePbrTextureSet),
+    [textures],
+  );
+
   return (
     <group name="courier-yard">
+      <mesh position={[70, 0.289, 46.2]} receiveShadow>
+        <boxGeometry args={[20, 0.028, 18.4]} />
+        <meshStandardMaterial
+          color="#939b96"
+          emissive="#35413f"
+          emissiveIntensity={0.28}
+          emissiveMap={shadows ? textures.concreteYard.map : undefined}
+          map={shadows ? textures.concreteYard.map : undefined}
+          metalness={0.04}
+          normalMap={shadows ? textures.concreteYard.normalMap : undefined}
+          normalScale={[0.32, 0.32]}
+          roughness={0.93}
+          roughnessMap={shadows ? textures.concreteYard.armMap : undefined}
+        />
+      </mesh>
       <mesh castShadow={shadows} position={[70, 3.3, 33.5]} receiveShadow>
         <boxGeometry args={[18, 6.4, 6]} />
         <meshStandardMaterial
-          color="#49585b"
-          metalness={0.18}
-          roughness={0.68}
+          color="#9ba6a3"
+          map={shadows ? textures.concreteFacade.map : undefined}
+          metalness={0.08}
+          normalMap={shadows ? textures.concreteFacade.normalMap : undefined}
+          normalScale={[0.38, 0.38]}
+          roughness={0.9}
+          roughnessMap={shadows ? textures.concreteFacade.armMap : undefined}
         />
       </mesh>
       <mesh position={[70, 6.65, 33.5]}>
@@ -206,9 +379,14 @@ export function CourierYard({ shadows }: { readonly shadows: boolean }) {
       <InstancedPrimitives
         castShadow={shadows}
         instances={CONTAINERS}
-        metalness={0.34}
+        map={shadows ? textures.container.map : undefined}
+        metalness={0.82}
+        metalnessMap={shadows ? textures.container.armMap : undefined}
+        normalMap={shadows ? textures.container.normalMap : undefined}
+        normalScale={[0.55, 0.55]}
         receiveShadow
-        roughness={0.5}
+        roughness={0.62}
+        roughnessMap={shadows ? textures.container.armMap : undefined}
       />
       <InstancedPrimitives
         castShadow={shadows}
@@ -231,9 +409,14 @@ export function CourierYard({ shadows }: { readonly shadows: boolean }) {
       />
       <InstancedPrimitives
         instances={DEPOT_DOOR_PANELS}
-        metalness={0.4}
+        map={shadows ? textures.door.map : undefined}
+        metalness={0.86}
+        metalnessMap={shadows ? textures.door.armMap : undefined}
+        normalMap={shadows ? textures.door.normalMap : undefined}
+        normalScale={[0.62, 0.62]}
         receiveShadow
-        roughness={0.52}
+        roughness={0.58}
+        roughnessMap={shadows ? textures.door.armMap : undefined}
       />
       <InstancedPrimitives
         instances={DEPOT_DOOR_DETAILS}
@@ -248,16 +431,98 @@ export function CourierYard({ shadows }: { readonly shadows: boolean }) {
         receiveShadow
         roughness={0.48}
       />
+      <InstancedPrimitives
+        castShadow={shadows}
+        instances={DEPOT_STRUCTURE}
+        metalness={0.34}
+        receiveShadow
+        roughness={0.48}
+      />
+      <InstancedPrimitives
+        castShadow={shadows}
+        instances={DEPOT_AWNINGS}
+        metalness={0.62}
+        receiveShadow
+        roughness={0.38}
+      />
+      <InstancedPrimitives
+        instances={DEPOT_BUMPERS}
+        metalness={0.18}
+        roughness={0.76}
+      />
+      <InstancedPrimitives
+        instances={YARD_HAZARD_STRIPES}
+        metalness={0.08}
+        roughness={0.58}
+      />
+      <InstancedPrimitives
+        castShadow={shadows}
+        instances={YARD_EDGE_DETAILS}
+        metalness={0.48}
+        receiveShadow
+        roughness={0.5}
+      />
+      <YardWear />
       {DEPOT_DOOR_CENTERS.map((x) => (
-        <mesh key={`courier-depot-light-${x}`} position={[x, 5.55, 36.72]}>
-          <boxGeometry args={[1.1, 0.12, 0.16]} />
-          <meshStandardMaterial
-            color="#f6e7b8"
-            emissive="#ffd17a"
-            emissiveIntensity={1.8}
-            metalness={0.18}
-            roughness={0.28}
-            toneMapped={false}
+        <group key={`courier-depot-light-${x}`}>
+          <mesh position={[x, 4.96, 37.5]}>
+            <boxGeometry args={[1.2, 0.1, 0.18]} />
+            <meshStandardMaterial
+              color="#f6e7b8"
+              emissive="#ffd17a"
+              emissiveIntensity={2.4}
+              metalness={0.18}
+              roughness={0.28}
+              toneMapped={false}
+            />
+          </mesh>
+        </group>
+      ))}
+      {shadows ? (
+        <pointLight
+          color="#ffc77c"
+          decay={2}
+          distance={14}
+          intensity={11}
+          position={[70, 4.8, 39.8]}
+        />
+      ) : null}
+    </group>
+  );
+}
+
+function YardWear() {
+  const stains = [
+    {
+      position: [63.2, 0.31, 49.6] as CityVec3,
+      scale: [1.5, 0.72, 1] as CityVec3,
+    },
+    {
+      position: [69.1, 0.31, 44.5] as CityVec3,
+      scale: [0.9, 0.48, 1] as CityVec3,
+    },
+    {
+      position: [75.8, 0.31, 52.3] as CityVec3,
+      scale: [1.2, 0.62, 1] as CityVec3,
+    },
+  ];
+  return (
+    <group name="courier-yard-ground-wear">
+      {stains.map((stain, index) => (
+        <mesh
+          key={`courier-yard-stain-${index}`}
+          position={stain.position}
+          rotation={[-Math.PI / 2, 0, index * 0.71]}
+          scale={stain.scale}
+        >
+          <circleGeometry args={[1, 24]} />
+          <meshBasicMaterial
+            color="#152326"
+            depthWrite={false}
+            opacity={0.24}
+            polygonOffset
+            polygonOffsetFactor={-1}
+            transparent
           />
         </mesh>
       ))}

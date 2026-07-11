@@ -17,6 +17,7 @@ type InstancedPrimitivesProps = {
   material?: PrimitiveMaterial;
   map?: THREE.Texture;
   metalness?: number;
+  metalnessMap?: THREE.Texture;
   normalMap?: THREE.Texture;
   normalScale?: readonly [number, number];
   opacity?: number;
@@ -39,6 +40,7 @@ export const InstancedPrimitives = memo(function InstancedPrimitives({
   material = "standard",
   map,
   metalness = 0,
+  metalnessMap,
   normalMap,
   normalScale = [1, 1],
   opacity = 1,
@@ -109,6 +111,7 @@ export const InstancedPrimitives = memo(function InstancedPrimitives({
           fog={fog}
           map={map}
           metalness={metalness}
+          metalnessMap={metalnessMap}
           normalMap={normalMap}
           normalScale={new THREE.Vector2(...normalScale)}
           opacity={opacity}

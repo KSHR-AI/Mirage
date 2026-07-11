@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-11T20:36:13.000Z",
+  "generatedAt": "2026-07-11T21:18:00.000Z",
   "policy": {
     "commercialUseRequired": true,
     "standaloneRedistribution": false,
@@ -51,6 +51,101 @@
           "role": "roughness",
           "bytes": 483458,
           "sha256": "0e91a8117a8ec8c89e210dcd680186e66058b92028e89a858cc2fbde4bbfe6da"
+        }
+      ]
+    },
+    {
+      "id": "polyhaven-concrete-wall-007",
+      "name": "Concrete Wall 007",
+      "kind": "pbr-texture-set",
+      "source": {
+        "provider": "Poly Haven",
+        "pageUrl": "https://polyhaven.com/a/concrete_wall_007",
+        "apiUrl": "https://api.polyhaven.com/files/concrete_wall_007",
+        "authors": [
+          "Charlotte Baglioni",
+          "Dario Barresi",
+          "Rico Cilliers"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://polyhaven.com/license",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Poly Haven credit is appreciated."
+      },
+      "acquiredAt": "2026-07-11",
+      "modifications": [
+        "Selected official 1K JPEG diffuse, OpenGL normal, and packed ambient-roughness-metallic maps for browser delivery.",
+        "Runtime color-space, repeat, anisotropy, tint, and normal-strength configuration."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/textures/concrete-wall-007/base-color.jpg",
+          "role": "base-color",
+          "bytes": 654485,
+          "sha256": "1a5ff668a66e147d9fb795d8407ca67a144a1ca010779a5b8386137a4917a086"
+        },
+        {
+          "path": "public/game-assets/textures/concrete-wall-007/normal-gl.jpg",
+          "role": "normal-opengl",
+          "bytes": 602349,
+          "sha256": "cccb1841908ced8b89b65b5de97c1926f717dab63a14559264703a99639c291f"
+        },
+        {
+          "path": "public/game-assets/textures/concrete-wall-007/arm.jpg",
+          "role": "ambient-roughness-metallic",
+          "bytes": 657491,
+          "sha256": "b403affeb0eaac2386bd6d91d41acb99f7862e1b9101a14ab0af6da21fdf544f"
+        }
+      ]
+    },
+    {
+      "id": "polyhaven-corrugated-iron-02",
+      "name": "Corrugated Iron 02",
+      "kind": "pbr-texture-set",
+      "source": {
+        "provider": "Poly Haven",
+        "pageUrl": "https://polyhaven.com/a/corrugated_iron_02",
+        "apiUrl": "https://api.polyhaven.com/files/corrugated_iron_02",
+        "authors": [
+          "Jenelle van Heerden",
+          "Sergej Majboroda"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://polyhaven.com/license",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Poly Haven credit is appreciated."
+      },
+      "acquiredAt": "2026-07-11",
+      "modifications": [
+        "Selected official 1K JPEG diffuse, OpenGL normal, and packed ambient-roughness-metallic maps for browser delivery.",
+        "Runtime color-space, repeat, anisotropy, tint, and normal-strength configuration."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/textures/corrugated-iron-02/base-color.jpg",
+          "role": "base-color",
+          "bytes": 568492,
+          "sha256": "7a7b43099d015c1b08ebb175da5965caeae44b86de65a727b3fffa20a7c69a93"
+        },
+        {
+          "path": "public/game-assets/textures/corrugated-iron-02/normal-gl.jpg",
+          "role": "normal-opengl",
+          "bytes": 489773,
+          "sha256": "9743c93668689c36a67e9c4dc8d6a0870fe91202f82dcdaf70ddc330c12f9ecb"
+        },
+        {
+          "path": "public/game-assets/textures/corrugated-iron-02/arm.jpg",
+          "role": "ambient-roughness-metallic",
+          "bytes": 904443,
+          "sha256": "da4197f5b3e199ef693082836ca803f9d5cad2b4998a1c1c3dc4ac384f93a890"
         }
       ]
     },

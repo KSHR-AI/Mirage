@@ -1,6 +1,7 @@
 "use client";
 
-import { memo } from "react";
+import { useTexture } from "@react-three/drei";
+import { memo, useEffect, useMemo } from "react";
 import { AFTERLIGHT_LANDMARKS } from "../../core/afterlight-state";
 import {
   AFTERLIGHT_ITEMS,
@@ -11,6 +12,10 @@ import {
   HeroCoupeModel,
   type ModelQuality,
 } from "../models";
+import {
+  createPbrTextureSet,
+  disposePbrTextureSet,
+} from "../city/surface-textures";
 import { INTERACTION_COLORS } from "./plan";
 import type {
   BlackoutSetpiecePlan,
@@ -26,6 +31,7 @@ const STEEL = "#263238";
 const DARK_STEEL = "#151d21";
 const CONCRETE = "#596064";
 const GLASS = "#b8e8ec";
+const CONCRETE_TEXTURE_ROOT = "/game-assets/textures/concrete-wall-007";
 
 function StandardMaterial({
   color,
@@ -78,18 +84,50 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
   const shadows = plan.quality.quality !== "low";
   const decorated = plan.quality.decorationLevel > 0;
   const premiumDetail = plan.quality.decorationLevel > 1;
+  const concrete = useTexture({
+    arm: `${CONCRETE_TEXTURE_ROOT}/arm.jpg`,
+    color: `${CONCRETE_TEXTURE_ROOT}/base-color.jpg`,
+    normal: `${CONCRETE_TEXTURE_ROOT}/normal-gl.jpg`,
+  });
+  const groundTexture = useMemo(
+    () =>
+      createPbrTextureSet(
+        [concrete.color, concrete.normal, concrete.arm],
+        [4, 4],
+      ),
+    [concrete.arm, concrete.color, concrete.normal],
+  );
+  useEffect(() => () => disposePbrTextureSet(groundTexture), [groundTexture]);
+  const usePbrGround = plan.quality.quality === "high";
 
   return (
     <group name="afterlight-boost-yard">
       <group position={plan.anchor}>
         <mesh position={[0, -0.48, 0]} receiveShadow>
           <boxGeometry args={[14.2, 0.16, 11.8]} />
-          <StandardMaterial color="#20282a" metalness={0.14} roughness={0.9} />
+          <meshStandardMaterial
+            color="#8b938e"
+            emissive="#35413f"
+            emissiveIntensity={0.26}
+            emissiveMap={usePbrGround ? groundTexture.map : undefined}
+            map={usePbrGround ? groundTexture.map : undefined}
+            metalness={0.06}
+            normalMap={usePbrGround ? groundTexture.normalMap : undefined}
+            normalScale={[0.28, 0.28]}
+            roughness={0.92}
+            roughnessMap={usePbrGround ? groundTexture.armMap : undefined}
+          />
         </mesh>
 
         <mesh position={[0, -0.36, -0.1]} receiveShadow>
           <boxGeometry args={[6.15, 0.08, 8.5]} />
-          <StandardMaterial color="#303a3c" metalness={0.3} roughness={0.68} />
+          <StandardMaterial
+            color="#3f4c4d"
+            emissive="#1e2929"
+            emissiveIntensity={0.16}
+            metalness={0.24}
+            roughness={0.72}
+          />
         </mesh>
 
         {[-1, 1].map((side) => (

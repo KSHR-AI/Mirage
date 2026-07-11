@@ -89,6 +89,7 @@ export function AuthoredDowntownBuildings({
   useEffect(() => {
     onReady?.();
   }, [onReady]);
+  useEffect(() => () => ktx2.dispose(), [ktx2]);
 
   return (
     <group
