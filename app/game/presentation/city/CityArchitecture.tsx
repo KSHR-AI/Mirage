@@ -2,16 +2,15 @@
 
 import { useTexture } from "@react-three/drei";
 import { memo, useEffect, useMemo } from "react";
+import { createFacadeDetailPlan } from "./facade-details";
 import { InstancedPrimitives } from "./InstancedPrimitives";
 import { filterPoweredCityFeatures, type CityPowerState } from "./power";
 import {
   createPbrTextureSet,
   disposePbrTextureSet,
-  facadeTextureTier,
   liftFacadeColor,
-  type FacadeTextureTier,
 } from "./surface-textures";
-import type { BoxInstance, BuildingInstance, CityLayout } from "./types";
+import type { BoxInstance, CityLayout } from "./types";
 
 type CityArchitectureProps = {
   layout: CityLayout;
@@ -20,7 +19,7 @@ type CityArchitectureProps = {
 };
 
 const CONCRETE_TEXTURE_ROOT = "/game-assets/textures/concrete-wall-007";
-const FACADE_TIERS = ["low", "mid", "tower"] as const;
+const FACADE_TEXTURES = ["low", "mid"] as const;
 
 export const CityArchitecture = memo(function CityArchitecture({
   layout,
@@ -37,31 +36,24 @@ export const CityArchitecture = memo(function CityArchitecture({
     return {
       low: createPbrTextureSet(sources, [2, 2]),
       mid: createPbrTextureSet(sources, [2.5, 4]),
-      tower: createPbrTextureSet(sources, [3, 6]),
     };
   }, [concrete.arm, concrete.color, concrete.normal]);
   useEffect(
     () => () => {
-      FACADE_TIERS.forEach((tier) =>
-        disposePbrTextureSet(facadeTextures[tier]),
+      FACADE_TEXTURES.forEach((texture) =>
+        disposePbrTextureSet(facadeTextures[texture]),
       );
     },
     [facadeTextures],
   );
-  const facadeBatches = useMemo(() => {
-    const batches: Record<FacadeTextureTier, BuildingInstance[]> = {
-      low: [],
-      mid: [],
-      tower: [],
-    };
-    layout.buildings.forEach((building) => {
-      batches[facadeTextureTier(building.scale[1])].push({
+  const facadeInstances = useMemo(
+    () =>
+      layout.buildings.map((building) => ({
         ...building,
         color: liftFacadeColor(building.color),
-      });
-    });
-    return batches;
-  }, [layout.buildings]);
+      })),
+    [layout.buildings],
+  );
   const plinths = useMemo<BoxInstance[]>(
     () =>
       layout.buildings.map((building) => ({
@@ -97,79 +89,96 @@ export const CityArchitecture = memo(function CityArchitecture({
     () => filterPoweredCityFeatures(layout.neonSigns, powerState),
     [layout.neonSigns, powerState],
   );
+  const facadeDetails = useMemo(
+    () =>
+      createFacadeDetailPlan({
+        buildings: layout.buildings,
+        quality: layout.quality,
+        windows: layout.windows,
+      }),
+    [layout.buildings, layout.quality, layout.windows],
+  );
 
   return (
-    <group
-      name="procedural-city-architecture"
-      userData={{ cameraCollisionRoot: true }}
-    >
-      {layout.quality === "desktop" ? (
-        FACADE_TIERS.map((tier) => (
+    <group name="procedural-city-architecture">
+      <group
+        name="procedural-city-camera-collision"
+        userData={{ cameraCollisionRoot: true }}
+      >
+        {layout.quality === "desktop" ? (
           <InstancedPrimitives
             castShadow={shadows}
-            instances={facadeBatches[tier]}
-            key={tier}
-            map={facadeTextures[tier].map}
+            instances={facadeInstances}
+            map={facadeTextures.mid.map}
             metalness={0.05}
-            normalMap={facadeTextures[tier].normalMap}
-            normalScale={[0.42, 0.42]}
             receiveShadow
             roughness={0.9}
-            roughnessMap={facadeTextures[tier].armMap}
           />
-        ))
-      ) : (
+        ) : (
+          <InstancedPrimitives
+            instances={layout.buildings}
+            metalness={0.08}
+            receiveShadow
+            roughness={0.72}
+          />
+        )}
+      </group>
+      <group
+        name="procedural-city-facade-detail"
+        userData={{ cameraCollision: false }}
+      >
         <InstancedPrimitives
-          instances={layout.buildings}
-          metalness={0.08}
-          receiveShadow
-          roughness={0.72}
+          instances={facadeDetails.glazing}
+          material="basic"
+          shape="plane"
         />
-      )}
-      <InstancedPrimitives
-        castShadow={shadows}
-        instances={plinths}
-        map={layout.quality === "desktop" ? facadeTextures.low.map : undefined}
-        metalness={0.14}
-        normalMap={
-          layout.quality === "desktop"
-            ? facadeTextures.low.normalMap
-            : undefined
-        }
-        normalScale={[0.34, 0.34]}
-        receiveShadow
-        roughness={0.86}
-        roughnessMap={
-          layout.quality === "desktop" ? facadeTextures.low.armMap : undefined
-        }
-      />
-      <InstancedPrimitives
-        instances={cornices}
-        metalness={0.2}
-        roughness={0.58}
-      />
-      <InstancedPrimitives
-        castShadow={shadows}
-        instances={layout.roofDetails}
-        metalness={0.32}
-        roughness={0.57}
-      />
-      <InstancedPrimitives
-        depthWrite={false}
-        instances={poweredWindows}
-        material="basic"
-        opacity={0.86}
-        toneMapped={false}
-        transparent
-      />
-      <InstancedPrimitives
-        depthWrite={false}
-        instances={poweredNeonSigns}
-        material="basic"
-        opacity={0.92}
-        toneMapped={false}
-        transparent
-      />
+        <InstancedPrimitives
+          instances={facadeDetails.frames}
+          material="basic"
+          shape="plane"
+        />
+        <InstancedPrimitives
+          instances={facadeDetails.structure}
+          material="basic"
+        />
+        <InstancedPrimitives
+          castShadow={shadows}
+          instances={plinths}
+          map={
+            layout.quality === "desktop" ? facadeTextures.low.map : undefined
+          }
+          metalness={0.14}
+          receiveShadow
+          roughness={0.86}
+        />
+        <InstancedPrimitives
+          instances={cornices}
+          metalness={0.2}
+          roughness={0.58}
+        />
+        <InstancedPrimitives
+          castShadow={shadows}
+          instances={layout.roofDetails}
+          metalness={0.32}
+          roughness={0.57}
+        />
+        <InstancedPrimitives
+          depthWrite={false}
+          instances={poweredWindows}
+          material="basic"
+          opacity={0.74}
+          toneMapped={false}
+          transparent
+        />
+        <InstancedPrimitives
+          depthWrite={false}
+          instances={poweredNeonSigns}
+          material="basic"
+          opacity={0.92}
+          toneMapped={false}
+          transparent
+        />
+      </group>
     </group>
   );
 });

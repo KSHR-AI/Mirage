@@ -60,14 +60,6 @@ export function disposePbrTextureSet(textureSet: PbrTextureSet) {
   textureSet.armMap.dispose();
 }
 
-export type FacadeTextureTier = "low" | "mid" | "tower";
-
-export function facadeTextureTier(height: number): FacadeTextureTier {
-  if (height < 13) return "low";
-  if (height < 25) return "mid";
-  return "tower";
-}
-
 export function liftFacadeColor(color: string): string {
   return `#${new THREE.Color(color)
     .convertLinearToSRGB()

@@ -1,12 +1,12 @@
 "use client";
 
 import { Clone } from "@react-three/drei";
-import { useLoader, useThree } from "@react-three/fiber";
+import { useLoader } from "@react-three/fiber";
 import { useMemo } from "react";
 import * as THREE from "three";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
+import { useSharedKtx2Loader } from "../shared/use-shared-ktx2-loader";
 import type { StreetProp } from "./types";
 
 const HYDRANT_MODEL = "/game-assets/models/fire_hydrant.glb";
@@ -49,12 +49,7 @@ const MISSION_HYDRANTS: readonly StreetProp[] = Object.freeze([
 ]);
 
 export function LicensedHydrants({ limit }: { readonly limit: number }) {
-  const gl = useThree((state) => state.gl);
-  const ktx2 = useMemo(
-    () =>
-      new KTX2Loader().setTranscoderPath("/vendor/basis/").detectSupport(gl),
-    [gl],
-  );
+  const ktx2 = useSharedKtx2Loader();
   const { scene } = useLoader(GLTFLoader, HYDRANT_MODEL, (loader) => {
     loader.setKTX2Loader(ktx2);
     loader.setMeshoptDecoder(MeshoptDecoder);

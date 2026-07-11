@@ -1,16 +1,16 @@
 "use client";
 
-import { useLoader, useThree } from "@react-three/fiber";
+import { useLoader } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo } from "react";
 import { Color, Material, Mesh, PropertyBinding, type Object3D } from "three";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
 
 import {
   AUTHORED_DOWNTOWN_MODEL_URL,
   AUTHORED_DOWNTOWN_PLACEMENTS,
 } from "../../content/authored-downtown";
+import { useSharedKtx2Loader } from "../shared/use-shared-ktx2-loader";
 import { isCityLightPowered, type CityPowerState } from "./power";
 
 export type AuthoredDowntownBuildingsProps = {
@@ -31,12 +31,7 @@ export function AuthoredDowntownBuildings({
   powerState,
   shadows,
 }: AuthoredDowntownBuildingsProps) {
-  const gl = useThree((state) => state.gl);
-  const ktx2 = useMemo(
-    () =>
-      new KTX2Loader().setTranscoderPath("/vendor/basis/").detectSupport(gl),
-    [gl],
-  );
+  const ktx2 = useSharedKtx2Loader();
   const { scene } = useLoader(
     GLTFLoader,
     AUTHORED_DOWNTOWN_MODEL_URL,
@@ -89,7 +84,6 @@ export function AuthoredDowntownBuildings({
   useEffect(() => {
     onReady?.();
   }, [onReady]);
-  useEffect(() => () => ktx2.dispose(), [ktx2]);
 
   return (
     <group

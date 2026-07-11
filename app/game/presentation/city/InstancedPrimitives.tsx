@@ -4,7 +4,13 @@ import { memo, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { BoxInstance } from "./types";
 
-type PrimitiveShape = "box" | "cone" | "cylinder" | "icosahedron" | "sphere";
+type PrimitiveShape =
+  | "box"
+  | "cone"
+  | "cylinder"
+  | "icosahedron"
+  | "plane"
+  | "sphere";
 type PrimitiveMaterial = "basic" | "standard";
 
 type InstancedPrimitivesProps = {
@@ -94,6 +100,7 @@ export const InstancedPrimitives = memo(function InstancedPrimitives({
         <cylinderGeometry args={[0.5, 0.5, 1, 7]} />
       ) : null}
       {shape === "icosahedron" ? <icosahedronGeometry args={[0.5, 1]} /> : null}
+      {shape === "plane" ? <planeGeometry /> : null}
       {shape === "sphere" ? <sphereGeometry args={[0.5, 10, 7]} /> : null}
       {material === "basic" ? (
         <meshBasicMaterial
