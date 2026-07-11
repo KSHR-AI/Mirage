@@ -22,6 +22,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "playwright test",
+    "playtest": "node scripts/playtest-afterlight.mjs",
+    "playtest:production": "node scripts/playtest-afterlight.mjs --url https://mirage-khaki.vercel.app",
     "format:check": "prettier --check app/game tests scripts .github eslint.config.mjs vitest.config.ts playwright.config.ts package.json pnpm-workspace.yaml public/game-assets/manifest.json",
     "check": "pnpm format:check && pnpm assets:validate && pnpm lint && pnpm typecheck && pnpm test:run && pnpm build"
   },

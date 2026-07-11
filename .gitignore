@@ -7,6 +7,7 @@ tsconfig.tsbuildinfo
 test-results
 playwright-report
 blob-report
+.artifacts
 .wrangler
 .agents
 .claude
