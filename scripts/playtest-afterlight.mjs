@@ -10,6 +10,7 @@ import { renderedPixelStats } from "./lib/png-stats.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_URL = "http://127.0.0.1:3100";
+const CANVAS_INSPECTION_TIMEOUT_MS = 90_000;
 const VALID_SCENARIOS = new Set([
   "all",
   "compact",
@@ -305,7 +306,9 @@ async function inspectCanvas(scenario, page, outDir, name) {
   const canvas = page.locator("canvas#afterlight-renderer");
   await canvas.waitFor({ state: "visible", timeout: 30_000 });
   await waitForStablePaint(page);
-  const bounds = await canvas.boundingBox();
+  const bounds = await canvas.boundingBox({
+    timeout: CANVAS_INSPECTION_TIMEOUT_MS,
+  });
   if (!bounds) throw new Error("Afterlight canvas has no visible bounds");
   const png = await page.screenshot({
     clip: bounds,
