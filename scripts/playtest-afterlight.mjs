@@ -10,7 +10,13 @@ import { renderedPixelStats } from "./lib/png-stats.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_URL = "http://127.0.0.1:3100";
-const VALID_SCENARIOS = new Set(["all", "desktop", "narrow", "mobile"]);
+const VALID_SCENARIOS = new Set([
+  "all",
+  "compact",
+  "desktop",
+  "narrow",
+  "mobile",
+]);
 
 function parseArguments(argv) {
   const options = {
@@ -37,7 +43,7 @@ function parseArguments(argv) {
 }
 
 function usage() {
-  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, desktop, narrow, or mobile\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
+  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, compact, desktop, narrow, or mobile\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
 }
 
 function timestamp() {
@@ -1002,6 +1008,177 @@ async function mobileScenario(browser, baseURL, outDir, headed) {
   return scenario;
 }
 
+async function compactMobileScenario(browser, baseURL, outDir, headed) {
+  const scenario = { checks: [], id: "compact-mobile", screenshots: [] };
+  const startedAt = Date.now();
+  const context = await browser.newContext({
+    baseURL,
+    deviceScaleFactor: 2,
+    hasTouch: true,
+    isMobile: true,
+    viewport: { height: 693, width: 320 },
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => errors.push(`page: ${error.message}`));
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "hardwareConcurrency", {
+      configurable: true,
+      value: 8,
+    });
+    Object.defineProperty(navigator, "deviceMemory", {
+      configurable: true,
+      value: 8,
+    });
+    HTMLElement.prototype.setPointerCapture = () => undefined;
+    HTMLElement.prototype.releasePointerCapture = () => undefined;
+  });
+
+  try {
+    await startGame(page, scenario, outDir);
+    const layout = await page.evaluate(() => {
+      const hud = document.querySelector(
+        '[aria-label="Afterlight mission HUD"]',
+      );
+      if (!(hud instanceof HTMLElement)) throw new Error("HUD unavailable");
+
+      const rect = (element) => {
+        if (!(element instanceof HTMLElement)) return undefined;
+        const bounds = element.getBoundingClientRect();
+        return {
+          bottom: bounds.bottom,
+          height: bounds.height,
+          left: bounds.left,
+          right: bounds.right,
+          top: bounds.top,
+          width: bounds.width,
+        };
+      };
+      const topRail = hud.querySelector("header");
+      const topRegions = topRail ? [...topRail.children].map(rect) : [];
+      const mission = hud.querySelector('section[aria-live="polite"]');
+      const lower = hud.querySelector("footer");
+      const touchControls = document.querySelector(
+        '[aria-label="Touch controls"]',
+      );
+      const touchButtons = touchControls
+        ? [...touchControls.querySelectorAll("button")].map(rect)
+        : [];
+      const optionalBadge = [...hud.querySelectorAll("small")].find(
+        (element) => element.textContent?.trim() === "OPTIONAL",
+      );
+      const optionalCopy = optionalBadge?.parentElement;
+      const optionalLabel = optionalCopy?.querySelector("span");
+      const missionRect = rect(mission);
+      const lowerRect = rect(lower);
+
+      return {
+        lower: lowerRect,
+        mission: missionRect,
+        objective: optionalLabel
+          ? {
+              clientHeight: optionalLabel.clientHeight,
+              clientWidth: optionalLabel.clientWidth,
+              scrollHeight: optionalLabel.scrollHeight,
+              scrollWidth: optionalLabel.scrollWidth,
+              text: optionalLabel.textContent?.trim(),
+            }
+          : undefined,
+        topRegions,
+        touchButtons,
+        touchControls: rect(touchControls),
+        verticalGap:
+          missionRect && lowerRect ? lowerRect.top - missionRect.bottom : -1,
+        viewport: { height: innerHeight, width: innerWidth },
+      };
+    });
+
+    const horizontalRects = [
+      ...layout.topRegions,
+      layout.mission,
+      layout.lower,
+      layout.touchControls,
+      ...layout.touchButtons,
+    ].filter(Boolean);
+    const outside = horizontalRects.filter(
+      (rect) => rect.left < -0.5 || rect.right > layout.viewport.width + 0.5,
+    );
+    addCheck(
+      scenario,
+      "compact-horizontal-fit",
+      outside.length === 0,
+      { outside, viewport: layout.viewport },
+      "HUD regions remain inside the 320px viewport",
+    );
+
+    const topGaps = layout.topRegions
+      .slice(0, -1)
+      .map((region, index) => layout.topRegions[index + 1].left - region.right);
+    addCheck(
+      scenario,
+      "compact-top-rail-spacing",
+      layout.topRegions.length === 3 && topGaps.every((gap) => gap >= 2),
+      topGaps,
+      "three top-rail regions separated by at least 2px",
+    );
+
+    addCheck(
+      scenario,
+      "compact-objective-readable",
+      Boolean(layout.objective) &&
+        layout.objective.scrollWidth <= layout.objective.clientWidth + 1 &&
+        layout.objective.scrollHeight <= layout.objective.clientHeight + 1,
+      layout.objective,
+      "optional objective renders without hidden text",
+    );
+
+    addCheck(
+      scenario,
+      "compact-hud-vertical-separation",
+      layout.verticalGap >= 16,
+      layout.verticalGap,
+      ">= 16px between mission and lower HUD",
+    );
+
+    const touchLabels = [
+      "Move",
+      "Look",
+      "Enter vehicle",
+      "Fire",
+      "Sprint",
+      "Jump",
+    ];
+    const visible = {};
+    for (const label of touchLabels) {
+      visible[label] = await page
+        .getByRole("button", { name: label, exact: true })
+        .isVisible();
+    }
+    addCheck(
+      scenario,
+      "compact-touch-controls",
+      Object.values(visible).every(Boolean),
+      visible,
+      "all compact touch controls visible",
+    );
+
+    await capture(scenario, page, outDir, "layout");
+    addCheck(scenario, "runtime-errors", errors.length === 0, errors, "none");
+    completeScenario(scenario);
+  } catch (error) {
+    failScenario(scenario, error);
+    await capture(scenario, page, outDir, "failure").catch(() => undefined);
+  } finally {
+    scenario.browserErrors = errors;
+    scenario.durationMs = Date.now() - startedAt;
+    if (!headed) await context.close();
+  }
+  return scenario;
+}
+
 function markdownReport(report) {
   const lines = [
     `# Mirage Playtest: ${report.passed ? "PASS" : "FAIL"}`,
@@ -1055,6 +1232,15 @@ async function main() {
     if (["all", "mobile"].includes(options.scenario))
       scenarios.push(
         await mobileScenario(browser, options.url, outDir, options.headed),
+      );
+    if (["all", "compact"].includes(options.scenario))
+      scenarios.push(
+        await compactMobileScenario(
+          browser,
+          options.url,
+          outDir,
+          options.headed,
+        ),
       );
   } finally {
     await browser.close();

@@ -158,7 +158,7 @@ export const AFTERLIGHT_PHASE_CONTENT = {
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.cleanBoost,
-        "Optional: shake the first response clean.",
+        "Shake the first response clean.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.reachMission,
@@ -228,7 +228,7 @@ export const AFTERLIGHT_PHASE_CONTENT = {
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.takeBearerBonds,
-        "Optional: lift the unmarked bonds.",
+        "Lift the unmarked bonds.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.takeAfterlightCore,
@@ -267,7 +267,7 @@ export const AFTERLIGHT_PHASE_CONTENT = {
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.disableBackup,
-        "Optional: disable two response vehicles.",
+        "Disable two response vehicles.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.holdBlackout,
@@ -302,7 +302,7 @@ export const AFTERLIGHT_PHASE_CONTENT = {
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.breakInterceptors,
-        "Optional: break two interceptors.",
+        "Break two interceptors.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.escapeAfterlightRun,
@@ -337,7 +337,7 @@ export const AFTERLIGHT_PHASE_CONTENT = {
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.keepBearerBonds,
-        "Optional: keep the bonds off the books.",
+        "Keep the bonds off the books.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.deliverAfterlightCore,

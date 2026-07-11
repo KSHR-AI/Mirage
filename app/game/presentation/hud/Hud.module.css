@@ -2338,8 +2338,71 @@
 }
 
 @media (max-width: 420px) {
+  .topRail {
+    grid-template-columns: minmax(68px, 1fr) 94px minmax(76px, 1fr);
+    gap: 4px;
+  }
+
+  .brandLockup strong {
+    font-size: 15px;
+  }
+
+  .wanted {
+    width: 94px;
+    grid-template-columns: 14px minmax(0, 1fr);
+    gap: 4px;
+    padding: 0 6px;
+  }
+
+  .wanted svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .topStatus {
+    gap: 4px;
+  }
+
+  .cash strong {
+    max-width: 5ch;
+    font-size: 9px;
+  }
+
+  .iconButton {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+
   .missionPanel {
-    width: min(284px, calc(100vw - 20px));
+    width: min(326px, calc(100vw - 20px));
+    max-height: 202px;
+  }
+
+  .objectiveList li {
+    min-height: 0;
+    align-items: start;
+    padding: 2px 0;
+  }
+
+  .objectiveMark,
+  .objectiveList li > strong {
+    margin-top: 1px;
+  }
+
+  .objectiveCopy {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+  }
+
+  .objectiveCopy > span {
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .objectiveCopy small {
+    line-height: 1.2;
   }
 
   .notifications {
