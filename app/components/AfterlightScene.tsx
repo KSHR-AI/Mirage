@@ -86,6 +86,7 @@ const POLICE_IDS = [
 
 const BLACKOUT_MARKER = "afterlight:blackout:active";
 const AMBIENT_TRAFFIC_CAMERA_CLEARANCE_SQUARED = 12 * 12;
+const AMBIENT_CIVILIAN_CAMERA_CLEARANCE_SQUARED = 14 * 14;
 
 const AfterlightPostEffects = lazy(() =>
   import("../game/presentation/postfx").then((module) => ({
@@ -191,7 +192,7 @@ function AmbientTraffic({
   const count = qualitySettings(quality).trafficCount;
   const definitions = useMemo(() => createAmbientVehicles(count), [count]);
   const groups = useRef<Array<THREE.Group | null>>([]);
-  const visualQuality = modelQuality(quality);
+  const visualQuality = quality === "high" ? "desktop" : "mobile";
 
   useFrame(({ clock }) => {
     const elapsed = clock.elapsedTime;
@@ -267,11 +268,17 @@ function createAmbientCivilians(
   );
 }
 
-function AmbientCivilians({ quality }: { readonly quality: GameQualityTier }) {
+function AmbientCivilians({
+  quality,
+  targetPosition,
+}: {
+  readonly quality: GameQualityTier;
+  readonly targetPosition: readonly [number, number, number];
+}) {
   const count = qualitySettings(quality).civilianCount;
   const definitions = useMemo(() => createAmbientCivilians(count), [count]);
   const groups = useRef<Array<THREE.Group | null>>([]);
-  const visualQuality = modelQuality(quality);
+  const visualQuality = quality === "high" ? "desktop" : "mobile";
 
   useFrame(({ clock }) => {
     const elapsed = clock.elapsedTime;
@@ -288,6 +295,10 @@ function AmbientCivilians({ quality }: { readonly quality: GameQualityTier }) {
         96;
       group.position.set(civilian.x, 0.32, z);
       group.rotation.y = civilian.direction > 0 ? 0 : Math.PI;
+      const dx = group.position.x - targetPosition[0];
+      const dz = group.position.z - targetPosition[2];
+      group.visible =
+        dx * dx + dz * dz > AMBIENT_CIVILIAN_CAMERA_CLEARANCE_SQUARED;
     });
   });
 
@@ -531,7 +542,10 @@ export const AfterlightScene = memo(function AfterlightScene({
       />
 
       <AmbientTraffic quality={quality} targetPosition={targetPose.position} />
-      <AmbientCivilians quality={quality} />
+      <AmbientCivilians
+        quality={quality}
+        targetPosition={targetPose.position}
+      />
 
       {!driving ? (
         <DynamicActor

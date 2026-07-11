@@ -90,6 +90,8 @@ export const QUALITY_SETTINGS: Readonly<
 });
 
 const TIER_ORDER: readonly GameQualityTier[] = ["low", "medium", "high"];
+const EMERGENCY_DEGRADE_SAMPLES = 12;
+const EMERGENCY_DEGRADE_MULTIPLIER = 1.75;
 
 function finiteOr(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) ? value : fallback;
@@ -199,22 +201,25 @@ export class PerformanceGovernor {
 
     const catastrophic =
       this.samples.length >= 6 && averageFrameMs >= this.catastrophicFrameMs;
+    const emergencyDuringCooldown =
+      this.cooldown > 0 &&
+      this.samples.length >= EMERGENCY_DEGRADE_SAMPLES &&
+      averageFrameMs >= this.catastrophicFrameMs * EMERGENCY_DEGRADE_MULTIPLIER;
     const shouldDegrade =
       this.tier !== "low" &&
-      (catastrophic ||
+      (emergencyDuringCooldown ||
         (this.cooldown === 0 &&
-          this.samples.length >= this.minimumSamples &&
-          (slowFrameRatio >= 0.22 ||
-            averageFrameMs >= (this.tier === "high" ? 21 : 31) ||
-            droppedSimulationSeconds >= 0.2)));
+          (catastrophic ||
+            (this.samples.length >= this.minimumSamples &&
+              (slowFrameRatio >= 0.22 ||
+                averageFrameMs >= (this.tier === "high" ? 21 : 31) ||
+                droppedSimulationSeconds >= 0.2)))));
 
     let changed = false;
     if (shouldDegrade) {
       this.tier = lowerQuality(this.tier);
       this.samples.length = 0;
-      this.cooldown = catastrophic
-        ? Math.min(12, this.degradeCooldownSamples)
-        : this.degradeCooldownSamples;
+      this.cooldown = this.degradeCooldownSamples;
       changed = true;
     }
 

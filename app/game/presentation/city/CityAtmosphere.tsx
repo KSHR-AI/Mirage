@@ -10,9 +10,8 @@ import type { BoxInstance, CityQuality } from "./types";
 
 const SUN_OFFSET = [-92, 106, 54] as const;
 const SUN_SHADOW_HALF_EXTENT = 26;
-const SUN_SHADOW_MAP_SIZE = 1024;
-const SUN_SHADOW_TEXEL_SIZE =
-  (SUN_SHADOW_HALF_EXTENT * 2) / SUN_SHADOW_MAP_SIZE;
+const DESKTOP_SUN_SHADOW_MAP_SIZE = 1024;
+const MOBILE_SUN_SHADOW_MAP_SIZE = 512;
 
 type CityAtmosphereProps = {
   quality: CityQuality;
@@ -29,18 +28,21 @@ export const CityAtmosphere = memo(function CityAtmosphere({
     () => createStars(seed, quality === "desktop" ? 104 : 44),
     [quality, seed],
   );
-  const castSunShadow = shadows && quality === "desktop";
+  const castSunShadow = shadows;
+  const shadowMapSize =
+    quality === "desktop"
+      ? DESKTOP_SUN_SHADOW_MAP_SIZE
+      : MOBILE_SUN_SHADOW_MAP_SIZE;
+  const shadowTexelSize = (SUN_SHADOW_HALF_EXTENT * 2) / shadowMapSize;
   const sun = useRef<THREE.DirectionalLight>(null);
   const sunTarget = useMemo(() => new THREE.Object3D(), []);
 
   useFrame(({ camera }) => {
     if (!castSunShadow || !sun.current) return;
     const centerX =
-      Math.round(camera.position.x / SUN_SHADOW_TEXEL_SIZE) *
-      SUN_SHADOW_TEXEL_SIZE;
+      Math.round(camera.position.x / shadowTexelSize) * shadowTexelSize;
     const centerZ =
-      Math.round(camera.position.z / SUN_SHADOW_TEXEL_SIZE) *
-      SUN_SHADOW_TEXEL_SIZE;
+      Math.round(camera.position.z / shadowTexelSize) * shadowTexelSize;
     sunTarget.position.set(centerX, 0, centerZ);
     sunTarget.updateMatrixWorld();
     sun.current.position.set(
@@ -77,13 +79,15 @@ export const CityAtmosphere = memo(function CityAtmosphere({
         position={SUN_OFFSET}
         ref={sun}
         shadow-bias={-0.00035}
+        shadow-normalBias={0.025}
+        shadow-radius={quality === "desktop" ? 2 : 1.25}
         shadow-camera-bottom={-SUN_SHADOW_HALF_EXTENT}
         shadow-camera-far={230}
         shadow-camera-left={-SUN_SHADOW_HALF_EXTENT}
         shadow-camera-near={24}
         shadow-camera-right={SUN_SHADOW_HALF_EXTENT}
         shadow-camera-top={SUN_SHADOW_HALF_EXTENT}
-        shadow-mapSize={[SUN_SHADOW_MAP_SIZE, SUN_SHADOW_MAP_SIZE]}
+        shadow-mapSize={[shadowMapSize, shadowMapSize]}
         target={sunTarget}
       />
 

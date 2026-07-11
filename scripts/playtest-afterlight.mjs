@@ -283,9 +283,19 @@ async function waitForDriveSample(
   );
 }
 
+async function waitForStablePaint(page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+  });
+}
+
 async function capture(scenario, page, outDir, name) {
   const fileName = `${scenario.id}-${name}.png`;
   const filePath = path.join(outDir, fileName);
+  await waitForStablePaint(page);
   await page.screenshot({ fullPage: true, path: filePath });
   scenario.screenshots.push(fileName);
 }
@@ -294,6 +304,7 @@ async function inspectCanvas(scenario, page, outDir, name) {
   const fileName = `${scenario.id}-${name}-canvas.png`;
   const canvas = page.locator("canvas#afterlight-renderer");
   await canvas.waitFor({ state: "visible", timeout: 30_000 });
+  await waitForStablePaint(page);
   const png = await canvas.screenshot({ path: path.join(outDir, fileName) });
   const stats = renderedPixelStats(png);
   scenario.screenshots.push(fileName);

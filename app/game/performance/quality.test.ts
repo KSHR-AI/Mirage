@@ -119,4 +119,53 @@ describe("PerformanceGovernor", () => {
     expect(report.changed).toBe(true);
     expect(report.tier).toBe("low");
   });
+
+  it("does not cascade through two tiers during shader warmup", () => {
+    const governor = new PerformanceGovernor({
+      initialTier: "high",
+      minimumSamples: 90,
+      catastrophicFrameMs: 80,
+      degradeCooldownSamples: 30,
+    });
+
+    for (let index = 0; index < 6; index += 1) {
+      governor.sample({ frameMs: 120, droppedSimulationSeconds: 0 });
+    }
+    expect(governor.currentTier).toBe("medium");
+
+    for (let index = 0; index < 12; index += 1) {
+      const report = governor.sample({
+        frameMs: 120,
+        droppedSimulationSeconds: 0,
+      });
+      expect(report.changed).toBe(false);
+    }
+    expect(governor.currentTier).toBe("medium");
+  });
+
+  it("allows an unusable renderer to bypass the warmup cooldown", () => {
+    const governor = new PerformanceGovernor({
+      initialTier: "high",
+      minimumSamples: 90,
+      catastrophicFrameMs: 80,
+      degradeCooldownSamples: 300,
+    });
+
+    for (let index = 0; index < 6; index += 1) {
+      governor.sample({ frameMs: 120, droppedSimulationSeconds: 0 });
+    }
+    expect(governor.currentTier).toBe("medium");
+
+    for (let index = 0; index < 11; index += 1) {
+      expect(
+        governor.sample({ frameMs: 160, droppedSimulationSeconds: 0 }).changed,
+      ).toBe(false);
+    }
+    const report = governor.sample({
+      frameMs: 160,
+      droppedSimulationSeconds: 0,
+    });
+    expect(report.changed).toBe(true);
+    expect(report.tier).toBe("low");
+  });
 });
