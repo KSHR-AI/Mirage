@@ -92,6 +92,7 @@ export const QUALITY_SETTINGS: Readonly<
 const TIER_ORDER: readonly GameQualityTier[] = ["low", "medium", "high"];
 const EMERGENCY_DEGRADE_SAMPLES = 12;
 const EMERGENCY_DEGRADE_MULTIPLIER = 1.75;
+const MINIMUM_DROPPED_SIMULATION_SAMPLES = 3;
 
 function finiteOr(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) ? value : fallback;
@@ -198,6 +199,12 @@ export class PerformanceGovernor {
       (total, item) => total + item.droppedSimulationSeconds,
       0,
     );
+    const droppedSimulationSamples = this.samples.filter(
+      (item) => item.droppedSimulationSeconds > 0,
+    ).length;
+    const sustainedDroppedSimulation =
+      droppedSimulationSeconds >= 0.2 &&
+      droppedSimulationSamples >= MINIMUM_DROPPED_SIMULATION_SAMPLES;
 
     const catastrophic =
       this.samples.length >= 6 && averageFrameMs >= this.catastrophicFrameMs;
@@ -213,7 +220,7 @@ export class PerformanceGovernor {
             (this.samples.length >= this.minimumSamples &&
               (slowFrameRatio >= 0.22 ||
                 averageFrameMs >= (this.tier === "high" ? 21 : 31) ||
-                droppedSimulationSeconds >= 0.2)))));
+                sustainedDroppedSimulation)))));
 
     let changed = false;
     if (shouldDegrade) {

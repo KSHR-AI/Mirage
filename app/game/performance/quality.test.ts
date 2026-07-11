@@ -99,6 +99,26 @@ describe("PerformanceGovernor", () => {
     expect(governor.currentTier).toBe("low");
   });
 
+  it("ignores one isolated transition hitch", () => {
+    const governor = new PerformanceGovernor({
+      initialTier: "high",
+      evaluationWindow: 30,
+      minimumSamples: 20,
+    });
+
+    for (let index = 0; index < 19; index += 1) {
+      governor.sample({ frameMs: 16, droppedSimulationSeconds: 0 });
+    }
+    const report = governor.sample({
+      frameMs: 16,
+      droppedSimulationSeconds: 0.25,
+    });
+
+    expect(report.changed).toBe(false);
+    expect(report.droppedSimulationSeconds).toBe(0.25);
+    expect(governor.currentTier).toBe("high");
+  });
+
   it("degrades catastrophic frame pacing after six samples", () => {
     const governor = new PerformanceGovernor({
       initialTier: "medium",
