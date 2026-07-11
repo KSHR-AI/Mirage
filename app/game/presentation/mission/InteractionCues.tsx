@@ -145,12 +145,13 @@ function DestinationCue({
   readonly color: string;
   readonly reducedMotion: boolean;
 }) {
-  const postOffset = cue.radius * 0.72;
-  const postHeight = Math.min(4.2, Math.max(1.7, cue.radius * 0.42));
+  const visualRadius = Math.min(3.4, Math.max(1.8, cue.radius * 0.38));
+  const postOffset = visualRadius * 0.72;
+  const postHeight = Math.min(3.2, Math.max(1.7, visualRadius * 0.72));
   return (
     <group name={`mission-cue-${cue.id}`} position={cue.position}>
       <mesh renderOrder={8} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[cue.radius, 0.07, 6, 36]} />
+        <torusGeometry args={[visualRadius, 0.055, 6, 36]} />
         <CueMaterial color={color} opacity={0.82} />
       </mesh>
       {!reducedMotion ? (
@@ -159,7 +160,7 @@ function DestinationCue({
           renderOrder={8}
           rotation={[Math.PI / 2, 0, 0]}
         >
-          <torusGeometry args={[cue.radius * 0.82, 0.025, 5, 30]} />
+          <torusGeometry args={[visualRadius * 0.82, 0.025, 5, 30]} />
           <CueMaterial color={color} opacity={0.38} />
         </mesh>
       ) : null}

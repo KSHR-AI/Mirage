@@ -1433,18 +1433,23 @@ export function AfterlightGame() {
   };
   const canvasSettings = qualitySettings(quality);
   const activePosition = activePlayerPosition(view.state);
-  const playerYaw = player?.pose.rotationY ?? 0;
+  const playerYaw = driving
+    ? (hero?.pose.rotationY ?? 0)
+    : (player?.pose.rotationY ?? 0);
 
   return (
     <main
       className="bay-city-shell"
       data-aiming={view.input.aim ? "true" : "false"}
+      data-boost={view.input.sprint ? "true" : "false"}
+      data-brake={view.input.brake ? "true" : "false"}
       data-camera-yaw={view.cameraYaw.toFixed(4)}
       data-camera-pitch={view.cameraPitch.toFixed(4)}
       data-look-x={view.input.look[0].toFixed(3)}
       data-look-y={view.input.look[1].toFixed(3)}
       data-mode={driving ? "car" : "foot"}
       data-magazine={weapon?.magazine ?? 0}
+      data-phase={phase.id}
       data-player-x={activePosition[0].toFixed(2)}
       data-player-y={activePosition[1].toFixed(2)}
       data-player-yaw={playerYaw.toFixed(4)}
@@ -1457,7 +1462,11 @@ export function AfterlightGame() {
         3,
       )}
       data-speed={speedKph.toFixed(2)}
+      data-steer={view.input.steer.toFixed(3)}
+      data-throttle={view.input.throttle.toFixed(3)}
       data-tick={view.state.tick}
+      data-vehicle-health={(hero?.health ?? 0).toFixed(2)}
+      data-vehicle-yaw={(hero?.pose.rotationY ?? 0).toFixed(4)}
       data-testid="afterlight-game"
     >
       <div className="bay-city-canvas" aria-hidden="true">

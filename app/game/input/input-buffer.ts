@@ -250,7 +250,7 @@ export class InputBuffer {
       look,
       throttle: clampAxis(throttle),
       steer: clampAxis(steer),
-      brake: this.#held.has("brake"),
+      brake: this.#held.has("brake") || this.#held.has("jump"),
       sprint: this.#held.has("sprint"),
       aim: this.#held.has("aim"),
       jumpPressed: edge("jump"),

@@ -91,9 +91,21 @@ function numberAttribute(element, name) {
   return element.getAttribute(name).then(Number);
 }
 
+function attributeSnapshot(element, names) {
+  return element.evaluate(
+    (node, requested) =>
+      Object.fromEntries(
+        requested.map((name) => [name, node.getAttribute(`data-${name}`)]),
+      ),
+    names,
+  );
+}
+
 async function telemetry(shell) {
   const names = [
     "aiming",
+    "boost",
+    "brake",
     "camera-yaw",
     "camera-pitch",
     "dropped-seconds",
@@ -102,6 +114,7 @@ async function telemetry(shell) {
     "look-y",
     "mode",
     "magazine",
+    "phase",
     "player-x",
     "player-y",
     "player-yaw",
@@ -110,13 +123,21 @@ async function telemetry(shell) {
     "quality",
     "slow-frame-ratio",
     "speed",
+    "steer",
+    "throttle",
     "tick",
+    "vehicle-yaw",
+    "vehicle-health",
   ];
   const values = {};
   for (const name of names) {
     values[name] = await shell.getAttribute(`data-${name}`);
   }
   return values;
+}
+
+function angleDelta(from, to) {
+  return Math.atan2(Math.sin(to - from), Math.cos(to - from));
 }
 
 async function graphicsInfo(page) {
@@ -173,7 +194,7 @@ async function waitForAttribute(
   while (Date.now() < deadline) {
     const value = await shell.getAttribute(`data-${name}`);
     if (predicate(value)) return value;
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(16);
   }
   throw new Error(`Timed out waiting for data-${name}`);
 }
@@ -207,6 +228,52 @@ async function waitForTick(page, shell, target) {
     shell,
     "tick",
     (value) => Number(value) >= target,
+  );
+}
+
+async function waitForDriveSample(
+  page,
+  shell,
+  {
+    minDistance = 0,
+    minSpeed,
+    minTurn,
+    startX = 0,
+    startYaw,
+    startZ = 0,
+    timeout = 20_000,
+  },
+) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const sample = await attributeSnapshot(shell, [
+      "boost",
+      "phase",
+      "player-x",
+      "player-z",
+      "speed",
+      "steer",
+      "throttle",
+      "tick",
+      "vehicle-health",
+      "vehicle-yaw",
+    ]);
+    const turn = Math.abs(angleDelta(startYaw, Number(sample["vehicle-yaw"])));
+    const distance = Math.hypot(
+      Number(sample["player-x"]) - startX,
+      Number(sample["player-z"]) - startZ,
+    );
+    if (
+      Number(sample.speed) >= minSpeed &&
+      turn >= minTurn &&
+      distance >= minDistance
+    ) {
+      return sample;
+    }
+    await page.waitForTimeout(16);
+  }
+  throw new Error(
+    `Timed out waiting for vehicle speed ${minSpeed} and turn ${minTurn}`,
   );
 }
 
@@ -377,17 +444,194 @@ async function desktopScenario(browser, baseURL, outDir, headed) {
     await waitForAttribute(page, shell, "mode", (value) => value === "car");
     addCheck(scenario, "vehicle-entry", true, "car", "car");
 
-    await page.keyboard.down("w");
-    const speed = Number(
-      await waitForAttribute(
-        page,
-        shell,
-        "speed",
-        (value) => Number(value) > 1,
-      ),
+    const driveStart = await attributeSnapshot(shell, [
+      "player-x",
+      "player-z",
+      "tick",
+      "vehicle-yaw",
+    ]);
+    const driveStartX = Number(driveStart["player-x"]);
+    const driveStartZ = Number(driveStart["player-z"]);
+    const driveStartTick = Number(driveStart.tick);
+    const driveStartYaw = Number(driveStart["vehicle-yaw"]);
+    await page.keyboard.down("s");
+    await page.keyboard.down("d");
+    const reverseSample = await waitForDriveSample(page, shell, {
+      minDistance: 2.5,
+      minSpeed: 12,
+      minTurn: 0.05,
+      startX: driveStartX,
+      startYaw: driveStartYaw,
+      startZ: driveStartZ,
+    });
+    await page.keyboard.down("Space");
+    await page.keyboard.up("d");
+    await page.keyboard.up("s");
+    const reverseDistance = Math.hypot(
+      Number(reverseSample["player-x"]) - driveStartX,
+      Number(reverseSample["player-z"]) - driveStartZ,
     );
+    const reverseTurn = Math.abs(
+      angleDelta(driveStartYaw, Number(reverseSample["vehicle-yaw"])),
+    );
+    const reverseTicks = Math.max(
+      1,
+      Number(reverseSample.tick) - driveStartTick,
+    );
+    const reverseTurnRate = (reverseTurn * 60) / reverseTicks;
+    addCheck(
+      scenario,
+      "vehicle-reverse",
+      Number(reverseSample.throttle) < -0.9 && reverseDistance >= 2.5,
+      {
+        distance: reverseDistance,
+        speed: Number(reverseSample.speed),
+        throttle: Number(reverseSample.throttle),
+      },
+      "reverse throttle and >= 2.5 meters",
+    );
+    addCheck(
+      scenario,
+      "vehicle-steering-input",
+      Number(reverseSample.steer) > 0.9,
+      Number(reverseSample.steer),
+      ">0.9",
+    );
+    addCheck(
+      scenario,
+      "vehicle-turn-rate",
+      reverseTurnRate > 0.03 && reverseTurnRate < 1.3,
+      { angle: reverseTurn, rate: reverseTurnRate, ticks: reverseTicks },
+      "0.03..1.3 radians per simulated second",
+    );
+    addCheck(
+      scenario,
+      "vehicle-reverse-course-stable",
+      reverseSample.phase === "boost" &&
+        Number(reverseSample["vehicle-health"]) >= 99,
+      {
+        health: Number(reverseSample["vehicle-health"]),
+        phase: reverseSample.phase,
+      },
+      "boost phase and >= 99 integrity",
+    );
+    const reverseSpeedBeforeBrake = Number(reverseSample.speed);
+    await waitForAttribute(
+      page,
+      shell,
+      "speed",
+      (value) => Number(value) < reverseSpeedBeforeBrake * 0.55,
+    );
+    const reverseBrakeSample = await attributeSnapshot(shell, [
+      "brake",
+      "speed",
+      "vehicle-health",
+    ]);
+    addCheck(
+      scenario,
+      "vehicle-brake-input",
+      reverseBrakeSample.brake === "true",
+      reverseBrakeSample.brake,
+      "true",
+    );
+    addCheck(
+      scenario,
+      "vehicle-braking",
+      Number(reverseBrakeSample.speed) < reverseSpeedBeforeBrake * 0.55,
+      {
+        speedAfterBrake: Number(reverseBrakeSample.speed),
+        speedBeforeBrake: reverseSpeedBeforeBrake,
+      },
+      "speed falls by more than 45%",
+    );
+    await waitForAttribute(page, shell, "speed", (value) => Number(value) < 1);
+    await page.keyboard.up("Space");
+
+    const handlingStart = await attributeSnapshot(shell, [
+      "player-x",
+      "player-z",
+      "tick",
+      "vehicle-yaw",
+    ]);
+    const handlingStartX = Number(handlingStart["player-x"]);
+    const handlingStartZ = Number(handlingStart["player-z"]);
+    const handlingStartYaw = Number(handlingStart["vehicle-yaw"]);
+    await page.keyboard.down("w");
+    await page.keyboard.down("Shift");
+    const driveSample = await waitForDriveSample(page, shell, {
+      minSpeed: 3,
+      minTurn: 0,
+      startYaw: handlingStartYaw,
+    });
+    await page.keyboard.down("Space");
+    await page.keyboard.up("Shift");
     await page.keyboard.up("w");
-    addCheck(scenario, "vehicle-throttle", speed > 1, speed, "> 1 kph");
+    const cruiseSpeed = Number(driveSample.speed);
+    addCheck(
+      scenario,
+      "vehicle-throttle",
+      Number(driveSample.throttle) > 0.9 &&
+        cruiseSpeed >= 3 &&
+        cruiseSpeed < 70,
+      cruiseSpeed,
+      "forward throttle and 3..70 kph",
+    );
+    addCheck(
+      scenario,
+      "vehicle-boost-input",
+      driveSample.boost === "true",
+      driveSample.boost,
+      "true",
+    );
+
+    addCheck(
+      scenario,
+      "vehicle-brake-precondition",
+      cruiseSpeed >= 3,
+      cruiseSpeed,
+      ">= 3 kph",
+    );
+    addCheck(
+      scenario,
+      "vehicle-handling-phase-stable",
+      driveSample.phase === "boost",
+      driveSample.phase,
+      "boost",
+    );
+    await waitForAttribute(
+      page,
+      shell,
+      "speed",
+      (value) => Number(value) < Math.max(1, cruiseSpeed * 0.55),
+    );
+    const brakeSample = await attributeSnapshot(shell, [
+      "brake",
+      "player-x",
+      "player-z",
+      "speed",
+      "vehicle-health",
+    ]);
+    await page.keyboard.up("Space");
+
+    const driveDistance = Math.hypot(
+      Number(brakeSample["player-x"]) - handlingStartX,
+      Number(brakeSample["player-z"]) - handlingStartZ,
+    );
+    addCheck(
+      scenario,
+      "vehicle-drive-distance",
+      driveDistance > 0.05,
+      driveDistance,
+      "> 0.05 meters",
+    );
+    const vehicleHealth = Number(brakeSample["vehicle-health"]);
+    addCheck(
+      scenario,
+      "vehicle-collision-free",
+      vehicleHealth >= 99,
+      vehicleHealth,
+      ">= 99 integrity",
+    );
     scenario.telemetry = await telemetry(shell);
     scenario.graphics = await graphicsInfo(page);
     const frameMs = Number(scenario.telemetry["frame-ms"]);
@@ -626,6 +870,120 @@ async function mobileScenario(browser, baseURL, outDir, headed) {
       .click();
     await waitForAttribute(page, shell, "mode", (value) => value === "car");
     addCheck(scenario, "vehicle-entry", true, "car", "car");
+    const vehicleLabels = ["Exit vehicle", "Boost", "Brake"];
+    const vehicleControls = {};
+    for (const label of vehicleLabels) {
+      vehicleControls[label] = await page
+        .getByRole("button", { name: label, exact: true })
+        .isVisible();
+    }
+    addCheck(
+      scenario,
+      "touch-vehicle-controls",
+      Object.values(vehicleControls).every(Boolean),
+      vehicleControls,
+      "all visible",
+    );
+
+    const vehicleStart = await attributeSnapshot(shell, [
+      "player-x",
+      "player-z",
+      "tick",
+      "vehicle-yaw",
+    ]);
+    const vehicleX = Number(vehicleStart["player-x"]);
+    const vehicleZ = Number(vehicleStart["player-z"]);
+    const vehicleYaw = Number(vehicleStart["vehicle-yaw"]);
+    const driveTick = Number(vehicleStart.tick);
+    await dispatchStick(page, "Move", "pointerdown", 0.78, 0.1);
+    const driveSample = await waitForDriveSample(page, shell, {
+      minSpeed: 8,
+      minTurn: 0.015,
+      startYaw: vehicleYaw,
+    });
+    await dispatchStick(page, "Move", "pointerup", 0.78, 0.1);
+    await waitForAttribute(
+      page,
+      shell,
+      "throttle",
+      (value) => Math.abs(Number(value)) < 0.01,
+    );
+    const touchDriveSpeed = Number(driveSample.speed);
+    const touchSteer = Number(driveSample.steer);
+    const touchYaw = Number(driveSample["vehicle-yaw"]);
+    const touchTurnEndTick = Number(driveSample.tick);
+    const vehicleDistance = Math.hypot(
+      Number(driveSample["player-x"]) - vehicleX,
+      Number(driveSample["player-z"]) - vehicleZ,
+    );
+    const touchTurn = Math.abs(angleDelta(vehicleYaw, touchYaw));
+    const touchTurnTicks = Math.max(1, touchTurnEndTick - driveTick);
+    const touchTurnRate = (touchTurn * 60) / touchTurnTicks;
+    addCheck(
+      scenario,
+      "touch-vehicle-drive",
+      touchDriveSpeed >= 8 && vehicleDistance > 0.15,
+      { distance: vehicleDistance, speed: touchDriveSpeed },
+      "speed >= 8 kph and distance > 0.15 meters",
+    );
+    addCheck(
+      scenario,
+      "touch-vehicle-steering",
+      touchSteer > 0.25 && touchTurnRate > 0.03 && touchTurnRate < 0.8,
+      {
+        angle: touchTurn,
+        rate: touchTurnRate,
+        steer: touchSteer,
+        ticks: touchTurnTicks,
+      },
+      "steer > 0.25 and turn rate 0.03..0.8 radians per second",
+    );
+
+    addCheck(
+      scenario,
+      "touch-vehicle-course-stable",
+      driveSample.phase === "boost" &&
+        Number(driveSample["vehicle-health"]) >= 99,
+      {
+        health: Number(driveSample["vehicle-health"]),
+        phase: driveSample.phase,
+      },
+      "boost phase and >= 99 integrity",
+    );
+
+    const brake = page.getByRole("button", { name: "Brake", exact: true });
+    const touchBrakeStart = await attributeSnapshot(shell, ["speed"]);
+    const touchSpeedBeforeBrake = Number(touchBrakeStart.speed);
+    await brake.dispatchEvent("pointerdown", {
+      pointerId: 52,
+      pointerType: "touch",
+    });
+    await waitForAttribute(
+      page,
+      shell,
+      "speed",
+      (value) => Number(value) < touchSpeedBeforeBrake * 0.6,
+    );
+    const touchBrakeSample = await attributeSnapshot(shell, ["brake", "speed"]);
+    await brake.dispatchEvent("pointerup", {
+      pointerId: 52,
+      pointerType: "touch",
+    });
+    const touchBrakeHeld = touchBrakeSample.brake;
+    const touchBrakeSpeed = Number(touchBrakeSample.speed);
+    addCheck(
+      scenario,
+      "touch-vehicle-brake",
+      touchBrakeHeld === "true" &&
+        touchSpeedBeforeBrake > 2 &&
+        touchBrakeSpeed < touchSpeedBeforeBrake,
+      {
+        after: touchBrakeSpeed,
+        before: touchSpeedBeforeBrake,
+        held: touchBrakeHeld,
+      },
+      "held and speed decreases",
+    );
     scenario.telemetry = await telemetry(shell);
     scenario.graphics = await graphicsInfo(page);
     const frameMs = Number(scenario.telemetry["frame-ms"]);

@@ -10,26 +10,44 @@ export const HERO_CAR_TARGET_SPEED = 26;
 
 export interface ArcadeCarConfig {
   readonly targetSpeed: number;
+  readonly boostSpeed: number;
   readonly reverseSpeed: number;
   readonly acceleration: number;
+  readonly boostAcceleration: number;
   readonly reverseAcceleration: number;
   readonly brakeDeceleration: number;
   readonly rollingResistance: number;
+  readonly aerodynamicDrag: number;
   readonly steeringRate: number;
+  readonly wheelbase: number;
+  readonly lowSpeedSteeringAngle: number;
+  readonly highSpeedSteeringAngle: number;
+  readonly steeringFalloff: number;
   readonly minimumSteerSpeed: number;
   readonly lateralTraction: number;
+  readonly handbrakeTraction: number;
+  readonly handbrakeMinimumSpeed: number;
 }
 
 export const DEFAULT_ARCADE_CAR_CONFIG: ArcadeCarConfig = Object.freeze({
   targetSpeed: HERO_CAR_TARGET_SPEED,
-  reverseSpeed: 10,
-  acceleration: 22,
-  reverseAcceleration: 14,
-  brakeDeceleration: 30,
-  rollingResistance: 1.8,
-  steeringRate: 2.25,
+  boostSpeed: 32,
+  reverseSpeed: 9,
+  acceleration: 16,
+  boostAcceleration: 21,
+  reverseAcceleration: 11,
+  brakeDeceleration: 32,
+  rollingResistance: 1.35,
+  aerodynamicDrag: 0.0018,
+  steeringRate: 1.25,
+  wheelbase: 2.72,
+  lowSpeedSteeringAngle: 0.52,
+  highSpeedSteeringAngle: 0.065,
+  steeringFalloff: 0.45,
   minimumSteerSpeed: 0.2,
-  lateralTraction: 12,
+  lateralTraction: 7.5,
+  handbrakeTraction: 1.65,
+  handbrakeMinimumSpeed: 6,
 });
 
 export interface VehicleMotion {
@@ -137,6 +155,19 @@ export function decomposeVehicleMotion(vehicle: VehicleState): VehicleMotion {
   };
 }
 
+export function steeringAngleForSpeed(
+  speed: number,
+  config: ArcadeCarConfig = DEFAULT_ARCADE_CAR_CONFIG,
+): number {
+  const safeSpeed = Number.isFinite(speed) ? Math.abs(speed) : 0;
+  const speedRatio = clamp(safeSpeed / config.boostSpeed, 0, 1);
+  const falloff = Math.pow(speedRatio, config.steeringFalloff);
+  return (
+    config.lowSpeedSteeringAngle +
+    (config.highSpeedSteeringAngle - config.lowSpeedSteeringAngle) * falloff
+  );
+}
+
 export function stepHeroCar(
   vehicle: VehicleState,
   input: InputFrame,
@@ -150,52 +181,81 @@ export function stepHeroCar(
   const steer = finiteAxis(input.steer);
   const motion = decomposeVehicleMotion(vehicle);
   let forwardSpeed = motion.forwardSpeed;
+  const boosting = input.sprint && throttle > 0 && !input.brake;
 
   if (input.brake) {
     forwardSpeed = moveToward(forwardSpeed, 0, config.brakeDeceleration * dt);
   } else if (Math.abs(throttle) > Number.EPSILON) {
+    const forwardTarget = boosting ? config.boostSpeed : config.targetSpeed;
     const targetSpeed =
-      throttle >= 0
-        ? throttle * config.targetSpeed
-        : throttle * config.reverseSpeed;
+      throttle >= 0 ? throttle * forwardTarget : throttle * config.reverseSpeed;
     const changingDirection =
       forwardSpeed !== 0 && Math.sign(forwardSpeed) !== Math.sign(targetSpeed);
     const acceleration = changingDirection
       ? config.brakeDeceleration
       : throttle >= 0
-        ? config.acceleration
+        ? boosting
+          ? config.boostAcceleration
+          : config.acceleration
         : config.reverseAcceleration;
     forwardSpeed = moveToward(forwardSpeed, targetSpeed, acceleration * dt);
   } else {
-    forwardSpeed = moveToward(forwardSpeed, 0, config.rollingResistance * dt);
+    const coastDeceleration =
+      config.rollingResistance +
+      config.aerodynamicDrag * forwardSpeed * forwardSpeed;
+    forwardSpeed = moveToward(forwardSpeed, 0, coastDeceleration * dt);
   }
 
-  forwardSpeed = clamp(forwardSpeed, -config.reverseSpeed, config.targetSpeed);
-  const lateralSpeed = moveToward(
-    motion.lateralSpeed,
-    0,
-    config.lateralTraction * dt,
-  );
+  forwardSpeed = clamp(forwardSpeed, -config.reverseSpeed, config.boostSpeed);
+  const originalBasis = basis(vehicle.pose.rotationY);
+  const velocityBeforeTurnX =
+    originalBasis.forwardX * forwardSpeed +
+    originalBasis.rightX * motion.lateralSpeed;
+  const velocityBeforeTurnZ =
+    originalBasis.forwardZ * forwardSpeed +
+    originalBasis.rightZ * motion.lateralSpeed;
   const speedForSteering = Math.abs(forwardSpeed);
   let rotationY = vehicle.pose.rotationY;
   if (
     Math.abs(steer) > Number.EPSILON &&
     speedForSteering >= config.minimumSteerSpeed
   ) {
-    const speedRatio = clamp(speedForSteering / config.targetSpeed, 0, 1);
-    const steeringScale = 0.42 + speedRatio * 0.58;
-    const direction = forwardSpeed >= 0 ? 1 : -1;
-    rotationY = normalizeAngle(
-      rotationY - steer * direction * config.steeringRate * steeringScale * dt,
+    const wheelAngle = steer * steeringAngleForSpeed(speedForSteering, config);
+    const rawYawRate = (forwardSpeed / config.wheelbase) * Math.tan(wheelAngle);
+    const yawRate = clamp(
+      rawYawRate,
+      -config.steeringRate,
+      config.steeringRate,
     );
+    rotationY = normalizeAngle(rotationY - yawRate * dt);
   }
 
-  const { forwardX, forwardZ, rightX, rightZ } = basis(rotationY);
+  // Preserve world momentum through the yaw change, then let tire grip pull it
+  // toward the new chassis direction. Braking while steering leaves more slip.
+  const turnedBasis = basis(rotationY);
+  const turnedForwardSpeed =
+    velocityBeforeTurnX * turnedBasis.forwardX +
+    velocityBeforeTurnZ * turnedBasis.forwardZ;
+  const turnedLateralSpeed =
+    velocityBeforeTurnX * turnedBasis.rightX +
+    velocityBeforeTurnZ * turnedBasis.rightZ;
+  const handbrakeActive =
+    input.brake &&
+    Math.abs(steer) >= 0.2 &&
+    speedForSteering >= config.handbrakeMinimumSpeed;
+  const traction = handbrakeActive
+    ? config.handbrakeTraction
+    : config.lateralTraction;
+  const lateralSpeed =
+    turnedLateralSpeed * Math.exp(-Math.max(0, traction) * dt);
+
   const velocityX = normalizeZero(
-    forwardX * forwardSpeed + rightX * lateralSpeed,
+    turnedBasis.forwardX * turnedForwardSpeed +
+      turnedBasis.rightX * lateralSpeed,
   );
   const velocityZ = normalizeZero(
-    forwardZ * forwardSpeed + rightZ * lateralSpeed,
+    turnedBasis.forwardZ * turnedForwardSpeed +
+      turnedBasis.rightZ * lateralSpeed,
   );
 
   return {

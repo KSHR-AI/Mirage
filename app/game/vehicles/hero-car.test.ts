@@ -7,9 +7,11 @@ import {
   type VehicleState,
 } from "../core/contracts";
 import {
+  DEFAULT_ARCADE_CAR_CONFIG,
   HERO_CAR_TARGET_SPEED,
   decomposeVehicleMotion,
   evaluateSafeExit,
+  steeringAngleForSpeed,
   stepHeroCar,
   vehiclePlanarSpeed,
 } from "./hero-car";
@@ -71,7 +73,7 @@ describe("arcade hero car", () => {
       );
     }
     const motion = decomposeVehicleMotion(reversing);
-    expect(motion.forwardSpeed).toBeCloseTo(-10, 10);
+    expect(motion.forwardSpeed).toBeCloseTo(-9, 10);
     expect(reversing.velocity[2]).toBeGreaterThan(0);
   });
 
@@ -100,13 +102,58 @@ describe("arcade hero car", () => {
     expect(turned.pose.rotationY).toBeLessThan(0);
   });
 
+  it("reduces wheel angle with speed instead of becoming twitchier", () => {
+    const parkingAngle = steeringAngleForSpeed(2);
+    const urbanAngle = steeringAngleForSpeed(14);
+    const boostAngle = steeringAngleForSpeed(
+      DEFAULT_ARCADE_CAR_CONFIG.boostSpeed,
+    );
+
+    expect(parkingAngle).toBeGreaterThan(urbanAngle);
+    expect(urbanAngle).toBeGreaterThan(boostAngle);
+    expect(boostAngle).toBeCloseTo(
+      DEFAULT_ARCADE_CAR_CONFIG.highSpeedSteeringAngle,
+      10,
+    );
+  });
+
+  it("uses boost to reach the advertised higher speed deterministically", () => {
+    let boosted = vehicle();
+    const command = input({ throttle: 1, sprint: true });
+    for (let tick = 0; tick < 240; tick += 1) {
+      boosted = stepHeroCar(boosted, command);
+    }
+
+    expect(decomposeVehicleMotion(boosted).forwardSpeed).toBeCloseTo(32, 10);
+  });
+
+  it("retains controlled lateral slip during a braking turn", () => {
+    const moving = vehicle({ velocity: [0, 0, -18] });
+    const regularTurn = stepHeroCar(
+      moving,
+      input({ throttle: 1, steer: 1 }),
+      0.2,
+    );
+    const brakingTurn = stepHeroCar(
+      moving,
+      input({ brake: true, steer: 1 }),
+      0.2,
+    );
+
+    expect(
+      Math.abs(decomposeVehicleMotion(brakingTurn).lateralSpeed),
+    ).toBeGreaterThan(
+      Math.abs(decomposeVehicleMotion(regularTurn).lateralSpeed),
+    );
+  });
+
   it("coasts, preserves vertical state, and leaves disabled vehicles untouched", () => {
     const moving = vehicle({
       pose: { position: [2, 4, 8], rotationY: 0 },
       velocity: [0, -3, -10],
     });
     const coasted = stepHeroCar(moving, input(), 0.5);
-    expect(decomposeVehicleMotion(coasted).forwardSpeed).toBeCloseTo(9.1);
+    expect(decomposeVehicleMotion(coasted).forwardSpeed).toBeCloseTo(9.235);
     expect(coasted.pose.position[1]).toBe(4);
     expect(coasted.velocity[1]).toBe(-3);
 

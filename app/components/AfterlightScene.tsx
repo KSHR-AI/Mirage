@@ -344,14 +344,18 @@ function DynamicActor({
 function DynamicHeroVehicle({
   vehicle,
   quality,
+  brakeLights,
+  steering,
 }: {
   readonly vehicle: VehicleState;
   readonly quality: ModelQuality;
+  readonly brakeLights: boolean;
+  readonly steering: number;
 }) {
   const speed = planarSpeed(vehicle.velocity);
   return (
     <HeroCoupeModel
-      brakeLights={speed < 0.4}
+      brakeLights={brakeLights}
       damage={1 - vehicle.health / 100}
       disabled={vehicle.life !== "active"}
       entityId={vehicle.id}
@@ -359,7 +363,7 @@ function DynamicHeroVehicle({
       position={mutablePosition(vehicle.pose.position)}
       quality={quality}
       rotation={[0, vehicle.pose.rotationY, 0]}
-      steering={0}
+      steering={steering}
       wheelSpin={speed * 0.55}
     />
   );
@@ -579,7 +583,12 @@ export const AfterlightScene = memo(function AfterlightScene({
 
       {showRuntimeHero ? (
         <>
-          <DynamicHeroVehicle quality={visualQuality} vehicle={hero} />
+          <DynamicHeroVehicle
+            brakeLights={driving && input.brake}
+            quality={visualQuality}
+            steering={driving ? input.steer : 0}
+            vehicle={hero}
+          />
           {!driving ? <VehicleCameraCollisionProxy vehicle={hero} /> : null}
         </>
       ) : null}

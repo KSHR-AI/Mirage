@@ -37,6 +37,20 @@ describe("InputBuffer", () => {
     expect(buffer.frame().interactPressed).toBe(true);
   });
 
+  it("keeps the shared jump button held as the vehicle brake", () => {
+    const buffer = new InputBuffer();
+    const keyboard = new KeyboardInputAdapter(buffer);
+
+    keyboard.keyDown("Space");
+    const pressed = buffer.frame();
+    expect(pressed.jumpPressed).toBe(true);
+    expect(pressed.brake).toBe(true);
+    expect(buffer.frame()).toMatchObject({ brake: true, jumpPressed: false });
+
+    keyboard.keyUp("Space");
+    expect(buffer.frame().brake).toBe(false);
+  });
+
   it("does not lose a fire click released between simulation frames", () => {
     const buffer = new InputBuffer();
     buffer.setAction("fire", true);
@@ -114,6 +128,7 @@ describe("InputBuffer", () => {
     expect(frame.look[0]).toBe(0);
     expect(frame.throttle).toBeCloseTo(0.8);
     expect(frame.jumpPressed).toBe(true);
+    expect(frame.brake).toBe(true);
   });
 
   it("applies gamepad look sensitivity and vertical inversion", () => {
