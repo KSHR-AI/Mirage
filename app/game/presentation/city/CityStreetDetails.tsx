@@ -14,16 +14,33 @@ import type {
 
 type CityStreetDetailsProps = {
   layout: CityLayout;
+  licensedPropIds?: readonly string[];
+  licensedStreetlightIds?: readonly string[];
   powerState: CityPowerState;
 };
 
 export const CityStreetDetails = memo(function CityStreetDetails({
   layout,
+  licensedPropIds = [],
+  licensedStreetlightIds = [],
   powerState,
 }: CityStreetDetailsProps) {
+  const licensedProps = useMemo(
+    () => new Set(licensedPropIds),
+    [licensedPropIds],
+  );
+  const licensedStreetlights = useMemo(
+    () => new Set(licensedStreetlightIds),
+    [licensedStreetlightIds],
+  );
   const lights = useMemo(
-    () => createStreetlightParts(layout.streetlights, powerState),
-    [layout.streetlights, powerState],
+    () =>
+      createStreetlightParts(
+        layout.streetlights,
+        powerState,
+        licensedStreetlights,
+      ),
+    [layout.streetlights, licensedStreetlights, powerState],
   );
   const signals = useMemo(
     () => createTrafficSignalParts(layout.trafficSignals, powerState),
@@ -98,6 +115,7 @@ export const CityStreetDetails = memo(function CityStreetDetails({
 
       <StreetProps
         includePrimitiveHydrants={layout.quality !== "desktop"}
+        licensedPropIds={licensedProps}
         props={layout.props}
       />
       {layout.quality === "desktop" ? <LicensedHydrants limit={5} /> : null}
@@ -108,6 +126,7 @@ export const CityStreetDetails = memo(function CityStreetDetails({
 function createStreetlightParts(
   features: readonly PointFeature[],
   powerState: CityPowerState,
+  licensedIds: ReadonlySet<string>,
 ) {
   const poles: BoxInstance[] = [];
   const arms: BoxInstance[] = [];
@@ -117,24 +136,32 @@ function createStreetlightParts(
   const poweredIds = new Set(poweredFeatures.map((feature) => feature.id));
 
   for (const feature of features) {
-    const armCenter = offset(feature.position, feature.rotationY, 0.48, 5.05);
-    const lamp = offset(feature.position, feature.rotationY, 0.98, 4.92);
-    poles.push(
-      instance(
-        `${feature.id}-pole`,
-        feature.position,
-        [0.12, 5.2, 0.12],
-        "#24343a",
-        2.6,
-      ),
+    const licensed = licensedIds.has(feature.id);
+    const lamp = offset(
+      feature.position,
+      feature.rotationY,
+      licensed ? 2.3 : 0.98,
+      licensed ? 4.85 : 4.92,
     );
-    arms.push({
-      color: "#24343a",
-      id: `${feature.id}-arm`,
-      position: armCenter,
-      rotationY: feature.rotationY,
-      scale: [1.12, 0.11, 0.11],
-    });
+    if (!licensed) {
+      const armCenter = offset(feature.position, feature.rotationY, 0.48, 5.05);
+      poles.push(
+        instance(
+          `${feature.id}-pole`,
+          feature.position,
+          [0.12, 5.2, 0.12],
+          "#24343a",
+          2.6,
+        ),
+      );
+      arms.push({
+        color: "#24343a",
+        id: `${feature.id}-arm`,
+        position: armCenter,
+        rotationY: feature.rotationY,
+        scale: [1.12, 0.11, 0.11],
+      });
+    }
     if (!poweredIds.has(feature.id)) continue;
     bulbs.push({
       color: feature.color,
@@ -236,21 +263,24 @@ function createTreeParts(features: readonly PointFeature[]) {
 
 function StreetProps({
   includePrimitiveHydrants,
+  licensedPropIds,
   props,
 }: {
   includePrimitiveHydrants: boolean;
+  licensedPropIds: ReadonlySet<string>;
   props: readonly StreetProp[];
 }) {
   const batches = useMemo(() => {
     const byKind = new Map<StreetProp["kind"], BoxInstance[]>();
     for (const prop of props) {
       if (prop.kind === "hydrant" && !includePrimitiveHydrants) continue;
+      if (licensedPropIds.has(prop.id)) continue;
       const values = byKind.get(prop.kind) ?? [];
       values.push(propToInstance(prop));
       byKind.set(prop.kind, values);
     }
     return byKind;
-  }, [includePrimitiveHydrants, props]);
+  }, [includePrimitiveHydrants, licensedPropIds, props]);
 
   return (
     <group name="street-props">

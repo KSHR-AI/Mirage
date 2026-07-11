@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-11T21:18:00.000Z",
+  "generatedAt": "2026-07-11T23:01:03.000Z",
   "policy": {
     "commercialUseRequired": true,
     "standaloneRedistribution": false,
@@ -183,6 +183,98 @@
           "maxTriangles": 1000,
           "bytes": 653272,
           "sha256": "deeb1615e402b093e87d9ba45d05449a03c0fe62d1e093e7c9b32e7b714c39ca"
+        }
+      ]
+    },
+    {
+      "id": "polyhaven-hidden-alley-route-kit",
+      "name": "Hidden Alley Urban Route Kit",
+      "kind": "optimized-ktx2-gltf-model-set",
+      "source": {
+        "provider": "Poly Haven",
+        "pageUrl": "https://polyhaven.com/collections/hidden_alley",
+        "apiUrl": "https://api.polyhaven.com/assets?t=models",
+        "authors": [
+          "Amal Kumar",
+          "GurJas Studios",
+          "James Ray Cock",
+          "Josh Dean",
+          "Juniix"
+        ],
+        "assets": [
+          {
+            "id": "modular_urban_apartments_facade",
+            "pageUrl": "https://polyhaven.com/a/modular_urban_apartments_facade"
+          },
+          {
+            "id": "modular_fire_escape",
+            "pageUrl": "https://polyhaven.com/a/modular_fire_escape"
+          },
+          {
+            "id": "street_lamp_02",
+            "pageUrl": "https://polyhaven.com/a/street_lamp_02"
+          },
+          {
+            "id": "metal_trash_can",
+            "pageUrl": "https://polyhaven.com/a/metal_trash_can"
+          },
+          {
+            "id": "concrete_road_barrier",
+            "pageUrl": "https://polyhaven.com/a/concrete_road_barrier"
+          }
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://polyhaven.com/license",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Poly Haven and the listed artists are appreciated."
+      },
+      "acquiredAt": "2026-07-11",
+      "modifications": [
+        "Selected only the apartment door, window, base, and cornice modules used by Mirage and pruned 127 unused facade pieces.",
+        "Selected the rusted trash-can variant and pruned the clean variant.",
+        "Preserved named facade and fire-escape nodes for deterministic runtime composition while flattening standalone street props.",
+        "Welded, simplified, pruned, and Meshopt-compressed geometry with asset-specific triangle budgets.",
+        "Resized textures to 512px and encoded base colors as ETC1S plus normal and metallic-roughness maps as UASTC KTX2."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/models/modular_urban_apartments_facade.glb",
+          "role": "modular-route-facade",
+          "maxTriangles": 25000,
+          "bytes": 2301408,
+          "sha256": "a8a4c8d3229120aacc95bac3ea52507b8fff26cacf13b4c535c89030784c07ad"
+        },
+        {
+          "path": "public/game-assets/models/modular_fire_escape.glb",
+          "role": "route-facade-fire-escape",
+          "maxTriangles": 10000,
+          "bytes": 1301652,
+          "sha256": "bb9ca5a3811ac98cfe1df427f3ce608ef2979fccebdd7e6bd06c38aa30ee5dc8"
+        },
+        {
+          "path": "public/game-assets/models/street_lamp_02.glb",
+          "role": "route-street-lamp",
+          "maxTriangles": 10000,
+          "bytes": 544480,
+          "sha256": "ba3902b0b1071353a336eacdd906f8a023338718d348ae8653c2ebe796a51f3e"
+        },
+        {
+          "path": "public/game-assets/models/metal_trash_can.glb",
+          "role": "route-trash-can",
+          "maxTriangles": 3500,
+          "bytes": 679836,
+          "sha256": "e564bb138ee86b63fd7b85ac430c8c789df253a56b8c9804e866ca4d44b27a32"
+        },
+        {
+          "path": "public/game-assets/models/concrete_road_barrier.glb",
+          "role": "route-road-barrier",
+          "maxTriangles": 7500,
+          "bytes": 627736,
+          "sha256": "540b9223b326b0aba2cd49ae0c23f68d00aa8607179fea5fb9679d5108677085"
         }
       ]
     },

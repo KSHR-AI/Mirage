@@ -10,14 +10,75 @@ const ids = process.argv.slice(2);
 const root = process.cwd();
 const outputRoot = path.join(root, "public/game-assets/models");
 const cli = path.join(root, "node_modules/.bin/gltf-transform");
+const apartmentFacadeNodes = new Set([
+  "base_standard_01",
+  "cornice_pier_standard_01",
+  "cornice_standard_standard_01",
+  "crown_pier_pedestal_01",
+  "crown_standard_standard_01",
+  "dado_door_centered_large_01",
+  "dado_pier_pedestal_01",
+  "dado_standard_standard_01",
+  "door_centered_large_01",
+  "wall_door_centered_large_01",
+  "wall_pier_standard_01",
+  "wall_standard_standard_01",
+  "wall_window_centered_double_01",
+  "wall_window_centered_large_01",
+  "wall_window_centered_large_02",
+  "wall_window_centered_small_01",
+  "window_centered_double_01",
+  "window_centered_large_01",
+  "window_centered_large_02",
+  "window_centered_small_01",
+]);
 const nodeSelectors = {
   fire_hydrant: (name) => name === "fire_hydrant_aged",
+  metal_trash_can: (name) => name.startsWith("metal_trash_can_rust"),
+  modular_urban_apartments_facade: (name) => apartmentFacadeNodes.has(name),
 };
 const simplificationOptions = {
+  concrete_road_barrier: [
+    "--simplify-ratio",
+    "0.12",
+    "--simplify-error",
+    "0.01",
+  ],
   fire_hydrant: ["--simplify-ratio", "0.04", "--simplify-error", "1"],
+  metal_trash_can: ["--simplify-ratio", "0.45", "--simplify-error", "0.004"],
+  modular_urban_apartments_facade: [
+    "--simplify-ratio",
+    "0.52",
+    "--simplify-error",
+    "0.002",
+  ],
+  street_lamp_02: ["--simplify-ratio", "0.45", "--simplify-error", "0.004"],
+};
+const hierarchyOptions = {
+  modular_fire_escape: [
+    "--flatten",
+    "false",
+    "--join",
+    "false",
+    "--palette",
+    "false",
+  ],
+  modular_urban_apartments_facade: [
+    "--flatten",
+    "false",
+    "--join",
+    "false",
+    "--palette",
+    "false",
+  ],
 };
 const textureSizes = {
+  concrete_road_barrier: "512",
   fire_hydrant: "512",
+  metal_trash_can: "512",
+  modular_fire_escape: "512",
+  modular_urban_apartments_facade: "512",
+  street_lamp_02: "512",
 };
 
 if (ids.length === 0) {
@@ -99,6 +160,7 @@ async function importModel(id) {
         "ktx2",
         "--texture-size",
         textureSizes[id] ?? "1024",
+        ...(hierarchyOptions[id] ?? []),
         ...(simplificationOptions[id] ?? []),
       ],
       { maxBuffer: 16 * 1024 * 1024 },

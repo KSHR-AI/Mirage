@@ -20,6 +20,7 @@ import {
   createAfterlightJob,
 } from "../game/missions/afterlight-job";
 import { qualitySettings, type GameQualityTier } from "../game/performance";
+import { resolvePlaytestInspectionPose } from "../game/playtest/inspection-camera";
 import {
   AfterlightCameraRig,
   type AfterlightCameraImpulse,
@@ -415,6 +416,16 @@ export const AfterlightScene = memo(function AfterlightScene({
   const camera = useThree((three) => three.camera);
   const gl = useThree((three) => three.gl);
   const rootScene = useThree((three) => three.scene);
+  const [inspectionPose, setInspectionPose] = useState<Pose | null>(null);
+
+  useEffect(() => {
+    const pose = resolvePlaytestInspectionPose(
+      window.location.search,
+      process.env.NODE_ENV === "development",
+    );
+    if (!pose) return;
+    queueMicrotask(() => setInspectionPose(pose));
+  }, []);
 
   useEffect(() => {
     if (!onReady) return;
@@ -514,6 +525,7 @@ export const AfterlightScene = memo(function AfterlightScene({
           position: actorVisualPosition(player.pose.position),
           rotationY: player.pose.rotationY,
         };
+  const cameraTargetPose = inspectionPose ?? targetPose;
   const speed = planarSpeed(driving ? hero.velocity : player.velocity);
   const cameraMode = !started
     ? "intro"
@@ -648,7 +660,11 @@ export const AfterlightScene = memo(function AfterlightScene({
       <AfterlightCameraRig
         aim={!driving && input.aim}
         controlledOrientation={
-          driving ? undefined : { pitch: cameraPitch, yaw: cameraYaw }
+          inspectionPose
+            ? { pitch: 0, yaw: inspectionPose.rotationY }
+            : driving
+              ? undefined
+              : { pitch: cameraPitch, yaw: cameraYaw }
         }
         impulses={cameraImpulses}
         look={input.look}
@@ -661,7 +677,7 @@ export const AfterlightScene = memo(function AfterlightScene({
         paused={paused}
         reducedMotion={reducedMotion}
         speed={speed}
-        targetPose={targetPose}
+        targetPose={cameraTargetPose}
       />
 
       {quality === "high" && !reducedMotion ? (

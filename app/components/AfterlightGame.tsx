@@ -1317,6 +1317,7 @@ export function AfterlightGame() {
 
   const setQualityValue = useCallback((next: GameQualityTier) => {
     qualityRef.current = next;
+    performanceWarmupFramesRef.current = PERFORMANCE_WARMUP_FRAMES;
     governorRef.current.reset(next);
     setQuality(next);
   }, []);

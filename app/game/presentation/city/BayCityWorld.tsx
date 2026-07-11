@@ -3,12 +3,14 @@
 import { memo, useCallback, useMemo, useState } from "react";
 import { ModelAssetBoundary } from "../models/ModelAssetBoundary";
 import { AuthoredDowntownBuildings } from "./AuthoredDowntownBuildings";
+import { AuthoredRouteDetails } from "./AuthoredRouteDetails";
 import { CityArchitecture } from "./CityArchitecture";
 import { CityAtmosphere } from "./CityAtmosphere";
 import { CityLandmarks } from "./CityLandmarks";
 import { CityStreetDetails } from "./CityStreetDetails";
 import { CitySurface } from "./CitySurface";
 import { replaceProceduralDowntownBlocks } from "./authored-downtown-layout";
+import { createAuthoredRoutePlan } from "./authored-route-layout";
 import { createBayCityLayout } from "./city-layout";
 import { createPoweredCityPowerState, type CityPowerState } from "./power";
 import type {
@@ -46,8 +48,13 @@ export const BayCityWorld = memo(function BayCityWorld({
   visible = true,
 }: BayCityWorldProps) {
   const [authoredDowntownReady, setAuthoredDowntownReady] = useState(false);
+  const [authoredRouteReady, setAuthoredRouteReady] = useState(false);
   const markAuthoredDowntownReady = useCallback(
     () => setAuthoredDowntownReady(true),
+    [],
+  );
+  const markAuthoredRouteReady = useCallback(
+    () => setAuthoredRouteReady(true),
     [],
   );
   const resolvedLayout = useMemo(
@@ -71,6 +78,10 @@ export const BayCityWorld = memo(function BayCityWorld({
         ? replaceProceduralDowntownBlocks(resolvedLayout)
         : resolvedLayout,
     [resolvedLayout, useAuthoredDowntown],
+  );
+  const authoredRoutePlan = useMemo(
+    () => createAuthoredRoutePlan(presentationLayout),
+    [presentationLayout],
   );
 
   return (
@@ -102,6 +113,13 @@ export const BayCityWorld = memo(function BayCityWorld({
             shadows={resolvedStaticShadows}
           />
         </ModelAssetBoundary>
+        <ModelAssetBoundary fallback={null}>
+          <AuthoredRouteDetails
+            onReady={markAuthoredRouteReady}
+            plan={authoredRoutePlan}
+            shadows={resolvedStaticShadows}
+          />
+        </ModelAssetBoundary>
         <CityLandmarks
           activeZone={activeZone}
           missionProgress={missionProgress}
@@ -112,6 +130,12 @@ export const BayCityWorld = memo(function BayCityWorld({
         />
         <CityStreetDetails
           layout={presentationLayout}
+          licensedPropIds={
+            authoredRouteReady ? authoredRoutePlan.licensedPropIds : []
+          }
+          licensedStreetlightIds={
+            authoredRouteReady ? authoredRoutePlan.licensedStreetlightIds : []
+          }
           powerState={resolvedPowerState}
         />
       </group>
