@@ -304,3 +304,37 @@ export function createFacadeDetailPlan({
   );
   return { frames, glazing, structure };
 }
+
+export function createPoweredFacadeGlazing(
+  glazing: readonly BoxInstance[],
+  poweredWindows: readonly BoxInstance[],
+): BoxInstance[] {
+  const poweredById = new Map(
+    poweredWindows.map((window) => [window.id, window] as const),
+  );
+  return glazing.flatMap((pane) => {
+    if (!pane.id.endsWith("-glazing")) return [];
+    const sourceId = pane.id.slice(0, -"-glazing".length);
+    const source = poweredById.get(sourceId);
+    if (!source) return [];
+    const length = pane.scale[0];
+    const divisions = Math.max(2, Math.min(4, Math.round(length / 1.55)));
+    const bayWidth = length / divisions;
+    const cosine = Math.cos(pane.rotationY);
+    const sine = Math.sin(pane.rotationY);
+    return Array.from({ length: divisions }, (_, division) => {
+      const along = -length / 2 + bayWidth * (division + 0.5);
+      return {
+        ...pane,
+        color: source.color,
+        id: `${pane.id}-powered-${division}`,
+        position: [
+          pane.position[0] + cosine * along,
+          pane.position[1],
+          pane.position[2] - sine * along,
+        ],
+        scale: [bayWidth * 0.48, pane.scale[1] * 0.4, pane.scale[2]],
+      };
+    });
+  });
+}

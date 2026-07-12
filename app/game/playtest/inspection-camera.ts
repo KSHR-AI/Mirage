@@ -25,8 +25,8 @@ export const PLAYTEST_INSPECTION_POSES: Readonly<Record<string, Pose>> =
       rotationY: Math.PI / 2,
     }),
     "route-facade": Object.freeze({
-      position: Object.freeze([-2, 1.4, 9.52] as const),
-      rotationY: -Math.PI / 2,
+      position: Object.freeze([0, 1.4, 7] as const),
+      rotationY: 1.1,
     }),
   });
 

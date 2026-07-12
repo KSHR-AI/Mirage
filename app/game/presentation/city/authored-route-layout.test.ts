@@ -8,8 +8,21 @@ import {
   AUTHORED_ROUTE_FACADE_TARGETS,
   createAuthoredRoutePlan,
 } from "./authored-route-layout";
+import {
+  ROUTE_STREET_LIFE_DISTANCE,
+  shouldShowRouteStreetLife,
+} from "./route-street-life";
 
 describe("createAuthoredRoutePlan", () => {
+  it("only renders micro-detail near the authored route", () => {
+    expect(shouldShowRouteStreetLife(0, 0)).toBe(true);
+    expect(shouldShowRouteStreetLife(40, 40)).toBe(true);
+    expect(shouldShowRouteStreetLife(70, 42)).toBe(false);
+    expect(shouldShowRouteStreetLife(ROUTE_STREET_LIFE_DISTANCE + 0.1, 0)).toBe(
+      false,
+    );
+  });
+
   it("creates a deterministic facade and street-detail plan", () => {
     const layout = createBayCityLayout({ quality: "desktop", seed: 2407 });
     const first = createAuthoredRoutePlan(layout);
@@ -48,7 +61,9 @@ describe("createAuthoredRoutePlan", () => {
     expect(first.curbFaces).toHaveLength(8);
     expect(first.sidewalkSeams).toHaveLength(24);
     expect(first.storefrontBackdrops).toHaveLength(24);
+    expect(first.storefrontArchitecture).toHaveLength(192);
     expect(first.storefrontDisplays).toHaveLength(192);
+    expect(first.storefrontLightPanels).toHaveLength(24);
     expect(first.signFrames).toHaveLength(8);
     expect(first.signGlyphs).toHaveLength(24);
     expect(first.parkingMeterPoles).toHaveLength(8);
@@ -83,7 +98,9 @@ describe("createAuthoredRoutePlan", () => {
     expect(mobile.curbFaces).toHaveLength(4);
     expect(mobile.sidewalkSeams).toHaveLength(4);
     expect(mobile.storefrontBackdrops).toHaveLength(6);
+    expect(mobile.storefrontArchitecture).toHaveLength(36);
     expect(mobile.storefrontDisplays).toHaveLength(0);
+    expect(mobile.storefrontLightPanels).toHaveLength(6);
     expect(mobile.signFrames).toHaveLength(3);
     expect(mobile.signGlyphs).toHaveLength(6);
     expect(mobile.parkingMeterPoles).toHaveLength(4);
@@ -142,9 +159,11 @@ describe("createAuthoredRoutePlan", () => {
       ...plan.signGlyphs,
       ...plan.signs,
       ...plan.storefrontBackdrops,
+      ...plan.storefrontArchitecture,
       ...plan.storefrontDisplays,
       ...plan.storefrontFrames,
       ...plan.storefrontGlass,
+      ...plan.storefrontLightPanels,
       ...plan.surfacePatches,
       ...plan.utilityCabinets,
       ...plan.utilityPanels,

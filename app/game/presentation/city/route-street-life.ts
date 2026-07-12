@@ -12,8 +12,10 @@ export type RouteStreetLifePlan = {
   readonly sidewalkSeams: readonly BoxInstance[];
   readonly signFrames: readonly BoxInstance[];
   readonly signGlyphs: readonly BoxInstance[];
+  readonly storefrontArchitecture: readonly BoxInstance[];
   readonly storefrontBackdrops: readonly BoxInstance[];
   readonly storefrontDisplays: readonly BoxInstance[];
+  readonly storefrontLightPanels: readonly BoxInstance[];
   readonly utilityCabinets: readonly BoxInstance[];
   readonly utilityPanels: readonly BoxInstance[];
 };
@@ -26,6 +28,11 @@ const CENTRAL_BLOCKS = Object.freeze([
   [14, -14],
   [14, 14],
 ] as const);
+export const ROUTE_STREET_LIFE_DISTANCE = 68;
+
+export function shouldShowRouteStreetLife(x: number, z: number): boolean {
+  return x * x + z * z <= ROUTE_STREET_LIFE_DISTANCE ** 2;
+}
 
 function box(
   id: string,
@@ -110,15 +117,118 @@ function createStorefrontDepthPlan(
   signs: readonly BoxInstance[],
 ) {
   const selectedGlass = quality === "desktop" ? glass : glass.slice(0, 6);
+  const storefrontArchitecture: BoxInstance[] = [];
   const storefrontBackdrops: BoxInstance[] = [];
   const storefrontDisplays: BoxInstance[] = [];
+  const storefrontLightPanels: BoxInstance[] = [];
 
   selectedGlass.forEach((pane, index) => {
     const side = storefrontSide(pane.id);
     if (!side) return;
     const lateral = pane.scale[0] > pane.scale[2];
-    const inset = inwardOffset(side, 0.42);
+    const span = lateral ? pane.scale[0] : pane.scale[2];
+    const depth = quality === "desktop" ? 0.1 : 0.065;
+    const interiorPosition = addPosition(
+      pane.position,
+      inwardOffset(side, depth * 0.5),
+    );
+    const inset = inwardOffset(side, depth);
     const backdropPosition = addPosition(pane.position, inset);
+    const floorY = pane.position[1] - pane.scale[1] / 2 + 0.055;
+    const ceilingY = pane.position[1] + pane.scale[1] / 2 - 0.055;
+    storefrontArchitecture.push(
+      box(
+        `${pane.id}-interior-floor`,
+        [interiorPosition[0], floorY, interiorPosition[2]],
+        lateral ? [span * 0.92, 0.07, depth] : [depth, 0.07, span * 0.92],
+        "#3a3430",
+      ),
+      box(
+        `${pane.id}-interior-ceiling`,
+        [interiorPosition[0], ceilingY, interiorPosition[2]],
+        lateral ? [span * 0.92, 0.07, depth] : [depth, 0.07, span * 0.92],
+        "#766c5d",
+      ),
+    );
+    if (quality === "desktop") {
+      for (const edge of [-1, 1]) {
+        storefrontArchitecture.push(
+          box(
+            `${pane.id}-interior-return-${edge < 0 ? "left" : "right"}`,
+            lateral
+              ? [
+                  pane.position[0] + edge * span * 0.45,
+                  pane.position[1],
+                  interiorPosition[2],
+                ]
+              : [
+                  interiorPosition[0],
+                  pane.position[1],
+                  pane.position[2] + edge * span * 0.45,
+                ],
+            lateral
+              ? [0.065, pane.scale[1] * 0.9, depth]
+              : [depth, pane.scale[1] * 0.9, 0.065],
+            "#262a29",
+          ),
+        );
+      }
+    }
+    storefrontLightPanels.push(
+      box(
+        `${pane.id}-interior-light`,
+        [backdropPosition[0], ceilingY - 0.18, backdropPosition[2]],
+        lateral ? [span * 0.38, 0.08, 0.045] : [0.045, 0.08, span * 0.38],
+        index % 2 === 0 ? "#ffe0a2" : "#b8ece7",
+      ),
+    );
+    const frontPosition = addPosition(
+      pane.position,
+      inwardOffset(side, -0.045),
+    );
+    const lowerY = pane.position[1] - pane.scale[1] / 2 + 0.16;
+    storefrontArchitecture.push(
+      box(
+        `${pane.id}-front-mullion`,
+        frontPosition,
+        lateral
+          ? [0.055, pane.scale[1] * 0.88, 0.08]
+          : [0.08, pane.scale[1] * 0.88, 0.055],
+        "#121d20",
+      ),
+      box(
+        `${pane.id}-front-transom`,
+        [
+          frontPosition[0],
+          pane.position[1] + pane.scale[1] * 0.24,
+          frontPosition[2],
+        ],
+        lateral ? [span * 0.9, 0.055, 0.08] : [0.08, 0.055, span * 0.9],
+        "#172326",
+      ),
+      box(
+        `${pane.id}-front-kickplate`,
+        [frontPosition[0], lowerY, frontPosition[2]],
+        lateral ? [span * 0.9, 0.24, 0.08] : [0.08, 0.24, span * 0.9],
+        "#253337",
+      ),
+      box(
+        `${pane.id}-front-handle`,
+        lateral
+          ? [
+              frontPosition[0] + span * 0.13,
+              pane.position[1] - 0.08,
+              frontPosition[2] - inwardOffset(side, 0.03)[2],
+            ]
+          : [
+              frontPosition[0] - inwardOffset(side, 0.03)[0],
+              pane.position[1] - 0.08,
+              frontPosition[2] + span * 0.13,
+            ],
+        [0.045, 0.3, 0.045],
+        "#c6a45e",
+      ),
+    );
     storefrontBackdrops.push(
       box(
         `${pane.id}-backdrop`,
@@ -133,29 +243,29 @@ function createStorefrontDepthPlan(
     if (quality !== "desktop") return;
     const displayPosition = addPosition(
       pane.position,
-      inwardOffset(side, 0.23),
+      inwardOffset(side, depth * 0.18),
     );
     for (let shelf = 0; shelf < 2; shelf += 1) {
       const y = pane.position[1] - 0.68 + shelf * 0.72;
       storefrontDisplays.push(
         box(
           `${pane.id}-display-shelf-${shelf}`,
-          [backdropPosition[0], y, backdropPosition[2]],
+          [displayPosition[0], y, displayPosition[2]],
           lateral
-            ? [pane.scale[0] * 0.7, 0.055, 0.34]
-            : [0.34, 0.055, pane.scale[2] * 0.7],
+            ? [pane.scale[0] * 0.7, 0.075, 0.035]
+            : [0.035, 0.075, pane.scale[2] * 0.7],
           "#c8a96c",
         ),
       );
       for (let product = 0; product < 3; product += 1) {
-        const along = (product - 1) * 0.28;
+        const along = (product - 1) * 0.34;
         storefrontDisplays.push(
           box(
             `${pane.id}-display-product-${shelf}-${product}`,
             lateral
               ? [displayPosition[0] + along, y + 0.19, displayPosition[2]]
               : [displayPosition[0], y + 0.19, displayPosition[2] + along],
-            [0.16, 0.3, 0.16],
+            lateral ? [0.23, 0.38, 0.045] : [0.045, 0.38, 0.23],
             product === 0 ? "#d8b15b" : product === 1 ? "#6bb3aa" : "#b96d63",
           ),
         );
@@ -214,8 +324,10 @@ function createStorefrontDepthPlan(
   return {
     signFrames,
     signGlyphs,
+    storefrontArchitecture,
     storefrontBackdrops,
     storefrontDisplays,
+    storefrontLightPanels,
   };
 }
 

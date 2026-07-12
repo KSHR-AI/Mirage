@@ -38,8 +38,8 @@ describe("resolvePlaytestInspectionPose", () => {
     expect(
       resolvePlaytestInspectionPose("?inspect=route-facade", true),
     ).toEqual({
-      position: [-2, 1.4, 9.52],
-      rotationY: -Math.PI / 2,
+      position: [0, 1.4, 7],
+      rotationY: 1.1,
     });
   });
 

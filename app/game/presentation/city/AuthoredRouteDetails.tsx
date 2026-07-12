@@ -1,8 +1,9 @@
 "use client";
 
-import { useLoader } from "@react-three/fiber";
-import { useEffect, useMemo } from "react";
+import { useFrame, useLoader } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
 import {
+  Group,
   Mesh,
   MeshStandardMaterial,
   PropertyBinding,
@@ -25,6 +26,7 @@ import {
   type AuthoredRouteFacadeNodeName,
   type AuthoredRoutePlan,
 } from "./authored-route-layout";
+import { shouldShowRouteStreetLife } from "./route-street-life";
 
 const ROUTE_ASSET_URLS = [
   "/game-assets/models/modular_urban_apartments_facade.glb",
@@ -47,6 +49,7 @@ export function AuthoredRouteDetails({
   readonly plan: AuthoredRoutePlan;
   readonly shadows: boolean;
 }) {
+  const closeDetailRef = useRef<Group>(null);
   const ktx2 = useSharedKtx2Loader();
   const models = useLoader(GLTFLoader, ROUTE_ASSET_URLS, (loader) => {
     loader.setKTX2Loader(ktx2);
@@ -99,6 +102,16 @@ export function AuthoredRouteDetails({
     onReady?.();
   }, [onReady]);
 
+  useFrame(({ camera }) => {
+    const detail = closeDetailRef.current;
+    if (!detail) return;
+    const visible = shouldShowRouteStreetLife(
+      camera.position.x,
+      camera.position.z,
+    );
+    if (detail.visible !== visible) detail.visible = visible;
+  });
+
   return (
     <group name="authored-route-details" userData={{ cameraCollision: false }}>
       <group name="authored-apartment-facade">
@@ -137,7 +150,11 @@ export function AuthoredRouteDetails({
           receiveShadow
         />
       </group>
-      <group name="authored-route-corridor-finish">
+      <group
+        name="authored-route-corridor-finish"
+        ref={closeDetailRef}
+        visible={false}
+      >
         <InstancedPrimitives
           instances={plan.curbFaces}
           metalness={0.08}
@@ -183,6 +200,12 @@ export function AuthoredRouteDetails({
           roughness={0.42}
         />
         <InstancedPrimitives
+          instances={plan.storefrontArchitecture}
+          metalness={0.06}
+          receiveShadow
+          roughness={0.78}
+        />
+        <InstancedPrimitives
           emissive="#6c4a3c"
           emissiveIntensity={0.28}
           instances={plan.storefrontBackdrops}
@@ -190,14 +213,19 @@ export function AuthoredRouteDetails({
         />
         <InstancedPrimitives
           instances={plan.storefrontDisplays}
-          metalness={0.12}
-          roughness={0.55}
+          material="basic"
+        />
+        <InstancedPrimitives
+          fog={false}
+          instances={plan.storefrontLightPanels}
+          material="basic"
+          toneMapped={false}
         />
         <InstancedPrimitives
           depthWrite={false}
           instances={plan.storefrontGlass}
           material="basic"
-          opacity={0.62}
+          opacity={0.28}
           toneMapped={false}
           transparent
         />

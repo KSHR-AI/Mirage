@@ -28,6 +28,13 @@ function repeatedTexture(
   return texture;
 }
 
+export function createColorTexture(
+  source: THREE.Texture,
+  repeat: readonly [number, number],
+): THREE.Texture {
+  return repeatedTexture(source, repeat[0], repeat[1], THREE.SRGBColorSpace);
+}
+
 export function createPbrTextureSet(
   sources: PbrTextureSources,
   repeat: readonly [number, number],

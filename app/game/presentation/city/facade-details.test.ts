@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createBayCityLayout } from "./city-layout";
-import { createFacadeDetailPlan } from "./facade-details";
+import {
+  createFacadeDetailPlan,
+  createPoweredFacadeGlazing,
+} from "./facade-details";
 
 describe("createFacadeDetailPlan", () => {
   it("derives stable facade geometry from the authoritative city layout", () => {
@@ -49,6 +52,26 @@ describe("createFacadeDetailPlan", () => {
         instance.scale.every((value) => value > 0),
         instance.id,
       ).toBe(true);
+    }
+  });
+
+  it("lights detailed panes without restoring raw facade strips", () => {
+    const layout = createBayCityLayout({ quality: "desktop", seed: 2407 });
+    const plan = createFacadeDetailPlan(layout);
+    const poweredWindows = layout.windows.slice(0, 7);
+    const powered = createPoweredFacadeGlazing(plan.glazing, poweredWindows);
+
+    expect(powered.length).toBeGreaterThan(poweredWindows.length);
+    expect(powered.length).toBeLessThanOrEqual(poweredWindows.length * 4);
+    for (const pane of powered) {
+      const sourceId = pane.id.replace(/-glazing-powered-\d+$/, "");
+      const source = poweredWindows.find((window) => window.id === sourceId);
+      expect(source, pane.id).toBeDefined();
+      expect(pane.color).toBe(source?.color);
+      expect(pane.scale[0]).toBeLessThan(
+        Math.max(source?.scale[0] ?? 0, source?.scale[2] ?? 0),
+      );
+      expect(pane.scale[1]).toBeLessThan(0.65);
     }
   });
 });

@@ -325,6 +325,7 @@ async function capture(scenario, page, outDir, name) {
 
 async function inspectCanvas(scenario, page, outDir, name) {
   const fileName = `${scenario.id}-${name}-canvas.png`;
+  const checkPrefix = name === "start" ? "" : `${name}-`;
   const canvas = page.locator("canvas#afterlight-renderer");
   await canvas.waitFor({ state: "visible", timeout: 30_000 });
   await waitForStablePaint(page);
@@ -347,14 +348,14 @@ async function inspectCanvas(scenario, page, outDir, name) {
   scenario.canvas = stats;
   addCheck(
     scenario,
-    "canvas-lit",
+    `${checkPrefix}canvas-lit`,
     stats.litRatio > 0.12,
     stats.litRatio,
     "> 0.12",
   );
   addCheck(
     scenario,
-    "canvas-tonal-range",
+    `${checkPrefix}canvas-tonal-range`,
     stats.bucketCount > 4,
     stats.bucketCount,
     "> 4",
@@ -504,6 +505,12 @@ async function routeInspectionScenario(
           inspection,
         );
         await capture(
+          scenario,
+          page,
+          outDir,
+          inspection === "route-block-side" ? "sidewalk" : "facade",
+        );
+        await inspectCanvas(
           scenario,
           page,
           outDir,

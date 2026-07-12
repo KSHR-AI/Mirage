@@ -108,10 +108,12 @@ export type AuthoredRoutePlan = {
   readonly signGlyphs: readonly BoxInstance[];
   readonly signs: readonly BoxInstance[];
   readonly streetlights: readonly AuthoredModelPlacement[];
+  readonly storefrontArchitecture: readonly BoxInstance[];
   readonly storefrontBackdrops: readonly BoxInstance[];
   readonly storefrontDisplays: readonly BoxInstance[];
   readonly storefrontFrames: readonly BoxInstance[];
   readonly storefrontGlass: readonly BoxInstance[];
+  readonly storefrontLightPanels: readonly BoxInstance[];
   readonly suppressedPropIds: readonly string[];
   readonly surfacePatches: readonly BoxInstance[];
   readonly utilityCabinets: readonly BoxInstance[];
