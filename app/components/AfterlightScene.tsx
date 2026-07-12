@@ -43,6 +43,7 @@ import {
 import { AfterlightMissionSetpieces } from "../game/presentation/mission";
 import { withAfterlightCourierPosition } from "../game/presentation/mission/plan";
 import {
+  ArmoredCourierModel,
   CivilianModel,
   GuardModel,
   HeroCoupeModel,
@@ -290,6 +291,37 @@ function AmbientCivilians({
   );
 }
 
+function VehicleInspectionFleet() {
+  return (
+    <group name="vehicle-inspection-fleet">
+      <TrafficVanModel
+        brakeLights
+        entityId="inspection-traffic-van"
+        headlights
+        position={[-4.2, 0.22, 0]}
+        quality="desktop"
+        rotation={[0, -0.42, 0]}
+      />
+      <ArmoredCourierModel
+        entityId="inspection-armored-courier"
+        headlights
+        position={[0, 0.22, 0]}
+        quality="desktop"
+        rotation={[0, 0.22, 0]}
+      />
+      <PoliceInterceptorModel
+        emergencyLights
+        entityId="inspection-police-interceptor"
+        headlights
+        position={[4.2, 0.22, 0]}
+        quality="desktop"
+        rotation={[0, 0.48, 0]}
+        sirenPhase={0.36}
+      />
+    </group>
+  );
+}
+
 function DynamicActor({
   actor,
   quality,
@@ -383,6 +415,7 @@ export const AfterlightScene = memo(function AfterlightScene({
   const gl = useThree((three) => three.gl);
   const rootScene = useThree((three) => three.scene);
   const [inspectionPose, setInspectionPose] = useState<Pose | null>(null);
+  const [inspectionKey, setInspectionKey] = useState<string | null>(null);
   const inspectionAim =
     process.env.NODE_ENV === "development" &&
     typeof window !== "undefined" &&
@@ -393,6 +426,7 @@ export const AfterlightScene = memo(function AfterlightScene({
     const applyInspection = (key: string, pose: Pose | null) => {
       if (!pose) return;
       document.documentElement.dataset.mirageInspectionPose = key;
+      setInspectionKey(key);
       setInspectionPose(pose);
     };
     const inspectionKey =
@@ -568,11 +602,22 @@ export const AfterlightScene = memo(function AfterlightScene({
         reducedMotion={reducedMotion}
       />
 
-      <AmbientTraffic quality={quality} targetPosition={targetPose.position} />
-      <AmbientCivilians
-        quality={quality}
-        targetPosition={targetPose.position}
-      />
+      {!inspectionKey?.startsWith("vehicle-fleet") ? (
+        <>
+          <AmbientTraffic
+            quality={quality}
+            targetPosition={targetPose.position}
+          />
+          <AmbientCivilians
+            quality={quality}
+            targetPosition={targetPose.position}
+          />
+        </>
+      ) : null}
+      {process.env.NODE_ENV === "development" &&
+      inspectionKey?.startsWith("vehicle-fleet") ? (
+        <VehicleInspectionFleet />
+      ) : null}
 
       {!driving ? (
         <DynamicActor

@@ -13,9 +13,11 @@ import {
 } from "./appearance";
 import {
   AuthoredHeroCoupeModel,
+  AuthoredPoliceCoupeModel,
   AuthoredTrafficCoupeModel,
 } from "./authored-hero-coupe";
 import { ModelAssetBoundary } from "./ModelAssetBoundary";
+import { ProfiledVanBody } from "./profiled-van-body";
 import type {
   ModelQuality,
   PoliceInterceptorModelProps,
@@ -657,6 +659,40 @@ function VanDetails({
           roughness={0.4}
         />
       </mesh>
+      {[-1, 1].map((side) => (
+        <mesh
+          key={`rear-jamb-${side}`}
+          position={[side * dimensions.width * 0.39, doorY, rearZ + 0.075]}
+        >
+          <boxGeometry args={[0.065, dimensions.cabinHeight * 0.82, 0.055]} />
+          <meshStandardMaterial
+            color={appearance.trim}
+            metalness={0.62}
+            roughness={0.4}
+          />
+        </mesh>
+      ))}
+      {[-1, 1].map((side) => (
+        <mesh
+          key={`rear-rail-${side}`}
+          position={[
+            0,
+            doorY + side * dimensions.cabinHeight * 0.4,
+            rearZ + 0.075,
+          ]}
+        >
+          <boxGeometry args={[dimensions.width * 0.8, 0.065, 0.055]} />
+          <meshStandardMaterial
+            color={appearance.trim}
+            metalness={0.62}
+            roughness={0.4}
+          />
+        </mesh>
+      ))}
+      <mesh position={[0, dimensions.bodyY - 0.03, rearZ + 0.09]}>
+        <boxGeometry args={[0.58, 0.18, 0.045]} />
+        <meshBasicMaterial color="#dbe4dd" toneMapped={false} />
+      </mesh>
       {armored ? (
         <>
           <mesh
@@ -695,14 +731,60 @@ function VanDetails({
                 </mesh>
               ))
             : null}
+          {[-0.56, -0.19, 0.19, 0.56].map((x, index) => (
+            <mesh
+              key={`reflector-${x}`}
+              position={[x, doorY - 0.28, rearZ + 0.11]}
+              rotation={[0, 0, index % 2 === 0 ? 0.48 : -0.48]}
+            >
+              <boxGeometry args={[0.38, 0.075, 0.04]} />
+              <meshBasicMaterial
+                color={index % 2 === 0 ? "#d9ed57" : "#e35d4e"}
+                toneMapped={false}
+              />
+            </mesh>
+          ))}
         </>
       ) : (
-        <mesh position={[0, dimensions.bodyY + 0.2, dimensions.width * 0.02]}>
-          <boxGeometry
-            args={[dimensions.width * 0.8, 0.09, dimensions.length * 0.62]}
-          />
-          <meshStandardMaterial color={appearance.secondary} roughness={0.65} />
-        </mesh>
+        <>
+          <mesh position={[0, dimensions.bodyY + 0.2, dimensions.width * 0.02]}>
+            <boxGeometry
+              args={[dimensions.width * 0.8, 0.09, dimensions.length * 0.62]}
+            />
+            <meshStandardMaterial
+              color={appearance.secondary}
+              roughness={0.65}
+            />
+          </mesh>
+          {[-1, 1].map((side) => (
+            <mesh
+              key={`rear-window-${side}`}
+              position={[
+                side * dimensions.width * 0.21,
+                doorY + dimensions.cabinHeight * 0.18,
+                rearZ + 0.11,
+              ]}
+            >
+              <boxGeometry
+                args={[
+                  dimensions.width * 0.32,
+                  dimensions.cabinHeight * 0.32,
+                  0.045,
+                ]}
+              />
+              <meshPhysicalMaterial
+                clearcoat={0.6}
+                color={appearance.cabin}
+                emissive="#1c343a"
+                emissiveIntensity={0.12}
+                metalness={0.28}
+                opacity={0.82}
+                roughness={0.17}
+                transparent
+              />
+            </mesh>
+          ))}
+        </>
       )}
     </>
   );
@@ -914,16 +996,29 @@ export function RoadVehicleModel({
   return (
     <group {...groupProps}>
       <group>
-        <mesh castShadow receiveShadow position={[0, dimensions.bodyY, 0]}>
-          <boxGeometry
-            args={[dimensions.width, dimensions.bodyHeight, dimensions.length]}
+        {van ? (
+          <ProfiledVanBody
+            appearance={appearance}
+            dimensions={dimensions}
+            kind={kind === "armored-courier" ? kind : "traffic-van"}
+            quality={quality}
           />
-          <meshStandardMaterial
-            color={appearance.body}
-            metalness={armored ? 0.4 : 0.3}
-            roughness={armored ? 0.67 : 0.43}
-          />
-        </mesh>
+        ) : (
+          <mesh castShadow receiveShadow position={[0, dimensions.bodyY, 0]}>
+            <boxGeometry
+              args={[
+                dimensions.width,
+                dimensions.bodyHeight,
+                dimensions.length,
+              ]}
+            />
+            <meshStandardMaterial
+              color={appearance.body}
+              metalness={0.3}
+              roughness={0.43}
+            />
+          </mesh>
+        )}
         <mesh castShadow position={[0, dimensions.bodyY - 0.26, 0]}>
           <boxGeometry
             args={[dimensions.width * 0.84, 0.2, dimensions.length * 0.9]}
@@ -964,12 +1059,14 @@ export function RoadVehicleModel({
             </mesh>
           </>
         ) : null}
-        <Cabin
-          appearance={appearance}
-          dimensions={dimensions}
-          kind={kind}
-          quality={quality}
-        />
+        {!van ? (
+          <Cabin
+            appearance={appearance}
+            dimensions={dimensions}
+            kind={kind}
+            quality={quality}
+          />
+        ) : null}
         <Wheel
           appearance={appearance}
           front
@@ -1097,12 +1194,18 @@ export function PoliceInterceptorModel({
   emergencyLights = true,
   ...props
 }: PoliceInterceptorModelProps) {
-  return (
+  const fallback = (
     <RoadVehicleModel
       {...props}
       emergencyLights={emergencyLights}
       kind="police-interceptor"
     />
+  );
+  if (props.quality !== "desktop") return fallback;
+  return (
+    <ModelAssetBoundary fallback={fallback}>
+      <AuthoredPoliceCoupeModel {...props} emergencyLights={emergencyLights} />
+    </ModelAssetBoundary>
   );
 }
 

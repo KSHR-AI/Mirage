@@ -47,6 +47,18 @@ describe("resolvePlaytestInspectionPose", () => {
       position: [0, 1.4, 0],
       rotationY: -0.7,
     });
+    expect(
+      resolvePlaytestInspectionPose("?inspect=vehicle-fleet", true),
+    ).toEqual({
+      position: [0, 1.3, 8],
+      rotationY: Math.PI,
+    });
+    expect(
+      resolvePlaytestInspectionPose("?inspect=vehicle-fleet-side", true),
+    ).toEqual({
+      position: [-8, 1.3, 0],
+      rotationY: Math.PI / 2,
+    });
   });
 
   it("stays inert outside enabled playtest builds", () => {

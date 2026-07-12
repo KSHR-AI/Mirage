@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   AUTHORED_HERO_COUPE_SCALE,
   AUTHORED_HERO_COUPE_REQUIRED_NODES,
+  AUTHORED_POLICE_COUPE_PALETTE,
   advanceAuthoredWheelSpin,
   getAuthoredHeroCoupeMaterialTreatment,
   getAuthoredTrafficCoupePalette,
@@ -84,5 +85,13 @@ describe("authored hero coupe", () => {
     for (const serialized of palettes) {
       expect(serialized).toMatch(/#[0-9a-f]{6}/i);
     }
+  });
+
+  it("keeps the authored response fleet on a restrained readable palette", () => {
+    expect(AUTHORED_POLICE_COUPE_PALETTE).toEqual({
+      primary: "#d4dcda",
+      secondary: "#173039",
+    });
+    expect(Object.isFrozen(AUTHORED_POLICE_COUPE_PALETTE)).toBe(true);
   });
 });

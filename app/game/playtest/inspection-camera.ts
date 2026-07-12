@@ -32,6 +32,14 @@ export const PLAYTEST_INSPECTION_POSES: Readonly<Record<string, Pose>> =
       position: Object.freeze([0, 1.4, 0] as const),
       rotationY: -0.7,
     }),
+    "vehicle-fleet": Object.freeze({
+      position: Object.freeze([0, 1.3, 8] as const),
+      rotationY: Math.PI,
+    }),
+    "vehicle-fleet-side": Object.freeze({
+      position: Object.freeze([-8, 1.3, 0] as const),
+      rotationY: Math.PI / 2,
+    }),
   });
 
 export function resolvePlaytestInspectionPose(

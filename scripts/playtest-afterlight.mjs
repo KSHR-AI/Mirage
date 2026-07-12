@@ -486,6 +486,8 @@ async function routeInspectionScenario(
         { capture: "sidewalk", key: "route-block-side" },
         { capture: "facade", key: "route-facade" },
         { capture: "corner", key: "signature-corner" },
+        { capture: "vehicles", key: "vehicle-fleet" },
+        { capture: "vehicles-side", key: "vehicle-fleet-side" },
       ];
       for (const inspection of inspections) {
         await page.evaluate(

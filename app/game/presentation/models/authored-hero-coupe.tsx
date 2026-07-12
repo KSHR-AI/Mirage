@@ -14,10 +14,15 @@ import {
   Vector3,
 } from "three";
 
-import type { VehicleModelProps, VisualId } from "./types";
+import type {
+  PoliceInterceptorModelProps,
+  VehicleModelProps,
+  VisualId,
+} from "./types";
 
 export type AuthoredHeroCoupeModelProps = VehicleModelProps;
 export type AuthoredTrafficCoupeModelProps = VehicleModelProps;
+export type AuthoredPoliceCoupeModelProps = PoliceInterceptorModelProps;
 
 export interface AuthoredTrafficCoupePalette {
   readonly primary: string;
@@ -36,6 +41,11 @@ export interface AuthoredHeroCoupeMaterialTreatment {
   readonly roughness: number;
   readonly transparent?: boolean;
 }
+
+export const AUTHORED_POLICE_COUPE_PALETTE = Object.freeze({
+  primary: "#d4dcda",
+  secondary: "#173039",
+} as const);
 
 interface PreparedCoupeModel {
   readonly materials: readonly MeshStandardMaterial[];
@@ -267,7 +277,7 @@ function applyCoupeMaterialTreatment(
   brakeLights: boolean,
   headlights: boolean,
   damage: number,
-  role: "hero" | "traffic",
+  role: "hero" | "police" | "traffic",
   entityId: VisualId,
 ) {
   const treatment = getAuthoredHeroCoupeMaterialTreatment(
@@ -280,12 +290,17 @@ function applyCoupeMaterialTreatment(
 
   const trafficPalette = getAuthoredTrafficCoupePalette(entityId);
   const color =
-    role === "traffic" && material.name === "Paint 1 Carmine"
-      ? trafficPalette.primary
-      : role === "traffic" &&
+    role === "police" && material.name === "Paint 1 Carmine"
+      ? AUTHORED_POLICE_COUPE_PALETTE.primary
+      : role === "police" &&
           ["Paint 2 Carmine", "Interior 3 Carmine"].includes(material.name)
-        ? trafficPalette.secondary
-        : treatment.color;
+        ? AUTHORED_POLICE_COUPE_PALETTE.secondary
+        : role === "traffic" && material.name === "Paint 1 Carmine"
+          ? trafficPalette.primary
+          : role === "traffic" &&
+              ["Paint 2 Carmine", "Interior 3 Carmine"].includes(material.name)
+            ? trafficPalette.secondary
+            : treatment.color;
   material.color.set(color);
   material.metalness = treatment.metalness;
   material.roughness = treatment.roughness;
@@ -310,7 +325,7 @@ function AuthoredCoupeDynamicLight({
 }: {
   readonly headlights: boolean;
   readonly quality: "desktop" | "mobile";
-  readonly role: "hero" | "traffic";
+  readonly role: "hero" | "police" | "traffic";
 }) {
   const target = useMemo(() => new Object3D(), []);
 
@@ -351,6 +366,109 @@ function AuthoredCoupeDynamicLight({
   );
 }
 
+function AuthoredPoliceAccessories({
+  emergencyLights,
+  phase,
+  quality,
+}: {
+  readonly emergencyLights: boolean;
+  readonly phase: number;
+  readonly quality: "desktop" | "mobile";
+}) {
+  const normalizedPhase = MathUtils.clamp(
+    Number.isFinite(phase) ? phase : 0,
+    0,
+    1,
+  );
+  const red = emergencyLights ? 1.8 + normalizedPhase * 5.2 : 0.08;
+  const blue = emergencyLights ? 1.8 + (1 - normalizedPhase) * 5.2 : 0.08;
+
+  return (
+    <group name="authored-police-accessories">
+      {[-1, 1].map((side) => (
+        <group key={side} position={[side * 0.987, 0.72, 0.08]}>
+          <mesh>
+            <boxGeometry args={[0.028, 0.2, 3.28]} />
+            <meshStandardMaterial
+              color="#14272e"
+              metalness={0.4}
+              roughness={0.46}
+            />
+          </mesh>
+          <mesh position={[side * 0.018, 0, -0.5]}>
+            <boxGeometry args={[0.018, 0.075, 1.22]} />
+            <meshBasicMaterial color="#d8e3df" toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+      <group position={[0, 1.49, 0.16]}>
+        <mesh castShadow>
+          <boxGeometry args={[1.28, 0.12, 0.27]} />
+          <meshStandardMaterial
+            color="#101a1e"
+            metalness={0.68}
+            roughness={0.28}
+          />
+        </mesh>
+        <mesh position={[-0.36, 0.095, 0]}>
+          <boxGeometry args={[0.48, 0.14, 0.2]} />
+          <meshStandardMaterial
+            color="#ef5262"
+            emissive="#ff2949"
+            emissiveIntensity={red}
+            roughness={0.18}
+          />
+        </mesh>
+        <mesh position={[0.36, 0.095, 0]}>
+          <boxGeometry args={[0.48, 0.14, 0.2]} />
+          <meshStandardMaterial
+            color="#52c4de"
+            emissive="#25bde2"
+            emissiveIntensity={blue}
+            roughness={0.18}
+          />
+        </mesh>
+        {emergencyLights && quality === "desktop" ? (
+          <>
+            <pointLight
+              color="#ff3352"
+              distance={8}
+              intensity={red * 0.52}
+              position={[-0.4, 0.24, 0]}
+            />
+            <pointLight
+              color="#31bfe1"
+              distance={8}
+              intensity={blue * 0.52}
+              position={[0.4, 0.24, 0]}
+            />
+          </>
+        ) : null}
+      </group>
+      <group position={[0, 0.44, -2.45]}>
+        <mesh>
+          <boxGeometry args={[1.52, 0.13, 0.14]} />
+          <meshStandardMaterial
+            color="#111b1f"
+            metalness={0.7}
+            roughness={0.4}
+          />
+        </mesh>
+        {[-0.61, 0.61].map((x) => (
+          <mesh key={x} position={[x, 0.23, 0.02]}>
+            <boxGeometry args={[0.08, 0.5, 0.09]} />
+            <meshStandardMaterial
+              color="#111b1f"
+              metalness={0.7}
+              roughness={0.4}
+            />
+          </mesh>
+        ))}
+      </group>
+    </group>
+  );
+}
+
 function AuthoredCoupeModel({
   brakeLights = false,
   damage = 0,
@@ -359,10 +477,16 @@ function AuthoredCoupeModel({
   headlights = false,
   quality = "desktop",
   role,
+  emergencyLights = true,
+  sirenPhase = 0,
   steering = 0,
   wheelSpin = 0,
   ...groupProps
-}: VehicleModelProps & { readonly role: "hero" | "traffic" }) {
+}: VehicleModelProps & {
+  readonly emergencyLights?: boolean;
+  readonly role: "hero" | "police" | "traffic";
+  readonly sirenPhase?: number;
+}) {
   const { scene } = useGLTF(AUTHORED_HERO_COUPE_URL);
   const prepared = useMemo(() => prepareCoupeModel(scene), [scene]);
   const wheelBindings = useMemo<readonly WheelBinding[]>(
@@ -472,6 +596,13 @@ function AuthoredCoupeModel({
           quality={quality}
           role={role}
         />
+        {role === "police" ? (
+          <AuthoredPoliceAccessories
+            emergencyLights={emergencyLights}
+            phase={sirenPhase}
+            quality={quality}
+          />
+        ) : null}
         {disabled ? (
           <group position={[0, 1.18, -1.42]}>
             <mesh scale={[0.22, 0.31, 0.22]}>
@@ -498,4 +629,8 @@ export function AuthoredTrafficCoupeModel(
   props: AuthoredTrafficCoupeModelProps,
 ) {
   return <AuthoredCoupeModel {...props} role="traffic" />;
+}
+
+export function AuthoredPoliceCoupeModel(props: AuthoredPoliceCoupeModelProps) {
+  return <AuthoredCoupeModel {...props} role="police" />;
 }
