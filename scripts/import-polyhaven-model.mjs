@@ -38,6 +38,7 @@ const nodeSelectors = {
   modular_urban_apartments_facade: (name) => apartmentFacadeNodes.has(name),
 };
 const simplificationOptions = {
+  barrel_03: ["--simplify-ratio", "0.62", "--simplify-error", "0.002"],
   concrete_road_barrier: [
     "--simplify-ratio",
     "0.12",
@@ -73,6 +74,7 @@ const hierarchyOptions = {
   ],
 };
 const textureSizes = {
+  barrel_03: "512",
   concrete_road_barrier: "512",
   fire_hydrant: "512",
   metal_trash_can: "512",
@@ -80,18 +82,23 @@ const textureSizes = {
   modular_urban_apartments_facade: "512",
   street_lamp_02: "512",
 };
+const textureCompression = {
+  barrel_03: "webp",
+};
 
 if (ids.length === 0) {
   console.error("Usage: pnpm assets:import:polyhaven <asset-id> [...asset-id]");
   process.exit(1);
 }
 
-try {
-  await run("ktx", ["--version"]);
-} catch {
-  throw new Error(
-    "Khronos KTX Software 4.4+ is required to encode GPU-native KTX2 textures.",
-  );
+if (ids.some((id) => textureCompression[id] !== "webp")) {
+  try {
+    await run("ktx", ["--version"]);
+  } catch {
+    throw new Error(
+      "Khronos KTX Software 4.4+ is required to encode GPU-native KTX2 textures.",
+    );
+  }
 }
 
 async function download(url, destination) {
@@ -157,7 +164,7 @@ async function importModel(id) {
         "--meshopt-level",
         "high",
         "--texture-compress",
-        "ktx2",
+        textureCompression[id] ?? "ktx2",
         "--texture-size",
         textureSizes[id] ?? "1024",
         ...(hierarchyOptions[id] ?? []),

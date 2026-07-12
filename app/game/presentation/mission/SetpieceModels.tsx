@@ -156,9 +156,9 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
           >
             <boxGeometry args={[0.28, 5.5, 0.28]} />
             <StandardMaterial
-              color="#3d484a"
-              metalness={0.62}
-              roughness={0.38}
+              color="#5a696b"
+              metalness={0.54}
+              roughness={0.32}
             />
           </mesh>
         ))}
@@ -181,9 +181,9 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
           <mesh castShadow={shadows} key={z} position={[0, 5.06, z]}>
             <boxGeometry args={[10.16, 0.26, 0.3]} />
             <StandardMaterial
-              color="#333e40"
-              metalness={0.66}
-              roughness={0.34}
+              color="#536366"
+              metalness={0.56}
+              roughness={0.3}
             />
           </mesh>
         ))}
@@ -196,9 +196,9 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
           >
             <boxGeometry args={[0.3, 0.26, 7.3]} />
             <StandardMaterial
-              color="#333e40"
-              metalness={0.66}
-              roughness={0.34}
+              color="#536366"
+              metalness={0.56}
+              roughness={0.3}
             />
           </mesh>
         ))}
@@ -229,14 +229,14 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
 
         <mesh castShadow={shadows} position={[-5.8, 1.7, -4.1]}>
           <boxGeometry args={[1.9, 3.5, 2.2]} />
-          <StandardMaterial color="#354144" metalness={0.42} roughness={0.5} />
+          <StandardMaterial color="#4e5e61" metalness={0.36} roughness={0.46} />
         </mesh>
         <mesh position={[-5.8, 2.05, -2.98]}>
           <boxGeometry args={[1.35, 0.82, 0.04]} />
           <StandardMaterial
             color="#122428"
             emissive={INTERACTION_COLORS.white}
-            emissiveIntensity={0.34}
+            emissiveIntensity={0.52}
             metalness={0.48}
             roughness={0.2}
           />

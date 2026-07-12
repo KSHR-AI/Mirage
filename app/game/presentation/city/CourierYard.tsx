@@ -1,10 +1,15 @@
 "use client";
 
-import { useTexture } from "@react-three/drei";
+import { Clone, useGLTF, useTexture } from "@react-three/drei";
 import { useEffect, useMemo } from "react";
+import * as THREE from "three";
 import { InstancedPrimitives } from "./InstancedPrimitives";
+import {
+  createCourierYardDetailPlan,
+  type CourierYardModelPlacement,
+} from "./courier-yard-layout";
 import { createPbrTextureSet, disposePbrTextureSet } from "./surface-textures";
-import type { BoxInstance, CityVec3 } from "./types";
+import type { BoxInstance, CityQuality, CityVec3 } from "./types";
 
 interface CourierContainerDefinition {
   readonly body: string;
@@ -26,6 +31,7 @@ const CONTAINER_PALETTE = [
 
 const CONCRETE_TEXTURE_ROOT = "/game-assets/textures/concrete-wall-007";
 const CORRUGATED_TEXTURE_ROOT = "/game-assets/textures/corrugated-iron-02";
+const BARREL_MODEL_URL = "/game-assets/models/barrel_03.glb";
 
 function box(
   id: string,
@@ -136,7 +142,8 @@ function createContainerRibs(
 function createDepotDoorDetails(): BoxInstance[] {
   const values: BoxInstance[] = [];
   DEPOT_DOOR_CENTERS.forEach((x, doorIndex) => {
-    for (let row = 0; row < 7; row += 1) {
+    const rows = doorIndex === 1 ? [6] : [0, 1, 2, 3, 4, 5, 6];
+    for (const row of rows) {
       values.push(
         box(
           `courier-depot-door-${doorIndex}-slat-${row}`,
@@ -178,8 +185,8 @@ const CONTAINER_PLATES = CONTAINER_DEFINITIONS.map((container) => {
 const DEPOT_DOOR_PANELS = DEPOT_DOOR_CENTERS.map((x, index) =>
   box(
     `courier-depot-door-${index}`,
-    [x, 2.42, 36.53],
-    [4.35, 4.35, 0.12],
+    [x, index === 1 ? 4.72 : 2.42, 36.53],
+    [4.35, index === 1 ? 0.48 : 4.35, 0.12],
     index === 1 ? "#536366" : "#647173",
   ),
 );
@@ -218,27 +225,9 @@ const DEPOT_STRUCTURE = [
   ),
   box(
     "courier-depot-sign-back",
-    [70, 6.02, 36.78],
+    [71.35, 6.02, 36.78],
     [8.7, 0.9, 0.16],
     "#13262c",
-  ),
-  box(
-    "courier-depot-sign-coral",
-    [67.35, 6.02, 36.89],
-    [2.35, 0.12, 0.04],
-    "#ff7161",
-  ),
-  box(
-    "courier-depot-sign-teal",
-    [70, 6.02, 36.89],
-    [2.35, 0.12, 0.04],
-    "#58d4cf",
-  ),
-  box(
-    "courier-depot-sign-acid",
-    [72.65, 6.02, 36.89],
-    [2.35, 0.12, 0.04],
-    "#d8ff5f",
   ),
 ] as const satisfies readonly BoxInstance[];
 
@@ -298,7 +287,13 @@ const YARD_EDGE_DETAILS = [
   ),
 ] as const satisfies readonly BoxInstance[];
 
-export function CourierYard({ shadows }: { readonly shadows: boolean }) {
+export function CourierYard({
+  quality,
+  shadows,
+}: {
+  readonly quality: CityQuality;
+  readonly shadows: boolean;
+}) {
   const concrete = useTexture({
     arm: `${CONCRETE_TEXTURE_ROOT}/arm.jpg`,
     color: `${CONCRETE_TEXTURE_ROOT}/base-color.jpg`,
@@ -337,6 +332,10 @@ export function CourierYard({ shadows }: { readonly shadows: boolean }) {
   useEffect(
     () => () => Object.values(textures).forEach(disposePbrTextureSet),
     [textures],
+  );
+  const detailPlan = useMemo(
+    () => createCourierYardDetailPlan(quality),
+    [quality],
   );
 
   return (
@@ -440,6 +439,65 @@ export function CourierYard({ shadows }: { readonly shadows: boolean }) {
       />
       <InstancedPrimitives
         castShadow={shadows}
+        instances={detailPlan.dockStructure}
+        metalness={0.34}
+        receiveShadow
+        roughness={0.52}
+      />
+      <InstancedPrimitives
+        castShadow={shadows}
+        emissive="#6c3f20"
+        emissiveIntensity={0.18}
+        instances={detailPlan.interior}
+        metalness={0.38}
+        receiveShadow
+        roughness={0.5}
+      />
+      <InstancedPrimitives
+        castShadow={shadows}
+        instances={detailPlan.palletBoards}
+        receiveShadow
+        roughness={0.88}
+      />
+      <InstancedPrimitives
+        castShadow={shadows}
+        instances={detailPlan.crateBodies}
+        receiveShadow
+        roughness={0.82}
+      />
+      <InstancedPrimitives
+        instances={detailPlan.crateTrim}
+        metalness={0.08}
+        receiveShadow
+        roughness={0.76}
+      />
+      <InstancedPrimitives
+        instances={detailPlan.drains}
+        metalness={0.72}
+        receiveShadow
+        roughness={0.28}
+      />
+      <InstancedPrimitives
+        instances={detailPlan.drainSlats}
+        metalness={0.86}
+        receiveShadow
+        roughness={0.24}
+      />
+      <InstancedPrimitives
+        instances={detailPlan.tireMarks}
+        material="basic"
+        opacity={0.38}
+        transparent
+      />
+      <InstancedPrimitives
+        instances={detailPlan.safetyMarkings}
+        material="basic"
+        toneMapped={false}
+      />
+      <YardBarrels placements={detailPlan.barrels} shadows={shadows} />
+      <YardSignage />
+      <InstancedPrimitives
+        castShadow={shadows}
         instances={DEPOT_AWNINGS}
         metalness={0.62}
         receiveShadow
@@ -479,15 +537,94 @@ export function CourierYard({ shadows }: { readonly shadows: boolean }) {
         </group>
       ))}
       {shadows ? (
-        <pointLight
-          color="#ffc77c"
-          decay={2}
-          distance={14}
-          intensity={11}
-          position={[70, 4.8, 39.8]}
-        />
+        <>
+          <pointLight
+            color="#ffc77c"
+            decay={2}
+            distance={14}
+            intensity={11}
+            position={[70, 4.8, 39.8]}
+          />
+          <pointLight
+            color="#ffb86b"
+            decay={2}
+            distance={8}
+            intensity={18}
+            position={[70, 3.7, 38.05]}
+          />
+        </>
       ) : null}
     </group>
+  );
+}
+
+function YardBarrels({
+  placements,
+  shadows,
+}: {
+  readonly placements: readonly CourierYardModelPlacement[];
+  readonly shadows: boolean;
+}) {
+  const { scene } = useGLTF(BARREL_MODEL_URL);
+  const model = useMemo(() => {
+    const prepared = scene.clone(true);
+    prepared.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      object.castShadow = shadows;
+      object.receiveShadow = true;
+    });
+    return prepared;
+  }, [scene, shadows]);
+
+  return (
+    <group name="licensed-cc0-yard-barrels">
+      {placements.map((placement) => (
+        <Clone
+          key={placement.id}
+          object={model}
+          position={placement.position}
+          rotation={[0, placement.rotationY, 0]}
+          scale={placement.scale}
+        />
+      ))}
+    </group>
+  );
+}
+
+function YardSignage() {
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 144;
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+    context.fillStyle = "#102127";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#ff7766";
+    context.fillRect(0, 0, 20, canvas.height);
+    context.fillStyle = "#58d4cf";
+    context.fillRect(20, 0, 10, canvas.height);
+    context.fillStyle = "#eef4e8";
+    context.font = "700 54px Arial, sans-serif";
+    context.textBaseline = "middle";
+    context.fillText("AFTERLIGHT FREIGHT", 68, 57);
+    context.fillStyle = "#b6c9c8";
+    context.font = "600 26px Arial, sans-serif";
+    context.fillText("SOMA TERMINAL  /  BAYS 01-03", 70, 108);
+    const result = new THREE.CanvasTexture(canvas);
+    result.anisotropy = 8;
+    result.colorSpace = THREE.SRGBColorSpace;
+    result.needsUpdate = true;
+    return result;
+  }, []);
+  useEffect(() => () => texture?.dispose(), [texture]);
+  if (!texture) return null;
+
+  return (
+    <mesh position={[71.35, 6.02, 36.93]}>
+      <planeGeometry args={[8.5, 0.86]} />
+      <meshBasicMaterial map={texture} toneMapped={false} />
+    </mesh>
   );
 }
 

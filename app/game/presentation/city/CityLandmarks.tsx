@@ -59,7 +59,7 @@ export const CityLandmarks = memo(function CityLandmarks({
         quality={quality}
         shadows={shadows}
       />
-      <CourierYard shadows={shadows} />
+      <CourierYard quality={quality} shadows={shadows} />
       <IndustrialWaterfront shadows={shadows} />
       <CityHills powerState={powerState} quality={quality} />
       {activeZone ? (

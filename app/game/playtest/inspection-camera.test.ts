@@ -15,6 +15,12 @@ describe("resolvePlaytestInspectionPose", () => {
       position: [64, 1.15, 56],
       rotationY: -0.55,
     });
+    expect(
+      resolvePlaytestInspectionPose("?inspect=yard-opening", true),
+    ).toEqual({
+      position: [64, 1.15, 56],
+      rotationY: Math.PI,
+    });
     expect(resolvePlaytestInspectionPose("?inspect=route-block", true)).toEqual(
       {
         position: [6, 1.15, 0],

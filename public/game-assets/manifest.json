@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-12T00:13:13.000Z",
+  "generatedAt": "2026-07-12T01:09:36.000Z",
   "policy": {
     "commercialUseRequired": true,
     "standaloneRedistribution": false,
@@ -183,6 +183,42 @@
           "maxTriangles": 1000,
           "bytes": 653272,
           "sha256": "deeb1615e402b093e87d9ba45d05449a03c0fe62d1e093e7c9b32e7b714c39ca"
+        }
+      ]
+    },
+    {
+      "id": "polyhaven-barrel-03",
+      "name": "Barrel 03",
+      "kind": "optimized-gltf-model",
+      "source": {
+        "provider": "Poly Haven",
+        "pageUrl": "https://polyhaven.com/a/barrel_03",
+        "apiUrl": "https://api.polyhaven.com/files/barrel_03",
+        "authors": [
+          "Serhii Khromov"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://polyhaven.com/license",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Poly Haven and Serhii Khromov credit are appreciated."
+      },
+      "acquiredAt": "2026-07-11",
+      "modifications": [
+        "Selected the blue weathered steel variant for the Afterlight freight yard.",
+        "Flattened and joined meshes, welded vertices, pruned unused data, and simplified the browser geometry.",
+        "Applied high-level Meshopt compression and resized the PBR texture set to 512px WebP."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/models/barrel_03.glb",
+          "role": "courier-yard-industrial-prop",
+          "maxTriangles": 1500,
+          "bytes": 92752,
+          "sha256": "4aefe9b28450ab938c1526572698386e84cff8e70d1bf69cedadbd8ef38007fb"
         }
       ]
     },

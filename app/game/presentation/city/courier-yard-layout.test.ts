@@ -1,0 +1,69 @@
+import { describe, expect, it } from "vitest";
+
+import { createCourierYardDetailPlan } from "./courier-yard-layout";
+
+describe("createCourierYardDetailPlan", () => {
+  it("authors a deterministic open loading bay and dock frame", () => {
+    const first = createCourierYardDetailPlan("desktop");
+    const second = createCourierYardDetailPlan("desktop");
+
+    expect(second).toEqual(first);
+    expect(
+      first.dockStructure.some((part) => part.id === "open-bay-aperture"),
+    ).toBe(true);
+    expect(first.interior.length).toBeGreaterThanOrEqual(6);
+    expect(first.barrels).toHaveLength(3);
+    expect(first.palletBoards.length).toBeGreaterThan(15);
+    expect(first.drainSlats.length).toBeGreaterThan(30);
+  });
+
+  it("keeps the initial player and coupe lane clear", () => {
+    const plan = createCourierYardDetailPlan("desktop");
+    const solids = [
+      ...plan.barrels,
+      ...plan.crateBodies,
+      ...plan.dockStructure,
+      ...plan.interior,
+      ...plan.palletBoards,
+    ];
+
+    for (const solid of solids) {
+      const [x, , z] = solid.position;
+      const blocksSpawnLane = x >= 61.5 && x <= 66.5 && z >= 51 && z <= 58;
+      expect(blocksSpawnLane, solid.id).toBe(false);
+    }
+  });
+
+  it("keeps mobile materially lighter and every transform valid", () => {
+    const desktop = createCourierYardDetailPlan("desktop");
+    const mobile = createCourierYardDetailPlan("mobile");
+    const desktopCount = Object.values(desktop).reduce(
+      (total, values) => total + values.length,
+      0,
+    );
+    const mobileCount = Object.values(mobile).reduce(
+      (total, values) => total + values.length,
+      0,
+    );
+
+    expect(mobileCount).toBeLessThan(desktopCount);
+    expect(mobile.barrels).toHaveLength(1);
+    expect(mobile.crateBodies).toHaveLength(1);
+    expect(desktop.crateBodies).toHaveLength(5);
+    expect(mobile.tireMarks).toHaveLength(0);
+    expect(mobile.drainSlats).toHaveLength(0);
+
+    const ids = new Set<string>();
+    for (const values of Object.values(desktop)) {
+      for (const value of values) {
+        expect(ids.has(value.id), value.id).toBe(false);
+        ids.add(value.id);
+        expect(value.position.every(Number.isFinite), value.id).toBe(true);
+        const scale = Array.isArray(value.scale) ? value.scale : [value.scale];
+        expect(scale.every((axis) => Number.isFinite(axis) && axis > 0)).toBe(
+          true,
+        );
+      }
+    }
+  });
+});

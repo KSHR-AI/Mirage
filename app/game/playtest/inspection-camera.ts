@@ -10,6 +10,10 @@ export const PLAYTEST_INSPECTION_POSES: Readonly<Record<string, Pose>> =
       position: Object.freeze([64, 1.15, 56] as const),
       rotationY: -0.55,
     }),
+    "yard-opening": Object.freeze({
+      position: Object.freeze([64, 1.15, 56] as const),
+      rotationY: Math.PI,
+    }),
     "route-block": Object.freeze({
       position: Object.freeze([6, 1.15, 0] as const),
       rotationY: 0,
