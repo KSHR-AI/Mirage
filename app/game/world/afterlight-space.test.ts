@@ -5,6 +5,7 @@ import {
   AFTERLIGHT_START_CHECKPOINT_ID,
 } from "../core/afterlight-state";
 import { AFTERLIGHT_CHECKPOINT_IDS } from "../missions/afterlight-job";
+import { VEHICLE_PLANAR_FOOTPRINTS } from "../vehicles/building-collision";
 import {
   AFTERLIGHT_SPACE_COLLIDERS,
   afterlightSpaceCharacterObstacles,
@@ -71,6 +72,41 @@ describe("Afterlight authored spaces", () => {
         `opening lane blocked at [${point.join(", ")}]`,
       ).toBe(false);
     }
+  });
+
+  it("keeps the opening coupe footprint clear of authored structures", () => {
+    const [x, , z] = AFTERLIGHT_LANDMARKS.boostYard;
+    const footprint = VEHICLE_PLANAR_FOOTPRINTS.hero;
+
+    for (const box of AFTERLIGHT_SPACE_COLLIDERS) {
+      const overlapsX =
+        Math.abs(x - box.center[0]) <= box.halfExtents[0] + footprint.halfWidth;
+      const overlapsZ =
+        Math.abs(z - box.center[2]) <=
+        box.halfExtents[2] + footprint.halfLength;
+      expect(overlapsX && overlapsZ, box.id).toBe(false);
+    }
+  });
+
+  it("matches the freight gantry and west perimeter collision", () => {
+    expect(
+      AFTERLIGHT_SPACE_COLLIDERS.find(
+        (box) => box.id === "courier-gantry-west-column",
+      ),
+    ).toEqual({
+      center: [59.55, 3.55, 49],
+      coverQuality: 2,
+      halfExtents: [0.21, 3.25, 0.24],
+      id: "courier-gantry-west-column",
+    });
+    expect(
+      AFTERLIGHT_SPACE_COLLIDERS.find((box) => box.id === "courier-west-fence"),
+    ).toEqual({
+      center: [59.96, 1.35, 46],
+      coverQuality: 1,
+      halfExtents: [0.07, 1.08, 5.1],
+      id: "courier-west-fence",
+    });
   });
 
   it("creates one character obstacle for every visible collider", () => {

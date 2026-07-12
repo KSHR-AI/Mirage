@@ -481,39 +481,40 @@ async function routeInspectionScenario(
     }
 
     await capture(scenario, page, outDir, "corridor");
-    if (!mobile) {
-      const inspections = [
-        { capture: "sidewalk", key: "route-block-side" },
-        { capture: "facade", key: "route-facade" },
-        { capture: "corner", key: "signature-corner" },
-        { capture: "vehicles", key: "vehicle-fleet" },
-        { capture: "vehicles-side", key: "vehicle-fleet-side" },
-      ];
-      for (const inspection of inspections) {
-        await page.evaluate(
-          ({ eventName, key }) =>
-            window.dispatchEvent(new CustomEvent(eventName, { detail: key })),
-          { eventName: PLAYTEST_INSPECTION_EVENT, key: inspection.key },
-        );
-        await page.waitForFunction(
-          (expected) =>
-            document.documentElement.dataset.mirageInspectionPose === expected,
-          inspection.key,
-        );
-        await page.waitForTimeout(300);
-        const resolvedInspection = await page.evaluate(
-          () => document.documentElement.dataset.mirageInspectionPose,
-        );
-        addCheck(
-          scenario,
-          `${inspection.key}-inspection-pose`,
-          resolvedInspection === inspection.key,
-          resolvedInspection,
-          inspection.key,
-        );
-        await capture(scenario, page, outDir, inspection.capture);
-        await inspectCanvas(scenario, page, outDir, inspection.capture);
-      }
+    const inspections = mobile
+      ? [{ capture: "yard", key: "yard-opening" }]
+      : [
+          { capture: "sidewalk", key: "route-block-side" },
+          { capture: "facade", key: "route-facade" },
+          { capture: "corner", key: "signature-corner" },
+          { capture: "yard", key: "yard-opening" },
+          { capture: "vehicles", key: "vehicle-fleet" },
+          { capture: "vehicles-side", key: "vehicle-fleet-side" },
+        ];
+    for (const inspection of inspections) {
+      await page.evaluate(
+        ({ eventName, key }) =>
+          window.dispatchEvent(new CustomEvent(eventName, { detail: key })),
+        { eventName: PLAYTEST_INSPECTION_EVENT, key: inspection.key },
+      );
+      await page.waitForFunction(
+        (expected) =>
+          document.documentElement.dataset.mirageInspectionPose === expected,
+        inspection.key,
+      );
+      await page.waitForTimeout(300);
+      const resolvedInspection = await page.evaluate(
+        () => document.documentElement.dataset.mirageInspectionPose,
+      );
+      addCheck(
+        scenario,
+        `${inspection.key}-inspection-pose`,
+        resolvedInspection === inspection.key,
+        resolvedInspection,
+        inspection.key,
+      );
+      await capture(scenario, page, outDir, inspection.capture);
+      await inspectCanvas(scenario, page, outDir, inspection.capture);
     }
     addCheck(scenario, "runtime-errors", errors.length === 0, errors, "none");
     completeScenario(scenario);

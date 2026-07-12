@@ -27,6 +27,13 @@ export const AFTERLIGHT_SPACE_COLLIDERS: readonly AfterlightSpaceBox[] =
 
     spaceBox("courier-warehouse", [70, 3.3, 33.5], [9, 3.2, 3], 2),
     spaceBox("courier-containers", [79.5, 2.8, 45.5], [2.6, 2.8, 8.2], 2),
+    spaceBox(
+      "courier-gantry-west-column",
+      [59.55, 3.55, 49],
+      [0.21, 3.25, 0.24],
+      2,
+    ),
+    spaceBox("courier-west-fence", [59.96, 1.35, 46], [0.07, 1.08, 5.1]),
 
     spaceBox("vault-west-wall", [4.85, 3.6, -42], [0.35, 3.6, 8.5], 2),
     spaceBox("vault-east-wall", [23.15, 3.6, -42], [0.35, 3.6, 8.5], 2),

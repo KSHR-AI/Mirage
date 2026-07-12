@@ -15,6 +15,9 @@ export type CourierYardDetailPlan = {
   readonly drainSlats: readonly BoxInstance[];
   readonly drains: readonly BoxInstance[];
   readonly interior: readonly BoxInstance[];
+  readonly perimeterDetails: readonly BoxInstance[];
+  readonly perimeterLights: readonly BoxInstance[];
+  readonly perimeterStructure: readonly BoxInstance[];
   readonly palletBoards: readonly BoxInstance[];
   readonly safetyMarkings: readonly BoxInstance[];
   readonly tireMarks: readonly BoxInstance[];
@@ -200,6 +203,141 @@ export function createCourierYardDetailPlan(
       "#899291",
     ),
   ];
+  const perimeterStructure = [
+    box(
+      "yard-gantry-west-column",
+      [59.55, 3.55, 49],
+      [0.42, 6.5, 0.48],
+      "#314347",
+    ),
+    box(
+      "yard-gantry-east-column",
+      [79.45, 3.55, 49],
+      [0.42, 6.5, 0.48],
+      "#314347",
+    ),
+    box(
+      "yard-gantry-top-beam",
+      [69.5, 6.78, 49],
+      [20.3, 0.42, 0.55],
+      "#34474b",
+    ),
+    box(
+      "yard-gantry-lower-beam",
+      [69.5, 5.58, 49],
+      [20, 0.18, 0.28],
+      "#687678",
+    ),
+    box(
+      "yard-gantry-sign-back",
+      [70, 6.18, 48.67],
+      [4.8, 0.92, 0.16],
+      "#101f24",
+    ),
+    ...[63.4, 66.2, 73.8, 76.6].map((x) =>
+      box(`yard-gantry-web-${x}`, [x, 6.18, 49], [0.14, 1.02, 0.24], "#526367"),
+    ),
+  ];
+  const perimeterDetails = [
+    box(
+      "yard-catwalk-platform",
+      [78.18, 4.42, 43.1],
+      [1.62, 0.18, 10.4],
+      "#37484b",
+    ),
+    box(
+      "yard-catwalk-outer-rail",
+      [77.4, 5.25, 43.1],
+      [0.1, 0.1, 10.1],
+      "#899493",
+    ),
+    ...[38.2, 40.7, 43.2, 45.7, 48.2].map((z) =>
+      box(
+        `yard-catwalk-post-${z}`,
+        [77.4, 4.86, z],
+        [0.11, 0.86, 0.11],
+        "#758282",
+      ),
+    ),
+    box(
+      "yard-catwalk-ladder-west",
+      [77.38, 2.3, 48.05],
+      [0.1, 4.25, 0.1],
+      "#778382",
+    ),
+    box(
+      "yard-catwalk-ladder-east",
+      [77.98, 2.3, 48.05],
+      [0.1, 4.25, 0.1],
+      "#778382",
+    ),
+    ...Array.from({ length: 8 }, (_, index) =>
+      box(
+        `yard-catwalk-ladder-rung-${index}`,
+        [77.68, 0.68 + index * 0.48, 48.05],
+        [0.68, 0.07, 0.09],
+        "#899493",
+      ),
+    ),
+    ...[41, 43.5, 46, 48.5, 51].map((z) =>
+      box(
+        `yard-west-fence-post-${z}`,
+        [59.96, 1.35, z],
+        [0.14, 2.15, 0.14],
+        "#657476",
+      ),
+    ),
+    box(
+      "yard-west-fence-rail-low",
+      [59.96, 0.8, 46],
+      [0.1, 0.1, 10.2],
+      "#657476",
+    ),
+    box(
+      "yard-west-fence-rail-high",
+      [59.96, 1.78, 46],
+      [0.1, 0.1, 10.2],
+      "#657476",
+    ),
+    box(
+      "yard-utility-cabinet-a",
+      [60.72, 1.08, 42.6],
+      [1.05, 1.52, 0.72],
+      "#3d5154",
+    ),
+    box(
+      "yard-utility-cabinet-b",
+      [60.68, 0.86, 44.05],
+      [0.82, 1.08, 0.62],
+      "#516164",
+    ),
+  ];
+  const perimeterLights = [
+    box(
+      "yard-gantry-light-west",
+      [65.2, 5.42, 48.72],
+      [2.35, 0.1, 0.17],
+      "#ffe7b4",
+    ),
+    box(
+      "yard-gantry-light-east",
+      [74.8, 5.42, 48.72],
+      [2.35, 0.1, 0.17],
+      "#ffe7b4",
+    ),
+    box(
+      "yard-gantry-column-marker-west",
+      [59.55, 1.18, 48.73],
+      [0.46, 0.18, 0.08],
+      "#ff6b57",
+    ),
+    box(
+      "yard-gantry-column-marker-east",
+      [79.45, 1.18, 48.73],
+      [0.46, 0.18, 0.08],
+      "#d8ff62",
+    ),
+  ];
 
   const crateDefinitions = [
     crate("dock-crate-a", [62.15, 0.68, 39.45], [1.08, 0.82, 0.92], 0.08),
@@ -276,6 +414,9 @@ export function createCourierYardDetailPlan(
     drainSlats: desktop ? drainPlan.drainSlats : [],
     drains: drainPlan.drains,
     interior,
+    perimeterDetails: desktop ? perimeterDetails : perimeterDetails.slice(-2),
+    perimeterLights: desktop ? perimeterLights : perimeterLights.slice(0, 2),
+    perimeterStructure,
     palletBoards: [
       ...pallet("dock-pallet-west", [62.6, 0.32, 39.5], 0.05),
       ...(desktop ? pallet("dock-pallet-east", [76.2, 0.32, 39.3], -0.08) : []),

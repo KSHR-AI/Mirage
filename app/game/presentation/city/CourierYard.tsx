@@ -520,6 +520,26 @@ export function CourierYard({
         receiveShadow
         roughness={0.5}
       />
+      <InstancedPrimitives
+        castShadow={shadows}
+        instances={detailPlan.perimeterStructure}
+        metalness={0.56}
+        receiveShadow
+        roughness={0.42}
+      />
+      <InstancedPrimitives
+        castShadow={shadows}
+        instances={detailPlan.perimeterDetails}
+        metalness={0.46}
+        receiveShadow
+        roughness={0.5}
+      />
+      <InstancedPrimitives
+        instances={detailPlan.perimeterLights}
+        material="basic"
+        toneMapped={false}
+      />
+      <YardGantrySignage />
       <YardWear />
       {DEPOT_DOOR_CENTERS.map((x) => (
         <group key={`courier-depot-light-${x}`}>
@@ -555,6 +575,41 @@ export function CourierYard({
         </>
       ) : null}
     </group>
+  );
+}
+
+function YardGantrySignage() {
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 768;
+    canvas.height = 144;
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+    context.fillStyle = "#0c1b20";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#d8ff62";
+    context.fillRect(0, 0, 14, canvas.height);
+    context.fillStyle = "#f0f4ec";
+    context.font = "700 52px Arial, sans-serif";
+    context.textBaseline = "middle";
+    context.fillText("SOMA FREIGHT", 44, 58);
+    context.fillStyle = "#88a4a5";
+    context.font = "600 25px Arial, sans-serif";
+    context.fillText("GATE 01  /  AUTHORIZED VEHICLES", 46, 108);
+    const result = new THREE.CanvasTexture(canvas);
+    result.anisotropy = 8;
+    result.colorSpace = THREE.SRGBColorSpace;
+    result.needsUpdate = true;
+    return result;
+  }, []);
+  useEffect(() => () => texture?.dispose(), [texture]);
+  if (!texture) return null;
+
+  return (
+    <mesh position={[70, 6.18, 48.76]}>
+      <planeGeometry args={[4.6, 0.84]} />
+      <meshBasicMaterial map={texture} toneMapped={false} />
+    </mesh>
   );
 }
 

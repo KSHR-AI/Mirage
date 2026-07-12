@@ -15,6 +15,13 @@ describe("createCourierYardDetailPlan", () => {
     expect(first.barrels).toHaveLength(3);
     expect(first.palletBoards.length).toBeGreaterThan(15);
     expect(first.drainSlats.length).toBeGreaterThan(30);
+    expect(first.perimeterStructure.length).toBeGreaterThanOrEqual(8);
+    expect(first.perimeterDetails.length).toBeGreaterThan(20);
+    expect(
+      first.perimeterStructure.some(
+        (part) => part.id === "yard-gantry-sign-back",
+      ),
+    ).toBe(true);
   });
 
   it("keeps the initial player and coupe lane clear", () => {
@@ -25,11 +32,16 @@ describe("createCourierYardDetailPlan", () => {
       ...plan.dockStructure,
       ...plan.interior,
       ...plan.palletBoards,
+      ...plan.perimeterDetails,
+      ...plan.perimeterStructure,
     ];
 
     for (const solid of solids) {
-      const [x, , z] = solid.position;
-      const blocksSpawnLane = x >= 61.5 && x <= 66.5 && z >= 51 && z <= 58;
+      const [x, y, z] = solid.position;
+      const [, height] = solid.scale;
+      const reachesPlayer = y - height / 2 < 1.8;
+      const blocksSpawnLane =
+        reachesPlayer && x >= 61.5 && x <= 66.5 && z >= 51 && z <= 58;
       expect(blocksSpawnLane, solid.id).toBe(false);
     }
   });
@@ -52,6 +64,9 @@ describe("createCourierYardDetailPlan", () => {
     expect(desktop.crateBodies).toHaveLength(5);
     expect(mobile.tireMarks).toHaveLength(0);
     expect(mobile.drainSlats).toHaveLength(0);
+    expect(mobile.perimeterStructure).toEqual(desktop.perimeterStructure);
+    expect(mobile.perimeterDetails).toHaveLength(2);
+    expect(mobile.perimeterLights).toHaveLength(2);
 
     const ids = new Set<string>();
     for (const values of Object.values(desktop)) {
