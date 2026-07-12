@@ -14,9 +14,15 @@ import {
   Vector3,
 } from "three";
 
-import type { VehicleModelProps } from "./types";
+import type { VehicleModelProps, VisualId } from "./types";
 
 export type AuthoredHeroCoupeModelProps = VehicleModelProps;
+export type AuthoredTrafficCoupeModelProps = VehicleModelProps;
+
+export interface AuthoredTrafficCoupePalette {
+  readonly primary: string;
+  readonly secondary: string;
+}
 
 export interface AuthoredHeroCoupeMaterialTreatment {
   readonly clearcoat?: number;
@@ -59,6 +65,32 @@ const MODEL_GROUND_OFFSET = 0.012;
 const MAX_FRAME_DT = 0.1;
 const SPIN_AXIS = new Vector3(1, 0, 0);
 const STEERING_AXIS = new Vector3(0, 0, 1);
+const TRAFFIC_COUPE_PALETTES = Object.freeze([
+  Object.freeze({ primary: "#47717a", secondary: "#18343a" }),
+  Object.freeze({ primary: "#9a9d96", secondary: "#30383b" }),
+  Object.freeze({ primary: "#9a684a", secondary: "#2d3436" }),
+  Object.freeze({ primary: "#365d58", secondary: "#c5b898" }),
+  Object.freeze({ primary: "#715f7c", secondary: "#252c31" }),
+  Object.freeze({ primary: "#b0b0a3", secondary: "#385159" }),
+] as const);
+
+function trafficCoupeHash(entityId: VisualId): number {
+  const value = String(entityId);
+  let hash = 2_166_136_261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16_777_619);
+  }
+  return hash >>> 0;
+}
+
+export function getAuthoredTrafficCoupePalette(
+  entityId: VisualId,
+): AuthoredTrafficCoupePalette {
+  return TRAFFIC_COUPE_PALETTES[
+    trafficCoupeHash(entityId) % TRAFFIC_COUPE_PALETTES.length
+  ];
+}
 
 function materialTreatment(
   color: string,
@@ -235,6 +267,8 @@ function applyCoupeMaterialTreatment(
   brakeLights: boolean,
   headlights: boolean,
   damage: number,
+  role: "hero" | "traffic",
+  entityId: VisualId,
 ) {
   const treatment = getAuthoredHeroCoupeMaterialTreatment(
     material.name,
@@ -244,7 +278,15 @@ function applyCoupeMaterialTreatment(
   );
   if (!treatment) return;
 
-  material.color.set(treatment.color);
+  const trafficPalette = getAuthoredTrafficCoupePalette(entityId);
+  const color =
+    role === "traffic" && material.name === "Paint 1 Carmine"
+      ? trafficPalette.primary
+      : role === "traffic" &&
+          ["Paint 2 Carmine", "Interior 3 Carmine"].includes(material.name)
+        ? trafficPalette.secondary
+        : treatment.color;
+  material.color.set(color);
   material.metalness = treatment.metalness;
   material.roughness = treatment.roughness;
   material.envMapIntensity = treatment.envMapIntensity ?? 0.95;
@@ -264,16 +306,18 @@ function applyCoupeMaterialTreatment(
 function AuthoredCoupeDynamicLight({
   headlights,
   quality,
+  role,
 }: {
   readonly headlights: boolean;
   readonly quality: "desktop" | "mobile";
+  readonly role: "hero" | "traffic";
 }) {
   const target = useMemo(() => new Object3D(), []);
 
   return (
-    <group name="authored-hero-coupe-dynamic-light">
+    <group name="authored-coupe-lighting">
       <primitive object={target} position={[0, 0.22, -18]} />
-      {headlights && quality === "desktop" ? (
+      {headlights && quality === "desktop" && role === "hero" ? (
         <spotLight
           angle={0.34}
           castShadow={false}
@@ -286,20 +330,39 @@ function AuthoredCoupeDynamicLight({
           target={target}
         />
       ) : null}
+      {headlights && quality === "desktop" ? (
+        <mesh
+          position={[0, 0.026, -5.25]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          scale={[1.15, 3.7, 1]}
+        >
+          <circleGeometry args={[1, 20]} />
+          <meshBasicMaterial
+            color="#ffe4ad"
+            depthWrite={false}
+            fog
+            opacity={role === "hero" ? 0.095 : 0.065}
+            toneMapped={false}
+            transparent
+          />
+        </mesh>
+      ) : null}
     </group>
   );
 }
 
-export function AuthoredHeroCoupeModel({
+function AuthoredCoupeModel({
   brakeLights = false,
   damage = 0,
   disabled = false,
+  entityId = "mirage-hero",
   headlights = false,
   quality = "desktop",
+  role,
   steering = 0,
   wheelSpin = 0,
   ...groupProps
-}: AuthoredHeroCoupeModelProps) {
+}: VehicleModelProps & { readonly role: "hero" | "traffic" }) {
   const { scene } = useGLTF(AUTHORED_HERO_COUPE_URL);
   const prepared = useMemo(() => prepareCoupeModel(scene), [scene]);
   const wheelBindings = useMemo<readonly WheelBinding[]>(
@@ -345,9 +408,20 @@ export function AuthoredHeroCoupeModel({
         brakeLights || disabled,
         headlights,
         normalizedDamage,
+        role,
+        entityId,
       );
     }
-  }, [brakeLights, disabled, headlights, normalizedDamage, prepared, quality]);
+  }, [
+    brakeLights,
+    disabled,
+    entityId,
+    headlights,
+    normalizedDamage,
+    prepared,
+    quality,
+    role,
+  ]);
 
   useEffect(
     () => () => {
@@ -393,7 +467,11 @@ export function AuthoredHeroCoupeModel({
         >
           <primitive dispose={null} object={prepared.model} />
         </group>
-        <AuthoredCoupeDynamicLight headlights={headlights} quality={quality} />
+        <AuthoredCoupeDynamicLight
+          headlights={headlights}
+          quality={quality}
+          role={role}
+        />
         {disabled ? (
           <group position={[0, 1.18, -1.42]}>
             <mesh scale={[0.22, 0.31, 0.22]}>
@@ -410,4 +488,14 @@ export function AuthoredHeroCoupeModel({
       </group>
     </group>
   );
+}
+
+export function AuthoredHeroCoupeModel(props: AuthoredHeroCoupeModelProps) {
+  return <AuthoredCoupeModel {...props} role="hero" />;
+}
+
+export function AuthoredTrafficCoupeModel(
+  props: AuthoredTrafficCoupeModelProps,
+) {
+  return <AuthoredCoupeModel {...props} role="traffic" />;
 }

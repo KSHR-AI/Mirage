@@ -11,10 +11,13 @@ type PrimitiveShape =
   | "icosahedron"
   | "plane"
   | "sphere";
-type PrimitiveMaterial = "basic" | "standard";
+type PrimitiveMaterial = "basic" | "physical" | "standard";
 
 type InstancedPrimitivesProps = {
   castShadow?: boolean;
+  clearcoat?: number;
+  clearcoatRoughness?: number;
+  color?: string;
   depthWrite?: boolean;
   emissive?: string;
   emissiveIntensity?: number;
@@ -38,6 +41,9 @@ type InstancedPrimitivesProps = {
 
 export const InstancedPrimitives = memo(function InstancedPrimitives({
   castShadow = false,
+  clearcoat = 0,
+  clearcoatRoughness = 0,
+  color: materialColor = "#ffffff",
   depthWrite = true,
   emissive = "#000000",
   emissiveIntensity = 0,
@@ -104,14 +110,35 @@ export const InstancedPrimitives = memo(function InstancedPrimitives({
       {shape === "sphere" ? <sphereGeometry args={[0.5, 10, 7]} /> : null}
       {material === "basic" ? (
         <meshBasicMaterial
+          color={materialColor}
           depthWrite={depthWrite}
           fog={fog}
           opacity={opacity}
           toneMapped={toneMapped}
           transparent={transparent || opacity < 1}
         />
+      ) : material === "physical" ? (
+        <meshPhysicalMaterial
+          clearcoat={clearcoat}
+          clearcoatRoughness={clearcoatRoughness}
+          color={materialColor}
+          depthWrite={depthWrite}
+          emissive={emissive}
+          emissiveIntensity={emissiveIntensity}
+          fog={fog}
+          map={map}
+          metalness={metalness}
+          metalnessMap={metalnessMap}
+          normalMap={normalMap}
+          normalScale={new THREE.Vector2(...normalScale)}
+          opacity={opacity}
+          roughness={roughness}
+          roughnessMap={roughnessMap}
+          transparent={transparent || opacity < 1}
+        />
       ) : (
         <meshStandardMaterial
+          color={materialColor}
           depthWrite={depthWrite}
           emissive={emissive}
           emissiveIntensity={emissiveIntensity}

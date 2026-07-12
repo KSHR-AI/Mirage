@@ -1,8 +1,7 @@
 "use client";
 
-import { Sky } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { memo, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { InstancedPrimitives } from "./InstancedPrimitives";
 import { createCityRng } from "./seed";
@@ -12,6 +11,18 @@ const SUN_OFFSET = [-92, 106, 54] as const;
 const SUN_SHADOW_HALF_EXTENT = 26;
 const DESKTOP_SUN_SHADOW_MAP_SIZE = 1024;
 const MOBILE_SUN_SHADOW_MAP_SIZE = 512;
+
+export const CITY_NIGHT_ATMOSPHERE = Object.freeze({
+  ambientIntensity: 0.34,
+  directionalIntensity: 1.42,
+  fogColor: "#0b202a",
+  fogFar: 310,
+  fogNearDesktop: 122,
+  fogNearMobile: 106,
+  hemisphereIntensity: 0.68,
+  skyHorizon: "#17323c",
+  skyTop: "#020711",
+});
 
 type CityAtmosphereProps = {
   quality: CityQuality;
@@ -36,6 +47,8 @@ export const CityAtmosphere = memo(function CityAtmosphere({
   const shadowTexelSize = (SUN_SHADOW_HALF_EXTENT * 2) / shadowMapSize;
   const sun = useRef<THREE.DirectionalLight>(null);
   const sunTarget = useMemo(() => new THREE.Object3D(), []);
+  const nightSky = useMemo(() => createNightSkyTexture(), []);
+  useEffect(() => () => nightSky.dispose(), [nightSky]);
 
   useFrame(({ camera }) => {
     if (!castSunShadow || !sun.current) return;
@@ -54,28 +67,42 @@ export const CityAtmosphere = memo(function CityAtmosphere({
 
   return (
     <group name="marine-afterlight-atmosphere">
-      <color attach="background" args={["#07151e"]} />
+      <color attach="background" args={["#030b12"]} />
       <fog
         attach="fog"
-        args={["#17333b", quality === "desktop" ? 128 : 112, 330]}
+        args={[
+          CITY_NIGHT_ATMOSPHERE.fogColor,
+          quality === "desktop"
+            ? CITY_NIGHT_ATMOSPHERE.fogNearDesktop
+            : CITY_NIGHT_ATMOSPHERE.fogNearMobile,
+          CITY_NIGHT_ATMOSPHERE.fogFar,
+        ]}
       />
-      <Sky
-        azimuth={0.18}
-        distance={450_000}
-        inclination={0.485}
-        mieCoefficient={0.009}
-        mieDirectionalG={0.88}
-        rayleigh={0.48}
-        turbidity={9.2}
-      />
+      <mesh scale={500}>
+        <sphereGeometry args={[1, 32, 16]} />
+        <meshBasicMaterial
+          depthWrite={false}
+          fog={false}
+          map={nightSky}
+          side={THREE.BackSide}
+          toneMapped={false}
+        />
+      </mesh>
 
-      <ambientLight color="#8ba9af" intensity={0.52} />
-      <hemisphereLight color="#8fc8d1" groundColor="#132428" intensity={1.1} />
+      <ambientLight
+        color="#73939f"
+        intensity={CITY_NIGHT_ATMOSPHERE.ambientIntensity}
+      />
+      <hemisphereLight
+        color="#87afbd"
+        groundColor="#08151b"
+        intensity={CITY_NIGHT_ATMOSPHERE.hemisphereIntensity}
+      />
       <primitive object={sunTarget} />
       <directionalLight
         castShadow={castSunShadow}
-        color="#ffd2aa"
-        intensity={2.35}
+        color="#bdd8df"
+        intensity={CITY_NIGHT_ATMOSPHERE.directionalIntensity}
         position={SUN_OFFSET}
         ref={sun}
         shadow-bias={-0.00035}
@@ -117,6 +144,38 @@ export const CityAtmosphere = memo(function CityAtmosphere({
     </group>
   );
 });
+
+function createNightSkyTexture() {
+  const width = 2;
+  const height = 64;
+  const data = new Uint8Array(width * height * 4);
+  const bottom = [6, 16, 25] as const;
+  const horizon = [23, 50, 60] as const;
+  const top = [2, 7, 17] as const;
+
+  for (let row = 0; row < height; row += 1) {
+    const vertical = row / (height - 1);
+    const lower = vertical < 0.5;
+    const mix = lower ? vertical * 2 : (vertical - 0.5) * 2;
+    const eased = mix * mix * (3 - 2 * mix);
+    const from = lower ? bottom : horizon;
+    const to = lower ? horizon : top;
+    for (let column = 0; column < width; column += 1) {
+      const offset = (row * width + column) * 4;
+      data[offset] = Math.round(from[0] + (to[0] - from[0]) * eased);
+      data[offset + 1] = Math.round(from[1] + (to[1] - from[1]) * eased);
+      data[offset + 2] = Math.round(from[2] + (to[2] - from[2]) * eased);
+      data[offset + 3] = 255;
+    }
+  }
+
+  const texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
 
 function createStars(seed: number, count: number): BoxInstance[] {
   const rng = createCityRng(seed, "stars");

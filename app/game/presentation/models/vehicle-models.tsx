@@ -11,7 +11,10 @@ import {
   type VehicleAppearance,
   type VehicleVisualKind,
 } from "./appearance";
-import { AuthoredHeroCoupeModel } from "./authored-hero-coupe";
+import {
+  AuthoredHeroCoupeModel,
+  AuthoredTrafficCoupeModel,
+} from "./authored-hero-coupe";
 import { ModelAssetBoundary } from "./ModelAssetBoundary";
 import type {
   ModelQuality,
@@ -1067,7 +1070,13 @@ export function HeroCoupeModel(props: VehicleModelProps) {
 }
 
 export function TrafficSedanModel(props: VehicleModelProps) {
-  return <RoadVehicleModel {...props} kind="traffic-sedan" />;
+  const fallback = <RoadVehicleModel {...props} kind="traffic-sedan" />;
+  if (props.quality !== "desktop") return fallback;
+  return (
+    <ModelAssetBoundary fallback={fallback}>
+      <AuthoredTrafficCoupeModel {...props} />
+    </ModelAssetBoundary>
+  );
 }
 
 export function TrafficVanModel(props: VehicleModelProps) {

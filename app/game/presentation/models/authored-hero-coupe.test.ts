@@ -5,6 +5,7 @@ import {
   AUTHORED_HERO_COUPE_REQUIRED_NODES,
   advanceAuthoredWheelSpin,
   getAuthoredHeroCoupeMaterialTreatment,
+  getAuthoredTrafficCoupePalette,
 } from "./authored-hero-coupe";
 
 describe("authored hero coupe", () => {
@@ -67,5 +68,21 @@ describe("authored hero coupe", () => {
     expect(
       getAuthoredHeroCoupeMaterialTreatment("Headlight", false, true, 0),
     ).toMatchObject({ emissiveIntensity: 4.4 });
+  });
+
+  it("assigns stable varied paint to authored traffic coupes", () => {
+    expect(getAuthoredTrafficCoupePalette(704)).toEqual(
+      getAuthoredTrafficCoupePalette(704),
+    );
+    const palettes = new Set(
+      Array.from({ length: 24 }, (_, index) =>
+        JSON.stringify(getAuthoredTrafficCoupePalette(700 + index)),
+      ),
+    );
+
+    expect(palettes.size).toBeGreaterThanOrEqual(5);
+    for (const serialized of palettes) {
+      expect(serialized).toMatch(/#[0-9a-f]{6}/i);
+    }
   });
 });

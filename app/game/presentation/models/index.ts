@@ -12,7 +12,9 @@ export {
 } from "./authored-agent-model";
 export {
   AuthoredHeroCoupeModel,
+  AuthoredTrafficCoupeModel,
   type AuthoredHeroCoupeModelProps,
+  type AuthoredTrafficCoupeModelProps,
 } from "./authored-hero-coupe";
 export {
   clampPresentationSignal,

@@ -133,13 +133,17 @@ function RoadSurface({ instances }: { instances: readonly BoxInstance[] }) {
     set: (typeof materials)["vertical"],
   ) => (
     <InstancedPrimitives
+      clearcoat={0.72}
+      clearcoatRoughness={0.2}
+      color="#89999b"
       instances={roads}
       map={set.map}
-      metalness={0.06}
+      material="physical"
+      metalness={0.16}
       normalMap={set.normalMap}
-      normalScale={[0.38, 0.38]}
+      normalScale={[0.3, 0.3]}
       receiveShadow
-      roughness={0.82}
+      roughness={0.58}
       roughnessMap={set.roughnessMap}
       useInstanceColors={false}
     />

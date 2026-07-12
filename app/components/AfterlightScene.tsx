@@ -34,6 +34,10 @@ import {
   type CityMissionZoneId,
   resolveCityPowerState,
 } from "../game/presentation/city";
+import {
+  createAmbientCivilianDefinitions,
+  createAmbientVehicleDefinitions,
+} from "../game/presentation/city/ambient-life";
 import { AfterlightMissionSetpieces } from "../game/presentation/mission";
 import { withAfterlightCourierPosition } from "../game/presentation/mission/plan";
 import {
@@ -159,34 +163,6 @@ function actorVisualPosition(position: readonly [number, number, number]) {
   ] as [number, number, number];
 }
 
-interface AmbientVehicleDefinition {
-  readonly id: number;
-  readonly axis: "x" | "z";
-  readonly lane: number;
-  readonly offset: number;
-  readonly speed: number;
-  readonly direction: 1 | -1;
-  readonly van: boolean;
-}
-
-function createAmbientVehicles(
-  count: number,
-): readonly AmbientVehicleDefinition[] {
-  const roads = [-84, -56, -28, 0, 28, 56, 84] as const;
-  return Object.freeze(
-    Array.from({ length: count }, (_, index) => ({
-      id: 700 + index,
-      axis: index % 2 === 0 ? ("x" as const) : ("z" as const),
-      lane:
-        roads[(index * 3 + 1) % roads.length] + (index % 4 < 2 ? -2.4 : 2.4),
-      offset: ((index * 37 + 11) % 196) - 98,
-      speed: 4.4 + (index % 5) * 0.72,
-      direction: index % 3 === 0 ? (-1 as const) : (1 as const),
-      van: index % 5 === 0,
-    })),
-  );
-}
-
 function AmbientTraffic({
   quality,
   targetPosition,
@@ -195,9 +171,12 @@ function AmbientTraffic({
   readonly targetPosition: readonly [number, number, number];
 }) {
   const count = qualitySettings(quality).trafficCount;
-  const definitions = useMemo(() => createAmbientVehicles(count), [count]);
+  const definitions = useMemo(
+    () => createAmbientVehicleDefinitions(count),
+    [count],
+  );
   const groups = useRef<Array<THREE.Group | null>>([]);
-  const visualQuality = quality === "high" ? "desktop" : "mobile";
+  const visualQuality = quality === "low" ? "mobile" : "desktop";
 
   useFrame(({ clock }) => {
     const elapsed = clock.elapsedTime;
@@ -250,29 +229,6 @@ function AmbientTraffic({
   );
 }
 
-interface AmbientCivilianDefinition {
-  readonly id: number;
-  readonly x: number;
-  readonly startZ: number;
-  readonly direction: 1 | -1;
-  readonly speed: number;
-}
-
-function createAmbientCivilians(
-  count: number,
-): readonly AmbientCivilianDefinition[] {
-  const roads = [-84, -56, -28, 0, 28, 56, 84] as const;
-  return Object.freeze(
-    Array.from({ length: count }, (_, index) => ({
-      id: 900 + index,
-      x: roads[(index * 5 + 2) % roads.length] + (index % 2 ? 6.6 : -6.6),
-      startZ: ((index * 29 + 17) % 184) - 92,
-      direction: index % 2 ? (1 as const) : (-1 as const),
-      speed: 0.72 + (index % 4) * 0.13,
-    })),
-  );
-}
-
 function AmbientCivilians({
   quality,
   targetPosition,
@@ -281,7 +237,10 @@ function AmbientCivilians({
   readonly targetPosition: readonly [number, number, number];
 }) {
   const count = qualitySettings(quality).civilianCount;
-  const definitions = useMemo(() => createAmbientCivilians(count), [count]);
+  const definitions = useMemo(
+    () => createAmbientCivilianDefinitions(count),
+    [count],
+  );
   const groups = useRef<Array<THREE.Group | null>>([]);
   const visualQuality = quality === "high" ? "desktop" : "mobile";
 
