@@ -18,6 +18,7 @@ import {
   type InstancedModelPart,
 } from "../models/InstancedModelParts";
 import { useSharedKtx2Loader } from "../shared/use-shared-ktx2-loader";
+import { InstancedPrimitives } from "./InstancedPrimitives";
 import {
   AUTHORED_ROUTE_FACADE_NODES,
   type AuthoredFacadePlacement,
@@ -136,6 +137,75 @@ export function AuthoredRouteDetails({
           receiveShadow
         />
       </group>
+      <group name="authored-route-corridor-finish">
+        <InstancedPrimitives
+          instances={plan.surfacePatches}
+          metalness={0.08}
+          receiveShadow
+          roughness={0.68}
+        />
+        <InstancedPrimitives
+          instances={plan.manholes}
+          metalness={0.78}
+          receiveShadow
+          roughness={0.34}
+          shape="cylinder"
+        />
+        <InstancedPrimitives
+          instances={plan.drains}
+          metalness={0.72}
+          receiveShadow
+          roughness={0.28}
+        />
+        <InstancedPrimitives
+          instances={plan.drainSlats}
+          metalness={0.9}
+          receiveShadow
+          roughness={0.2}
+        />
+        <InstancedPrimitives
+          instances={plan.curbPaint}
+          material="basic"
+          toneMapped={false}
+        />
+        <InstancedPrimitives
+          castShadow={shadows}
+          instances={plan.storefrontFrames}
+          metalness={0.38}
+          receiveShadow
+          roughness={0.42}
+        />
+        <InstancedPrimitives
+          depthWrite={false}
+          instances={plan.storefrontGlass}
+          material="basic"
+          opacity={0.62}
+          toneMapped={false}
+          transparent
+        />
+        <InstancedPrimitives
+          castShadow={shadows}
+          instances={plan.awnings}
+          metalness={0.2}
+          receiveShadow
+          roughness={0.5}
+        />
+        <InstancedPrimitives
+          instances={plan.signs}
+          material="basic"
+          toneMapped={false}
+        />
+        {plan.practicalLights.map((light) => (
+          <pointLight
+            color={light.color}
+            decay={2}
+            distance={light.distance}
+            intensity={light.intensity}
+            key={light.id}
+            position={light.position}
+          />
+        ))}
+      </group>
     </group>
   );
 }
@@ -177,25 +247,25 @@ function prepareFacadeMaterial(material: Material) {
   if (name.includes("glass")) {
     material.color.set("#a7c5c3");
     material.emissive.set("#557c80");
-    material.emissiveIntensity = 0.24;
+    material.emissiveIntensity = 0.42;
     material.metalness = 0.08;
     material.roughness = 0.26;
   } else if (name.includes("plaster")) {
     material.color.set("#d3b09d");
     material.emissive.set("#3d241e");
-    material.emissiveIntensity = 0.16;
+    material.emissiveIntensity = 0.2;
     material.metalness = 0.02;
     material.roughness = 0.78;
   } else if (name.includes("trim")) {
     material.color.set("#b8ad9a");
     material.emissive.set("#302821");
-    material.emissiveIntensity = 0.1;
+    material.emissiveIntensity = 0.15;
     material.metalness = 0.12;
     material.roughness = 0.58;
   } else {
     material.color.set("#9da7a5");
     material.emissive.set("#202b2b");
-    material.emissiveIntensity = 0.11;
+    material.emissiveIntensity = 0.16;
     material.metalness = 0.2;
     material.roughness = 0.5;
   }

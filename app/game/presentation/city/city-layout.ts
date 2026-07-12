@@ -341,8 +341,17 @@ function buildSurfaces(seed: number, quality: CityQuality) {
   }
 
   const markCandidates: BoxInstance[] = [];
+  const intersectionClearance = WORLD_LAYOUT.roadWidth / 2 + 2.4;
   for (const line of CITY_ROAD_LINES) {
     for (let axis = -96; axis <= 96; axis += 12) {
+      if (
+        CITY_ROAD_LINES.some(
+          (intersection) =>
+            Math.abs(axis - intersection) < intersectionClearance,
+        )
+      ) {
+        continue;
+      }
       markCandidates.push(
         box(
           `mark-v-${line}-${axis}`,
@@ -408,7 +417,7 @@ function buildSurfaces(seed: number, quality: CityQuality) {
     laneMarks:
       quality === "mobile"
         ? markCandidates
-            .filter((_, index) => index % 2 === 0)
+            .filter((_, index) => Math.floor(index / 2) % 2 === 0)
             .slice(0, limits.laneMarks)
         : markCandidates.slice(0, limits.laneMarks),
     puddles: puddles.slice(0, limits.puddles),

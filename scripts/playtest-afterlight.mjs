@@ -16,6 +16,7 @@ const VALID_SCENARIOS = new Set([
   "desktop",
   "narrow",
   "mobile",
+  "route",
 ]);
 
 function parseArguments(argv) {
@@ -43,7 +44,7 @@ function parseArguments(argv) {
 }
 
 function usage() {
-  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, compact, desktop, narrow, or mobile\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
+  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, compact, desktop, narrow, mobile, or route\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
 }
 
 function timestamp() {
@@ -359,8 +360,11 @@ async function inspectCanvas(scenario, page, outDir, name) {
   );
 }
 
-async function startGame(page, scenario, outDir) {
-  await page.goto("/", { waitUntil: "domcontentloaded", timeout: 60_000 });
+async function startGame(page, scenario, outDir, pathname = "/") {
+  await page.goto(pathname, {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
   await page.getByRole("button", { name: "Start the job" }).click();
   const shell = page.getByTestId("afterlight-game");
   await shell.waitFor({ state: "visible", timeout: 30_000 });
@@ -383,6 +387,109 @@ async function startGame(page, scenario, outDir) {
     "tick advances",
   );
   return shell;
+}
+
+async function routeInspectionScenario(
+  browser,
+  baseURL,
+  outDir,
+  headed,
+  mobile,
+) {
+  const scenario = {
+    checks: [],
+    id: mobile ? "route-corridor-mobile" : "route-corridor-desktop",
+    screenshots: [],
+  };
+  const startedAt = Date.now();
+  const context = await browser.newContext({
+    baseURL,
+    ...(mobile
+      ? {
+          deviceScaleFactor: 2.75,
+          hasTouch: true,
+          isMobile: true,
+          viewport: { height: 844, width: 390 },
+        }
+      : { viewport: { height: 720, width: 1280 } }),
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => errors.push(`page: ${error.message}`));
+  await page.addInitScript((touchEnabled) => {
+    Object.defineProperty(navigator, "hardwareConcurrency", {
+      configurable: true,
+      value: 4,
+    });
+    Object.defineProperty(navigator, "deviceMemory", {
+      configurable: true,
+      value: 4,
+    });
+    if (!touchEnabled) return;
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      value: 5,
+    });
+    HTMLElement.prototype.setPointerCapture = () => undefined;
+    HTMLElement.prototype.releasePointerCapture = () => undefined;
+  }, mobile);
+
+  try {
+    await startGame(page, scenario, outDir, "/?inspect=route-block");
+    await page.waitForFunction(
+      () =>
+        document.documentElement.dataset.mirageInspectionPose === "route-block",
+    );
+    const inspectionPose = await page.evaluate(
+      () => document.documentElement.dataset.mirageInspectionPose,
+    );
+    addCheck(
+      scenario,
+      "route-inspection-pose",
+      inspectionPose === "route-block",
+      inspectionPose,
+      "route-block",
+    );
+
+    if (mobile) {
+      const labels = [
+        "Move",
+        "Look",
+        "Enter vehicle",
+        "Fire",
+        "Sprint",
+        "Jump",
+      ];
+      const visible = {};
+      for (const label of labels) {
+        visible[label] = await page
+          .getByRole("button", { name: label, exact: true })
+          .isVisible();
+      }
+      addCheck(
+        scenario,
+        "route-touch-controls",
+        Object.values(visible).every(Boolean),
+        visible,
+        "all visible",
+      );
+    }
+
+    await capture(scenario, page, outDir, "corridor");
+    addCheck(scenario, "runtime-errors", errors.length === 0, errors, "none");
+    completeScenario(scenario);
+  } catch (error) {
+    failScenario(scenario, error);
+    await capture(scenario, page, outDir, "failure").catch(() => undefined);
+  } finally {
+    scenario.browserErrors = errors;
+    scenario.durationMs = Date.now() - startedAt;
+    if (!headed) await context.close();
+  }
+  return scenario;
 }
 
 async function desktopScenario(browser, baseURL, outDir, headed) {
@@ -1343,6 +1450,13 @@ async function main() {
     process.stdout.write(usage());
     return;
   }
+  const target = new URL(options.url);
+  if (
+    options.scenario === "route" &&
+    !["127.0.0.1", "localhost"].includes(target.hostname)
+  ) {
+    throw new Error("The route inspection scenario is development-only");
+  }
   const outDir = path.resolve(
     ROOT,
     options.out ?? `.artifacts/playtest/${timestamp()}`,
@@ -1374,6 +1488,26 @@ async function main() {
           options.headed,
         ),
       );
+    if (options.scenario === "route") {
+      scenarios.push(
+        await routeInspectionScenario(
+          browser,
+          options.url,
+          outDir,
+          options.headed,
+          false,
+        ),
+      );
+      scenarios.push(
+        await routeInspectionScenario(
+          browser,
+          options.url,
+          outDir,
+          options.headed,
+          true,
+        ),
+      );
+    }
   } finally {
     await browser.close();
     if (server) server.kill("SIGTERM");

@@ -2,7 +2,14 @@
 
 import { useLoader } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo } from "react";
-import { Color, Material, Mesh, PropertyBinding, type Object3D } from "three";
+import {
+  Color,
+  Material,
+  Mesh,
+  MeshStandardMaterial,
+  PropertyBinding,
+  type Object3D,
+} from "three";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
@@ -134,6 +141,12 @@ function applyBlackoutMaterialState(material: Material, powered: boolean) {
     material.color.setHex(baseColorHex);
     if (material.name.startsWith("MI_FakeInterior_")) {
       material.color.multiplyScalar(powered ? 1 : 0.12);
+    } else if (powered && material.name === "MI_Concrete") {
+      material.color.lerp(new Color("#9ba8a5"), 0.34);
+    } else if (powered && material.name === "MI_Trim_MetalConcrete") {
+      material.color.lerp(new Color("#78888a"), 0.3);
+    } else if (powered && material.name === "MI_Trim_Dark") {
+      material.color.lerp(new Color("#526367"), 0.28);
     }
   }
 
@@ -148,6 +161,24 @@ function applyBlackoutMaterialState(material: Material, powered: boolean) {
         ? baseOpacity
         : Math.max(0.24, baseOpacity * 0.6);
       material.transparent = material.opacity < 1;
+    }
+  }
+
+  if (material instanceof MeshStandardMaterial) {
+    material.envMapIntensity = material.name === "MI_Glass" ? 1.45 : 1.05;
+    if (material.name.startsWith("MI_FakeInterior_")) {
+      material.emissive.set(powered ? "#ffe7bd" : "#111616");
+      material.emissiveIntensity = powered ? 0.52 : 0.025;
+      material.emissiveMap = material.map;
+      material.metalness = 0;
+      material.roughness = 0.72;
+    } else if (material.name.startsWith("MI_Interior")) {
+      material.emissive.set(powered ? "#6d4d35" : "#080b0b");
+      material.emissiveIntensity = powered ? 0.16 : 0.015;
+    } else if (material.name === "MI_Glass") {
+      material.color.set(powered ? "#9fc6c5" : "#263638");
+      material.metalness = 0.18;
+      material.roughness = 0.16;
     }
   }
 

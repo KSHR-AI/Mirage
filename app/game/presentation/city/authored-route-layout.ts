@@ -1,4 +1,6 @@
+import { AUTHORED_DOWNTOWN_PLACEMENTS } from "../../content/authored-downtown";
 import type {
+  BoxInstance,
   BuildingInstance,
   CityLayout,
   CityQuality,
@@ -8,6 +10,51 @@ import type {
 } from "./types";
 
 export const AUTHORED_ROUTE_FACADE_TARGET = "building-14-14-0";
+
+export const AUTHORED_ROUTE_FACADE_TARGETS = Object.freeze([
+  Object.freeze({
+    id: AUTHORED_ROUTE_FACADE_TARGET,
+    includeFireEscape: false,
+    side: "west" as const,
+    storefront: true,
+  }),
+  Object.freeze({
+    id: "building--14-14-1",
+    includeFireEscape: false,
+    side: "east" as const,
+    storefront: true,
+  }),
+  Object.freeze({
+    id: AUTHORED_ROUTE_FACADE_TARGET,
+    includeFireEscape: true,
+    side: "north" as const,
+    storefront: false,
+  }),
+  Object.freeze({
+    id: "building-14-14-1",
+    includeFireEscape: false,
+    side: "north" as const,
+    storefront: true,
+  }),
+  Object.freeze({
+    id: "building--14-14-1",
+    includeFireEscape: false,
+    side: "north" as const,
+    storefront: true,
+  }),
+  Object.freeze({
+    id: "building-14--14-0",
+    includeFireEscape: false,
+    side: "south" as const,
+    storefront: true,
+  }),
+  Object.freeze({
+    id: "building--14--14-1",
+    includeFireEscape: false,
+    side: "south" as const,
+    storefront: true,
+  }),
+] as const);
 
 export const AUTHORED_ROUTE_FACADE_NODES = Object.freeze({
   base: "base_standard_01",
@@ -35,14 +82,34 @@ export type AuthoredFacadePlacement = AuthoredModelPlacement & {
 };
 
 export type AuthoredRoutePlan = {
+  readonly awnings: readonly BoxInstance[];
   readonly barriers: readonly AuthoredModelPlacement[];
   readonly bins: readonly AuthoredModelPlacement[];
+  readonly curbPaint: readonly BoxInstance[];
+  readonly drainSlats: readonly BoxInstance[];
+  readonly drains: readonly BoxInstance[];
   readonly facade: readonly AuthoredFacadePlacement[];
   readonly fireEscapes: readonly AuthoredModelPlacement[];
   readonly licensedPropIds: readonly string[];
   readonly licensedStreetlightIds: readonly string[];
+  readonly manholes: readonly BoxInstance[];
+  readonly practicalLights: readonly RoutePracticalLight[];
+  readonly signs: readonly BoxInstance[];
   readonly streetlights: readonly AuthoredModelPlacement[];
+  readonly storefrontFrames: readonly BoxInstance[];
+  readonly storefrontGlass: readonly BoxInstance[];
+  readonly surfacePatches: readonly BoxInstance[];
 };
+
+export type RoutePracticalLight = {
+  readonly color: string;
+  readonly distance: number;
+  readonly id: string;
+  readonly intensity: number;
+  readonly position: CityVec3;
+};
+
+type FacadeSide = "east" | "north" | "south" | "west";
 
 const ROUTE_ANCHORS = Object.freeze([
   [70, 42],
@@ -57,6 +124,11 @@ const STREET_ASSET_LIMITS: Readonly<
   desktop: Object.freeze({ barriers: 5, bins: 5, streetlights: 7 }),
   mobile: Object.freeze({ barriers: 1, bins: 1, streetlights: 2 }),
 });
+
+const ROUTE_DOWNTOWN_STOREFRONT_IDS = Object.freeze([
+  "authored-downtown-medium",
+  "authored-downtown-small",
+] as const);
 
 function routeDistanceSquared(feature: PointFeature): number {
   let nearest = Number.POSITIVE_INFINITY;
@@ -98,13 +170,16 @@ function facadePlacement(
   nodeName: AuthoredRouteFacadeNodeName,
   position: CityVec3,
   scale: CityVec3,
+  rotationY: number,
 ): AuthoredFacadePlacement {
-  return { id, nodeName, position, rotationY: 0, scale };
+  return { id, nodeName, position, rotationY, scale };
 }
 
 function createFacadePlan(
   building: BuildingInstance | undefined,
   quality: CityQuality,
+  side: FacadeSide,
+  includeFireEscape: boolean,
 ): {
   facade: AuthoredFacadePlacement[];
   fireEscapes: AuthoredModelPlacement[];
@@ -115,39 +190,67 @@ function createFacadePlan(
   const width = building.scale[0];
   const height = building.scale[1];
   const depth = building.scale[2];
+  const lateral = side === "north" || side === "south";
+  const span = lateral ? width : depth;
   const baseY = building.position[1] - height / 2;
   const bayCount = Math.max(
     2,
-    Math.min(quality === "desktop" ? 3 : 2, Math.floor(width / 2.7)),
+    Math.min(quality === "desktop" ? 3 : 2, Math.floor(span / 2.7)),
   );
   const floorCount = Math.max(
     2,
-    Math.min(quality === "desktop" ? 5 : 3, Math.floor(height / 3)),
+    Math.min(quality === "desktop" ? 12 : 4, Math.floor(height / 3)),
   );
-  const bayWidth = width / bayCount;
+  const bayWidth = span / bayCount;
   const floorHeight = 3;
   const moduleScale: CityVec3 = [bayWidth / 3, floorHeight / 3, 1];
-  const faceZ = building.position[2] - depth / 2 - 0.025;
+  const outwardX = side === "west" ? -1 : side === "east" ? 1 : 0;
+  const outwardZ = side === "north" ? -1 : side === "south" ? 1 : 0;
+  const rotationY =
+    side === "north"
+      ? 0
+      : side === "south"
+        ? Math.PI
+        : side === "west"
+          ? -Math.PI / 2
+          : Math.PI / 2;
+  const faceX = building.position[0] + outwardX * (width / 2 + 0.025);
+  const faceZ = building.position[2] + outwardZ * (depth / 2 + 0.025);
   const doorBay = Math.floor(bayCount / 2);
+
+  const modulePosition = (
+    bay: number,
+    y: number,
+    detailOffset = 0,
+  ): CityVec3 => {
+    const along =
+      (lateral ? building.position[0] : building.position[2]) -
+      span / 2 +
+      bayWidth * (bay + 0.5);
+    return lateral
+      ? [along, y, faceZ + outwardZ * detailOffset]
+      : [faceX + outwardX * detailOffset, y, along];
+  };
 
   for (let floor = 0; floor < floorCount; floor += 1) {
     const floorY = baseY + floor * floorHeight;
     for (let bay = 0; bay < bayCount; bay += 1) {
-      const x = building.position[0] - width / 2 + bayWidth * (bay + 0.5);
-      const prefix = `${building.id}-facade-${floor}-${bay}`;
+      const prefix = `${building.id}-facade-${side}-${floor}-${bay}`;
       if (floor === 0 && bay === doorBay) {
         facade.push(
           facadePlacement(
             `${prefix}-wall`,
             AUTHORED_ROUTE_FACADE_NODES.doorWall,
-            [x, floorY, faceZ],
+            modulePosition(bay, floorY),
             moduleScale,
+            rotationY,
           ),
           facadePlacement(
             `${prefix}-door`,
             AUTHORED_ROUTE_FACADE_NODES.door,
-            [x, floorY, faceZ - 0.055],
+            modulePosition(bay, floorY, 0.055),
             moduleScale,
+            rotationY,
           ),
         );
         continue;
@@ -160,46 +263,51 @@ function createFacadePlan(
           small
             ? AUTHORED_ROUTE_FACADE_NODES.smallWindowWall
             : AUTHORED_ROUTE_FACADE_NODES.largeWindowWall,
-          [x, floorY, faceZ],
+          modulePosition(bay, floorY),
           moduleScale,
+          rotationY,
         ),
         facadePlacement(
           `${prefix}-window`,
           small
             ? AUTHORED_ROUTE_FACADE_NODES.smallWindow
             : AUTHORED_ROUTE_FACADE_NODES.largeWindow,
-          [x, floorY, faceZ - 0.055],
+          modulePosition(bay, floorY, 0.055),
           moduleScale,
+          rotationY,
         ),
       );
     }
   }
 
   for (let bay = 0; bay < bayCount; bay += 1) {
-    const x = building.position[0] - width / 2 + bayWidth * (bay + 0.5);
     facade.push(
       facadePlacement(
-        `${building.id}-base-${bay}`,
+        `${building.id}-base-${side}-${bay}`,
         AUTHORED_ROUTE_FACADE_NODES.base,
-        [x, baseY, faceZ - 0.01],
+        modulePosition(bay, baseY, 0.01),
         [bayWidth / 3, 1, 1],
+        rotationY,
       ),
       facadePlacement(
-        `${building.id}-cornice-${bay}`,
+        `${building.id}-cornice-${side}-${bay}`,
         AUTHORED_ROUTE_FACADE_NODES.cornice,
-        [x, baseY + floorCount * floorHeight - 0.18, faceZ - 0.01],
+        modulePosition(bay, baseY + floorCount * floorHeight - 0.18, 0.01),
         [bayWidth / 3, 1, 1],
+        rotationY,
       ),
     );
   }
 
-  if (quality !== "desktop") return { facade, fireEscapes: [] };
+  if (quality !== "desktop" || !includeFireEscape || side !== "north") {
+    return { facade, fireEscapes: [] };
+  }
   const escapeScale = Math.min(0.86, Math.max(0.58, (height - 1) / 9.76));
   return {
     facade,
     fireEscapes: [
       {
-        id: `${building.id}-fire-escape`,
+        id: `${building.id}-fire-escape-${side}`,
         position: [
           building.position[0] - width / 2 - 0.7,
           baseY,
@@ -209,6 +317,262 @@ function createFacadePlan(
         scale: [escapeScale, escapeScale, escapeScale],
       },
     ],
+  };
+}
+
+type StorefrontPlan = {
+  readonly awnings: readonly BoxInstance[];
+  readonly frames: readonly BoxInstance[];
+  readonly glass: readonly BoxInstance[];
+  readonly signs: readonly BoxInstance[];
+};
+
+function routeBox(
+  id: string,
+  position: CityVec3,
+  scale: CityVec3,
+  color: string,
+  rotationY = 0,
+): BoxInstance {
+  return { color, id, position, rotationY, scale };
+}
+
+function createStorefrontPlan(
+  building: BuildingInstance,
+  quality: CityQuality,
+  side: FacadeSide,
+  ordinal: number,
+): StorefrontPlan {
+  const width = building.scale[0];
+  const depth = building.scale[2];
+  const lateral = side === "north" || side === "south";
+  const span = lateral ? width : depth;
+  const baseY = building.position[1] - building.scale[1] / 2;
+  const outwardX = side === "west" ? -1 : side === "east" ? 1 : 0;
+  const outwardZ = side === "north" ? -1 : side === "south" ? 1 : 0;
+  const faceX = building.position[0] + outwardX * (width / 2 + 0.12);
+  const faceZ = building.position[2] + outwardZ * (depth / 2 + 0.12);
+  const bayCount = quality === "desktop" ? 3 : 2;
+  const bayWidth = span / bayCount;
+  const glass: BoxInstance[] = [];
+  const frames: BoxInstance[] = [];
+  const position = (along: number, y: number, detailOffset = 0): CityVec3 =>
+    lateral
+      ? [along, y, faceZ + outwardZ * detailOffset]
+      : [faceX + outwardX * detailOffset, y, along];
+
+  for (let bay = 0; bay < bayCount; bay += 1) {
+    const along =
+      (lateral ? building.position[0] : building.position[2]) -
+      span / 2 +
+      bayWidth * (bay + 0.5);
+    glass.push(
+      routeBox(
+        `${building.id}-storefront-glass-${side}-${bay}`,
+        position(along, baseY + 1.34),
+        lateral
+          ? [bayWidth * 0.82, 2.46, 0.075]
+          : [0.075, 2.46, bayWidth * 0.82],
+        (ordinal + bay) % 2 === 0 ? "#548083" : "#8d6757",
+      ),
+    );
+  }
+  for (let edge = 0; edge <= bayCount; edge += 1) {
+    const along =
+      (lateral ? building.position[0] : building.position[2]) -
+      span / 2 +
+      bayWidth * edge;
+    frames.push(
+      routeBox(
+        `${building.id}-storefront-frame-${side}-${edge}`,
+        position(along, baseY + 1.36, 0.045),
+        lateral ? [0.09, 2.7, 0.1] : [0.1, 2.7, 0.09],
+        "#18282c",
+      ),
+    );
+  }
+
+  return {
+    awnings: [
+      routeBox(
+        `${building.id}-storefront-awning-${side}`,
+        position(
+          lateral ? building.position[0] : building.position[2],
+          baseY + 2.86,
+          0.46,
+        ),
+        lateral ? [span * 0.88, 0.16, 1.04] : [1.04, 0.16, span * 0.88],
+        ordinal % 2 === 0 ? "#b84f45" : "#28777b",
+      ),
+    ],
+    frames,
+    glass,
+    signs: [
+      routeBox(
+        `${building.id}-storefront-sign-${side}`,
+        position(
+          lateral ? building.position[0] : building.position[2],
+          baseY + 3.43,
+          0.08,
+        ),
+        lateral ? [span * 0.58, 0.5, 0.09] : [0.09, 0.5, span * 0.58],
+        ordinal % 2 === 0 ? "#ff7866" : "#5de1d8",
+      ),
+    ],
+  };
+}
+
+function authoredDowntownStorefrontBuilding(
+  id: (typeof ROUTE_DOWNTOWN_STOREFRONT_IDS)[number],
+): BuildingInstance | undefined {
+  const placement = AUTHORED_DOWNTOWN_PLACEMENTS.find(
+    (candidate) => candidate.id === id,
+  );
+  if (!placement) return undefined;
+  const { collision } = placement;
+  const height = collision.maxY - collision.minY;
+  return {
+    color: "#46565b",
+    district: "afterlight",
+    id: placement.id,
+    position: [
+      (collision.minX + collision.maxX) / 2,
+      collision.minY + height / 2,
+      (collision.minZ + collision.maxZ) / 2,
+    ],
+    roofHeight: 0,
+    rotationY: 0,
+    scale: [
+      collision.maxX - collision.minX,
+      height,
+      collision.maxZ - collision.minZ,
+    ],
+  };
+}
+
+function createRouteSurfacePlan(quality: CityQuality) {
+  const patches = [
+    routeBox(
+      "route-patch-south",
+      [0.8, 0.178, 13.5],
+      [3.8, 0.018, 5.4],
+      "#25383d",
+      0.08,
+    ),
+    routeBox(
+      "route-patch-west",
+      [-13.8, 0.181, -0.7],
+      [5.6, 0.018, 3.2],
+      "#213238",
+      -0.06,
+    ),
+    routeBox(
+      "route-patch-north",
+      [-0.9, 0.178, -15.2],
+      [3.3, 0.018, 4.6],
+      "#2a3c40",
+      0.04,
+    ),
+  ];
+  const manholePositions: readonly CityVec3[] = [
+    [1.7, 0.19, 11.2],
+    [-11.4, 0.19, 1.6],
+    [-1.8, 0.19, -13.6],
+    [13.4, 0.19, -1.7],
+  ];
+  const manholes = manholePositions.map((position, index) =>
+    routeBox(
+      `route-manhole-${index}`,
+      position,
+      [1.25, 0.028, 1.25],
+      "#344247",
+      index * 0.31,
+    ),
+  );
+  const drainPositions = [
+    [-4.35, 0.195, 8.5],
+    [4.35, 0.195, -8.5],
+    [-8.5, 0.195, -4.35],
+    [8.5, 0.195, 4.35],
+  ] as const;
+  const drains = drainPositions.map((position, index) =>
+    routeBox(
+      `route-drain-${index}`,
+      position,
+      index < 2 ? [0.68, 0.025, 1.25] : [1.25, 0.025, 0.68],
+      "#202d31",
+    ),
+  );
+  const drainSlats = drainPositions.flatMap((position, drainIndex) =>
+    Array.from({ length: 5 }, (_, slatIndex) => {
+      const offset = (slatIndex - 2) * 0.2;
+      const vertical = drainIndex < 2;
+      return routeBox(
+        `route-drain-${drainIndex}-slat-${slatIndex}`,
+        [
+          position[0] + (vertical ? 0 : offset),
+          position[1] + 0.018,
+          position[2] + (vertical ? offset : 0),
+        ],
+        vertical ? [0.56, 0.018, 0.07] : [0.07, 0.018, 0.56],
+        "#667377",
+      );
+    }),
+  );
+  const curbPaint = [
+    routeBox("route-curb-ne", [5.02, 0.325, -10], [0.11, 0.05, 7], "#d2594f"),
+    routeBox("route-curb-sw", [-5.02, 0.325, 10], [0.11, 0.05, 7], "#d2594f"),
+    routeBox("route-curb-nw", [-10, 0.325, -5.02], [7, 0.05, 0.11], "#d8b957"),
+    routeBox("route-curb-se", [10, 0.325, 5.02], [7, 0.05, 0.11], "#d8b957"),
+  ];
+  const practicalLights: RoutePracticalLight[] = [
+    {
+      color: "#ffd28d",
+      distance: 21,
+      id: "route-practical-ne",
+      intensity: 24,
+      position: [5.8, 4.7, -5.8],
+    },
+    {
+      color: "#b8e9e4",
+      distance: 20,
+      id: "route-practical-sw",
+      intensity: 19,
+      position: [-5.8, 4.7, 5.8],
+    },
+    {
+      color: "#ffc77f",
+      distance: 20,
+      id: "route-practical-nw",
+      intensity: 21,
+      position: [-5.8, 4.7, -5.8],
+    },
+    {
+      color: "#a9dcd9",
+      distance: 20,
+      id: "route-practical-se",
+      intensity: 17,
+      position: [5.8, 4.7, 5.8],
+    },
+  ];
+
+  if (quality === "desktop") {
+    return {
+      curbPaint,
+      drainSlats,
+      drains,
+      manholes,
+      patches,
+      practicalLights,
+    };
+  }
+  return {
+    curbPaint: curbPaint.slice(0, 2),
+    drainSlats: [],
+    drains: drains.slice(0, 2),
+    manholes: manholes.slice(0, 2),
+    patches: patches.slice(0, 1),
+    practicalLights: practicalLights.slice(0, 2),
   };
 }
 
@@ -227,18 +591,59 @@ export function createAuthoredRoutePlan(layout: CityLayout): AuthoredRoutePlan {
     limits.barriers,
   );
   const streetlights = closestToRoute(layout.streetlights, limits.streetlights);
-  const target = layout.buildings.find(
-    (building) => building.id === AUTHORED_ROUTE_FACADE_TARGET,
+  const facadeTargets = AUTHORED_ROUTE_FACADE_TARGETS.slice(
+    0,
+    layout.quality === "desktop" ? AUTHORED_ROUTE_FACADE_TARGETS.length : 3,
   );
-  const facade = createFacadePlan(target, layout.quality);
+  const facadePlans = facadeTargets.map((target) =>
+    createFacadePlan(
+      layout.buildings.find((building) => building.id === target.id),
+      layout.quality,
+      target.side,
+      target.includeFireEscape,
+    ),
+  );
+  const proceduralStorefrontPlans = facadeTargets.flatMap((target, index) => {
+    if (!target.storefront) return [];
+    const building = layout.buildings.find(
+      (candidate) => candidate.id === target.id,
+    );
+    return building
+      ? [createStorefrontPlan(building, layout.quality, target.side, index)]
+      : [];
+  });
+  const authoredStorefrontPlans = ROUTE_DOWNTOWN_STOREFRONT_IDS.slice(
+    0,
+    layout.quality === "desktop" ? ROUTE_DOWNTOWN_STOREFRONT_IDS.length : 1,
+  ).flatMap((id, index) => {
+    const building = authoredDowntownStorefrontBuilding(id);
+    return building
+      ? [createStorefrontPlan(building, layout.quality, "south", index + 8)]
+      : [];
+  });
+  const storefrontPlans = [
+    ...proceduralStorefrontPlans,
+    ...authoredStorefrontPlans,
+  ];
+  const surface = createRouteSurfacePlan(layout.quality);
 
   return {
+    awnings: storefrontPlans.flatMap((plan) => plan.awnings),
     barriers: barriers.map((barrier) => featurePlacement(barrier, 1)),
     bins: bins.map((bin) => featurePlacement(bin, 1)),
-    facade: facade.facade,
-    fireEscapes: facade.fireEscapes,
+    curbPaint: surface.curbPaint,
+    drainSlats: surface.drainSlats,
+    drains: surface.drains,
+    facade: facadePlans.flatMap((plan) => plan.facade),
+    fireEscapes: facadePlans.flatMap((plan) => plan.fireEscapes),
     licensedPropIds: [...bins, ...barriers].map((prop) => prop.id),
     licensedStreetlightIds: streetlights.map((light) => light.id),
+    manholes: surface.manholes,
+    practicalLights: surface.practicalLights,
+    signs: storefrontPlans.flatMap((plan) => plan.signs),
     streetlights: streetlights.map((light) => featurePlacement(light, 3.1)),
+    storefrontFrames: storefrontPlans.flatMap((plan) => plan.frames),
+    storefrontGlass: storefrontPlans.flatMap((plan) => plan.glass),
+    surfacePatches: surface.patches,
   };
 }

@@ -65,6 +65,33 @@ describe("createBayCityLayout", () => {
     ).toBe(true);
   });
 
+  it("keeps lane dashes out of intersections on every quality tier", () => {
+    const intersectionClearance = WORLD_LAYOUT.roadWidth / 2 + 2.4;
+
+    for (const quality of ["desktop", "mobile"] as const) {
+      const laneMarks = createBayCityLayout({ quality, seed: 2407 }).laneMarks;
+      expect(laneMarks.some((mark) => mark.id.startsWith("mark-v-"))).toBe(
+        true,
+      );
+      expect(laneMarks.some((mark) => mark.id.startsWith("mark-h-"))).toBe(
+        true,
+      );
+
+      for (const mark of laneMarks) {
+        const travel = mark.id.startsWith("mark-v-")
+          ? mark.position[2]
+          : mark.position[0];
+        expect(
+          CITY_ROAD_LINES.every(
+            (intersection) =>
+              Math.abs(travel - intersection) >= intersectionClearance,
+          ),
+          `${mark.id} crosses an intersection`,
+        ).toBe(true);
+      }
+    }
+  });
+
   it("reproduces the same city for a seed", () => {
     const first = createBayCityLayout({
       quality: "desktop",

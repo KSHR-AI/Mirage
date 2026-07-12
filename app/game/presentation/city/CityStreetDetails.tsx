@@ -74,7 +74,7 @@ export const CityStreetDetails = memo(function CityStreetDetails({
         depthWrite={false}
         instances={lights.halos}
         material="basic"
-        opacity={0.12}
+        opacity={0.08}
         shape="sphere"
         toneMapped={false}
         transparent
@@ -175,7 +175,7 @@ function createStreetlightParts(
       id: `${feature.id}-halo`,
       position: lamp,
       rotationY: 0,
-      scale: [0.92, 0.62, 0.92],
+      scale: [0.56, 0.36, 0.56],
     });
   }
   return { arms, bulbs, halos, poles };

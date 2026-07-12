@@ -429,12 +429,18 @@ export const AfterlightScene = memo(function AfterlightScene({
 
   useEffect(() => {
     const enabled = process.env.NODE_ENV === "development";
-    const pose = resolvePlaytestInspectionPose(
-      window.location.search,
-      enabled,
-    );
+    const pose = resolvePlaytestInspectionPose(window.location.search, enabled);
     if (!pose) return;
+    const inspectionKey = new URLSearchParams(window.location.search).get(
+      "inspect",
+    );
+    if (inspectionKey) {
+      document.documentElement.dataset.mirageInspectionPose = inspectionKey;
+    }
     queueMicrotask(() => setInspectionPose(pose));
+    return () => {
+      delete document.documentElement.dataset.mirageInspectionPose;
+    };
   }, []);
 
   useEffect(() => {
