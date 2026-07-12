@@ -20,7 +20,10 @@ import {
   createAfterlightJob,
 } from "../game/missions/afterlight-job";
 import { qualitySettings, type GameQualityTier } from "../game/performance";
-import { resolvePlaytestInspectionPose } from "../game/playtest/inspection-camera";
+import {
+  isPlaytestAimInspection,
+  resolvePlaytestInspectionPose,
+} from "../game/playtest/inspection-camera";
 import {
   AfterlightCameraRig,
   type AfterlightCameraImpulse,
@@ -330,16 +333,18 @@ function DynamicActor({
   actor,
   quality,
   combatReady,
+  animationOverride,
   player,
   police,
 }: {
   readonly actor: ActorState;
   readonly quality: ModelQuality;
   readonly combatReady: boolean;
+  readonly animationOverride?: AgentAnimationState;
   readonly player?: boolean;
   readonly police?: boolean;
 }) {
-  const animation = animationForActor(actor, combatReady);
+  const animation = animationOverride ?? animationForActor(actor, combatReady);
   const common = {
     animation,
     direction: actor.pose.rotationY,
@@ -417,11 +422,16 @@ export const AfterlightScene = memo(function AfterlightScene({
   const gl = useThree((three) => three.gl);
   const rootScene = useThree((three) => three.scene);
   const [inspectionPose, setInspectionPose] = useState<Pose | null>(null);
+  const inspectionAim =
+    process.env.NODE_ENV === "development" &&
+    typeof window !== "undefined" &&
+    isPlaytestAimInspection(window.location.search, true);
 
   useEffect(() => {
+    const enabled = process.env.NODE_ENV === "development";
     const pose = resolvePlaytestInspectionPose(
       window.location.search,
-      process.env.NODE_ENV === "development",
+      enabled,
     );
     if (!pose) return;
     queueMicrotask(() => setInspectionPose(pose));
@@ -584,7 +594,8 @@ export const AfterlightScene = memo(function AfterlightScene({
       {!driving ? (
         <DynamicActor
           actor={player}
-          combatReady={input.aim}
+          animationOverride={inspectionAim ? "aim" : undefined}
+          combatReady={input.aim || inspectionAim}
           player
           quality={visualQuality}
         />
@@ -658,7 +669,7 @@ export const AfterlightScene = memo(function AfterlightScene({
       />
 
       <AfterlightCameraRig
-        aim={!driving && input.aim}
+        aim={!driving && (input.aim || inspectionAim)}
         controlledOrientation={
           inspectionPose
             ? { pitch: 0, yaw: inspectionPose.rotationY }

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-11T23:01:03.000Z",
+  "generatedAt": "2026-07-12T00:13:13.000Z",
   "policy": {
     "commercialUseRequired": true,
     "standaloneRedistribution": false,
@@ -275,6 +275,42 @@
           "maxTriangles": 7500,
           "bytes": 627736,
           "sha256": "540b9223b326b0aba2cd49ae0c23f68d00aa8607179fea5fb9679d5108677085"
+        }
+      ]
+    },
+    {
+      "id": "quaternius-signal-9-pistol",
+      "name": "Ultimate Guns Pack - Signal-9 Pistol",
+      "kind": "optimized-gltf-character-equipment",
+      "source": {
+        "provider": "Quaternius",
+        "pageUrl": "https://quaternius.com/packs/ultimategun.html",
+        "downloadUrl": "https://opengameart.org/sites/default/files/ultimate_gun_pack_by_quaternius.zip",
+        "mirrorPageUrl": "https://opengameart.org/content/low-poly-guns-pack",
+        "authors": [
+          "Quaternius"
+        ]
+      },
+      "license": {
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "commercialUse": true,
+        "redistributableInLargerWork": true,
+        "attributionRequired": false,
+        "attributionRequirements": "None; Quaternius credit is appreciated."
+      },
+      "acquiredAt": "2026-07-11",
+      "modifications": [
+        "Selected Pistol_3 from the official Ultimate Guns Pack archive.",
+        "Converted the FBX source to glTF with Assimp, then deduplicated, joined, welded, pruned, simplified, and high-level Meshopt-compressed the browser asset."
+      ],
+      "files": [
+        {
+          "path": "public/game-assets/models/characters/signal_9_pistol.glb",
+          "role": "skeletal-player-and-response-sidearm",
+          "maxTriangles": 1600,
+          "bytes": 21152,
+          "sha256": "dacf3a1bae54bc0bcaf2d839698f37073664a3e9c952c4cb81993ee53f66d164"
         }
       ]
     },

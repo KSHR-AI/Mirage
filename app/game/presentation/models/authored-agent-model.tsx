@@ -1,19 +1,25 @@
 "use client";
 
 import { useAnimations, useGLTF } from "@react-three/drei";
+import { createPortal, useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
   Color,
+  Group,
   LoopOnce,
   LoopRepeat,
   Material,
   MathUtils,
   Mesh,
   MeshStandardMaterial,
+  PropertyBinding,
   type AnimationAction,
   type AnimationClip,
+  type BufferGeometry,
   type Object3D,
+  Vector3,
 } from "three";
+import { toCreasedNormals } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 
 import {
@@ -22,7 +28,7 @@ import {
   type AgentAppearance,
   type AgentVisualRole,
 } from "./appearance";
-import { MuzzleFlash } from "./effects";
+import { Signal9Equipment } from "./authored-agent-equipment";
 import type { AgentAnimationState, AgentModelProps, VisualId } from "./types";
 
 export interface AuthoredAgentModelProps extends AgentModelProps {
@@ -46,6 +52,7 @@ export interface AuthoredAgentMaterialTreatment {
 }
 
 interface PreparedAgentModel {
+  readonly geometries: readonly BufferGeometry[];
   readonly materials: readonly Material[];
   readonly scene: Object3D;
 }
@@ -74,12 +81,16 @@ export const AUTHORED_AGENT_CLIP_CANDIDATES: Readonly<
 
 const CROSS_FADE_SECONDS = 0.18;
 const MODEL_FOOT_LIFT = 0.0026;
-const MODEL_EQUIPMENT_HEIGHT = 1;
 const WALK_CYCLE_DISTANCE = 1.76;
 const RUN_CYCLE_DISTANCE = 2.08;
 const RUN_THRESHOLD = 4.2;
 const MAX_AIM_YAW = 0.78;
 const MAX_AIM_PITCH = 0.55;
+const DIRECTION_DAMPING = 18;
+const TURN_LEAN_DAMPING = 10;
+const MAX_TURN_LEAN = 0.105;
+const HERO_CREASE_ANGLE = 0.92;
+const ANIMATION_PROBE_INTERVAL = 0.25;
 const ONE_SHOT_STATES: ReadonlySet<AgentAnimationState> = new Set([
   "fire",
   "down",
@@ -183,6 +194,8 @@ function applyAgentMaterialTreatment(
   material.opacity = treatment.opacity ?? 1;
   material.transparent = treatment.transparent ?? false;
   material.depthWrite = !material.transparent;
+  material.dithering = true;
+  material.flatShading = false;
   material.needsUpdate = true;
 }
 
@@ -190,12 +203,26 @@ function prepareAuthoredAgentModel(
   source: Object3D,
   appearance: AgentAppearance,
   role: AgentVisualRole,
+  quality: "desktop" | "mobile",
 ): PreparedAgentModel {
   const scene = SkeletonUtils.clone(source);
   const materialClones = new Map<Material, Material>();
+  const geometries: BufferGeometry[] = [];
+  const smoothHero = role === "player" && quality === "desktop";
 
   scene.traverse((object) => {
+    if (role === "player" && object.name === "Backpack") {
+      object.visible = false;
+      return;
+    }
     if (!(object instanceof Mesh)) return;
+    if (smoothHero) {
+      const geometry = object.geometry.clone();
+      const smoothed = toCreasedNormals(geometry, HERO_CREASE_ANGLE);
+      if (smoothed !== geometry) geometry.dispose();
+      object.geometry = smoothed;
+      geometries.push(smoothed);
+    }
     const sourceMaterials = Array.isArray(object.material)
       ? object.material
       : [object.material];
@@ -211,6 +238,7 @@ function prepareAuthoredAgentModel(
   });
 
   return {
+    geometries,
     materials: [...materialClones.values()],
     scene,
   };
@@ -222,8 +250,75 @@ interface ActiveActionState {
   readonly muzzleFlash: boolean;
 }
 
+export function shouldRestartAuthoredAgentAction({
+  animation,
+  muzzleFlash,
+  previousActionMatches,
+  previousAnimationMatches,
+  previousMuzzleFlash,
+  scheduled,
+}: {
+  readonly animation: AgentAnimationState;
+  readonly muzzleFlash: boolean;
+  readonly previousActionMatches: boolean;
+  readonly previousAnimationMatches: boolean;
+  readonly previousMuzzleFlash: boolean;
+  readonly scheduled: boolean;
+}): boolean {
+  return (
+    !previousActionMatches ||
+    !previousAnimationMatches ||
+    !scheduled ||
+    (animation === "fire" && muzzleFlash && !previousMuzzleFlash)
+  );
+}
+
 function finiteOr(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) ? value : fallback;
+}
+
+function angleDelta(from: number, to: number): number {
+  return Math.atan2(Math.sin(to - from), Math.cos(to - from));
+}
+
+export function dampAuthoredAgentDirection(
+  current: number,
+  target: number,
+  deltaSeconds: number,
+  damping = DIRECTION_DAMPING,
+): number {
+  const resolvedCurrent = finiteOr(current, 0);
+  const resolvedTarget = finiteOr(target, resolvedCurrent);
+  const delta = MathUtils.clamp(finiteOr(deltaSeconds, 0), 0, 0.05);
+  const blend = 1 - Math.exp(-Math.max(0, damping) * delta);
+  const next =
+    resolvedCurrent + angleDelta(resolvedCurrent, resolvedTarget) * blend;
+  return Math.atan2(Math.sin(next), Math.cos(next));
+}
+
+export function getAuthoredAgentTurnLean(
+  currentDirection: number,
+  nextDirection: number,
+  speed: number,
+  deltaSeconds: number,
+): number {
+  const delta = MathUtils.clamp(finiteOr(deltaSeconds, 0), 1 / 240, 0.05);
+  const speedWeight = MathUtils.clamp(finiteOr(speed, 0) / RUN_THRESHOLD, 0, 1);
+  if (speedWeight === 0) return 0;
+  const turnRate = angleDelta(currentDirection, nextDirection) / delta;
+  return MathUtils.clamp(
+    -turnRate * 0.026 * speedWeight,
+    -MAX_TURN_LEAN,
+    MAX_TURN_LEAN,
+  );
+}
+
+function findRuntimeNode(scene: Object3D, sourceName: string): Object3D | null {
+  return (
+    scene.getObjectByName(sourceName) ??
+    scene.getObjectByName(PropertyBinding.sanitizeNodeName(sourceName)) ??
+    null
+  );
 }
 
 function canonicalClipName(name: string): string {
@@ -341,68 +436,6 @@ function clipForName(
   return clips.find((clip) => clip.name === name) ?? null;
 }
 
-function AuthoredAgentEquipment({
-  active,
-  muzzleFlash,
-  quality,
-  role,
-}: {
-  readonly active: boolean;
-  readonly muzzleFlash: boolean;
-  readonly quality: "desktop" | "mobile";
-  readonly role: AgentVisualRole;
-}) {
-  if (role === "civilian") return null;
-
-  return active ? (
-    <group position={[0.22, MODEL_EQUIPMENT_HEIGHT + 0.2, 0.39]}>
-      <mesh castShadow={quality === "desktop"} position={[0, 0, 0.12]}>
-        <boxGeometry args={[0.12, 0.14, 0.38]} />
-        <meshStandardMaterial
-          color="#151b1e"
-          metalness={0.68}
-          roughness={0.3}
-        />
-      </mesh>
-      <mesh
-        castShadow={quality === "desktop"}
-        position={[0, -0.14, 0.02]}
-        rotation={[-0.24, 0, 0]}
-      >
-        <boxGeometry args={[0.1, 0.25, 0.14]} />
-        <meshStandardMaterial
-          color="#293337"
-          metalness={0.34}
-          roughness={0.56}
-        />
-      </mesh>
-      <mesh position={[0, 0.01, 0.35]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.025, 0.025, 0.2, 8]} />
-        <meshStandardMaterial
-          color="#0b1012"
-          metalness={0.82}
-          roughness={0.22}
-        />
-      </mesh>
-      <MuzzleFlash
-        active={muzzleFlash}
-        position={[0, 0.01, 0.49]}
-        quality={quality}
-      />
-    </group>
-  ) : (
-    <group
-      position={[0.42, MODEL_EQUIPMENT_HEIGHT - 0.18, 0.02]}
-      rotation={[0, 0, -0.1]}
-    >
-      <mesh castShadow={quality === "desktop"}>
-        <boxGeometry args={[0.14, 0.34, 0.12]} />
-        <meshStandardMaterial color="#151a1c" roughness={0.68} />
-      </mesh>
-    </group>
-  );
-}
-
 export function AuthoredAgentModel({
   aim = false,
   aimPitch = 0,
@@ -423,8 +456,8 @@ export function AuthoredAgentModel({
     [entityId, role],
   );
   const preparedModel = useMemo(
-    () => prepareAuthoredAgentModel(scene, appearance, role),
-    [appearance, role, scene],
+    () => prepareAuthoredAgentModel(scene, appearance, role, quality),
+    [appearance, quality, role, scene],
   );
   const clonedScene = preparedModel.scene;
   const variation = useMemo(
@@ -437,7 +470,15 @@ export function AuthoredAgentModel({
     aim,
     muzzleFlash,
   );
-  const { actions, clips } = useAnimations(animations, clonedScene);
+  const aiming = resolvedAnimation === "aim" || resolvedAnimation === "fire";
+  const resolvedDirection = finiteOr(direction, 0);
+  const resolvedAimYaw = aiming
+    ? MathUtils.clamp(finiteOr(aimYaw, 0), -MAX_AIM_YAW, MAX_AIM_YAW)
+    : 0;
+  const resolvedAimPitch = aiming
+    ? MathUtils.clamp(finiteOr(aimPitch, 0), -MAX_AIM_PITCH, MAX_AIM_PITCH)
+    : 0;
+  const { clips, mixer } = useAnimations(animations, clonedScene);
   const activeClipName = useMemo(
     () =>
       resolveAuthoredAgentClipName(
@@ -457,17 +498,39 @@ export function AuthoredAgentModel({
     activeClip?.duration,
     variation.scale,
   );
-  const activeAction = activeClipName ? actions[activeClipName] : null;
   const activeActionRef = useRef<ActiveActionState | null>(null);
+  const directionRootRef = useRef<Group>(null);
+  const bodyRootRef = useRef<Group>(null);
+  const presentedDirectionRef = useRef(resolvedDirection);
+  const presentedLeanRef = useRef(0);
+  const presentedAimYawRef = useRef(0);
+  const presentedAimPitchRef = useRef(0);
+  const animationProbeRef = useRef({
+    elapsed: 0,
+    wristPosition: new Vector3(),
+  });
+  const attachmentNodes = useMemo(
+    () => ({
+      chest: findRuntimeNode(clonedScene, "Chest"),
+      hips: findRuntimeNode(clonedScene, "Hips"),
+      neck: findRuntimeNode(clonedScene, "Neck"),
+      wrist: findRuntimeNode(clonedScene, "Wrist.R"),
+    }),
+    [clonedScene],
+  );
 
   useEffect(
     () => () => {
       for (const material of preparedModel.materials) material.dispose();
+      for (const geometry of preparedModel.geometries) geometry.dispose();
     },
     [preparedModel],
   );
 
   useLayoutEffect(() => {
+    if (directionRootRef.current) {
+      directionRootRef.current.rotation.y = presentedDirectionRef.current;
+    }
     clonedScene.traverse((object) => {
       if (!(object instanceof Mesh)) return;
       object.castShadow = quality === "desktop";
@@ -475,20 +538,115 @@ export function AuthoredAgentModel({
     });
   }, [clonedScene, quality]);
 
-  /* eslint-disable react-hooks/immutability -- AnimationAction is an imperative Three.js controller. */
+  /* eslint-disable react-hooks/immutability -- Bone and group transforms are presentation-only Three.js frame state. */
+  useFrame((_, rawDelta) => {
+    const delta = MathUtils.clamp(rawDelta, 0, 0.05);
+    const directionRoot = directionRootRef.current;
+    const bodyRoot = bodyRootRef.current;
+    const previousDirection = presentedDirectionRef.current;
+    const nextDirection = dampAuthoredAgentDirection(
+      previousDirection,
+      resolvedDirection,
+      delta,
+    );
+    presentedDirectionRef.current = nextDirection;
+    if (directionRoot) directionRoot.rotation.y = nextDirection;
+
+    const turnLean = getAuthoredAgentTurnLean(
+      previousDirection,
+      nextDirection,
+      speed,
+      delta,
+    );
+    presentedLeanRef.current = MathUtils.damp(
+      presentedLeanRef.current,
+      turnLean,
+      TURN_LEAN_DAMPING,
+      delta,
+    );
+    if (bodyRoot) {
+      bodyRoot.rotation.z = presentedLeanRef.current;
+      bodyRoot.rotation.x = MathUtils.damp(
+        bodyRoot.rotation.x,
+        -MathUtils.clamp(finiteOr(speed, 0) / 9, 0, 1) * 0.038,
+        8,
+        delta,
+      );
+    }
+
+    presentedAimYawRef.current = MathUtils.damp(
+      presentedAimYawRef.current,
+      resolvedAimYaw,
+      14,
+      delta,
+    );
+    presentedAimPitchRef.current = MathUtils.damp(
+      presentedAimPitchRef.current,
+      resolvedAimPitch,
+      14,
+      delta,
+    );
+    if (attachmentNodes.chest) {
+      attachmentNodes.chest.rotation.y += presentedAimYawRef.current * 0.58;
+      attachmentNodes.chest.rotation.x -= presentedAimPitchRef.current * 0.34;
+    }
+    if (attachmentNodes.neck) {
+      attachmentNodes.neck.rotation.y += presentedAimYawRef.current * 0.22;
+      attachmentNodes.neck.rotation.x -= presentedAimPitchRef.current * 0.16;
+    }
+
+    const probe = animationProbeRef.current;
+    probe.elapsed += delta;
+    if (
+      process.env.NODE_ENV === "development" &&
+      role === "player" &&
+      probe.elapsed >= ANIMATION_PROBE_INTERVAL &&
+      typeof document !== "undefined" &&
+      new URLSearchParams(window.location.search).has("inspect")
+    ) {
+      probe.elapsed = 0;
+      const actionState = activeActionRef.current;
+      const wristPosition = attachmentNodes.wrist?.getWorldPosition(
+        probe.wristPosition,
+      );
+      document.documentElement.dataset.mirageAgentAnimation = resolvedAnimation;
+      document.documentElement.dataset.mirageAgentClip =
+        actionState?.action.getClip().name ?? "none";
+      document.documentElement.dataset.mirageAgentAction = JSON.stringify({
+        running: actionState?.action.isRunning() ?? false,
+        scheduled: actionState?.action.isScheduled() ?? false,
+        time: Number((actionState?.action.time ?? 0).toFixed(3)),
+        timeScale: Number(
+          (actionState?.action.getEffectiveTimeScale() ?? 0).toFixed(3),
+        ),
+        weight: Number(
+          (actionState?.action.getEffectiveWeight() ?? 0).toFixed(3),
+        ),
+        wrist: wristPosition
+          ? wristPosition.toArray().map((value) => Number(value.toFixed(3)))
+          : null,
+      });
+    }
+  });
+  /* eslint-enable react-hooks/immutability */
+
   useEffect(() => {
     const previous = activeActionRef.current;
-    if (!activeAction || !activeClip) {
+    if (!activeClip) {
       previous?.action.fadeOut(CROSS_FADE_SECONDS);
       activeActionRef.current = null;
       return;
     }
+    const activeAction = mixer.clipAction(activeClip, clonedScene);
 
-    const shouldRestart =
-      !previous ||
-      previous.action !== activeAction ||
-      previous.animation !== resolvedAnimation ||
-      (resolvedAnimation === "fire" && muzzleFlash && !previous.muzzleFlash);
+    const shouldRestart = shouldRestartAuthoredAgentAction({
+      animation: resolvedAnimation,
+      muzzleFlash,
+      previousActionMatches: previous?.action === activeAction,
+      previousAnimationMatches: previous?.animation === resolvedAnimation,
+      previousMuzzleFlash: previous?.muzzleFlash ?? false,
+      scheduled: activeAction.isScheduled(),
+    });
 
     activeAction.enabled = true;
     activeAction.setEffectiveTimeScale(timeScale);
@@ -527,41 +685,41 @@ export function AuthoredAgentModel({
       muzzleFlash,
     };
   }, [
-    activeAction,
     activeClip,
+    clonedScene,
+    mixer,
     muzzleFlash,
     resolvedAnimation,
     timeScale,
     variation.animationPhase,
   ]);
-  /* eslint-enable react-hooks/immutability */
-
-  const aiming = resolvedAnimation === "aim" || resolvedAnimation === "fire";
-  const resolvedDirection = finiteOr(direction, 0);
-  const resolvedAimYaw = aiming
-    ? MathUtils.clamp(finiteOr(aimYaw, 0), -MAX_AIM_YAW, MAX_AIM_YAW)
-    : 0;
-  const resolvedAimPitch = aiming
-    ? MathUtils.clamp(finiteOr(aimPitch, 0), -MAX_AIM_PITCH, MAX_AIM_PITCH)
-    : 0;
-
-  return (
-    <group {...groupProps}>
-      <group rotation={[0, resolvedDirection, 0]}>
-        <group
-          position={[0, MODEL_FOOT_LIFT * variation.scale, 0]}
-          rotation={[-resolvedAimPitch * 0.16, resolvedAimYaw, 0]}
-          scale={variation.scale}
-        >
-          <primitive dispose={null} object={clonedScene} />
-          <AuthoredAgentEquipment
-            active={aiming}
+  const equipmentAnchor = aiming ? attachmentNodes.wrist : attachmentNodes.hips;
+  const equipment =
+    role !== "civilian" && equipmentAnchor
+      ? createPortal(
+          <Signal9Equipment
+            mode={aiming ? "hand" : "holster"}
             muzzleFlash={muzzleFlash || resolvedAnimation === "fire"}
             quality={quality}
-            role={role}
-          />
+          />,
+          equipmentAnchor,
+        )
+      : null;
+
+  return (
+    <>
+      <group {...groupProps}>
+        <group ref={directionRootRef}>
+          <group
+            position={[0, MODEL_FOOT_LIFT * variation.scale, 0]}
+            ref={bodyRootRef}
+            scale={variation.scale}
+          >
+            <primitive dispose={null} object={clonedScene} />
+          </group>
         </group>
       </group>
-    </group>
+      {equipment}
+    </>
   );
 }

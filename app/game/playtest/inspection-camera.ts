@@ -2,6 +2,14 @@ import type { Pose } from "../core/contracts";
 
 export const PLAYTEST_INSPECTION_POSES: Readonly<Record<string, Pose>> =
   Object.freeze({
+    "hero-close": Object.freeze({
+      position: Object.freeze([64, 1.4, 58.5] as const),
+      rotationY: 0,
+    }),
+    "hero-aim": Object.freeze({
+      position: Object.freeze([64, 1.15, 56] as const),
+      rotationY: -0.55,
+    }),
     "route-block": Object.freeze({
       position: Object.freeze([6, 1.15, 0] as const),
       rotationY: 0,
@@ -20,4 +28,11 @@ export function resolvePlaytestInspectionPose(
   const key = new URLSearchParams(search).get("inspect");
   if (!key) return null;
   return PLAYTEST_INSPECTION_POSES[key] ?? null;
+}
+
+export function isPlaytestAimInspection(
+  search: string,
+  enabled: boolean,
+): boolean {
+  return enabled && new URLSearchParams(search).get("inspect") === "hero-aim";
 }

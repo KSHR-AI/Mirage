@@ -3,11 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   AUTHORED_AGENT_CLIP_CANDIDATES,
   AUTHORED_AGENT_MODEL_URLS,
+  dampAuthoredAgentDirection,
   getAuthoredAgentMaterialTreatment,
   getAuthoredAgentTimeScale,
+  getAuthoredAgentTurnLean,
   getAuthoredAgentVariation,
   resolveAuthoredAgentAnimation,
   resolveAuthoredAgentClipName,
+  shouldRestartAuthoredAgentAction,
 } from "./authored-agent-model";
 import { getAgentAppearance } from "./appearance";
 
@@ -117,6 +120,50 @@ describe("authored agent model helpers", () => {
       animationPhase: 0,
       playbackRate: 1,
     });
+  });
+
+  it("restarts an action after the mixer unschedules it", () => {
+    const stable = {
+      animation: "aim" as const,
+      muzzleFlash: false,
+      previousActionMatches: true,
+      previousAnimationMatches: true,
+      previousMuzzleFlash: false,
+    };
+
+    expect(
+      shouldRestartAuthoredAgentAction({ ...stable, scheduled: false }),
+    ).toBe(true);
+    expect(
+      shouldRestartAuthoredAgentAction({ ...stable, scheduled: true }),
+    ).toBe(false);
+    expect(
+      shouldRestartAuthoredAgentAction({
+        ...stable,
+        animation: "fire",
+        muzzleFlash: true,
+        scheduled: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("smooths wrapped facing changes and bounds authored turn lean", () => {
+    const current = Math.PI - 0.08;
+    const target = -Math.PI + 0.08;
+    const next = dampAuthoredAgentDirection(current, target, 1 / 60);
+    const remaining = Math.abs(
+      Math.atan2(Math.sin(target - next), Math.cos(target - next)),
+    );
+
+    expect(remaining).toBeLessThan(0.16);
+    expect(remaining).toBeGreaterThan(0);
+    expect(getAuthoredAgentTurnLean(current, next, 0, 1 / 60)).toBe(0);
+    expect(
+      Math.abs(getAuthoredAgentTurnLean(current, next, 8, 1 / 60)),
+    ).toBeLessThanOrEqual(0.105);
+    expect(
+      getAuthoredAgentTurnLean(Number.NaN, Number.NaN, Number.NaN, Number.NaN),
+    ).toBe(0);
   });
 
   it("maps source material names into the role-specific Mirage palette", () => {
