@@ -9,10 +9,15 @@ import { CityAtmosphere } from "./CityAtmosphere";
 import { CityLandmarks } from "./CityLandmarks";
 import { CityStreetDetails } from "./CityStreetDetails";
 import { CitySurface } from "./CitySurface";
+import { SignatureCornerBuilding } from "./SignatureCornerBuilding";
 import { replaceProceduralDowntownBlocks } from "./authored-downtown-layout";
 import { createAuthoredRoutePlan } from "./authored-route-layout";
 import { createBayCityLayout } from "./city-layout";
 import { createPoweredCityPowerState, type CityPowerState } from "./power";
+import {
+  findSignatureCornerBuilding,
+  replaceSignatureCornerBuilding,
+} from "./signature-corner-layout";
 import type {
   CityLayout,
   CityMissionZoneId,
@@ -65,6 +70,14 @@ export const BayCityWorld = memo(function BayCityWorld({
   const resolvedShadows = shadows ?? resolvedQuality === "desktop";
   const resolvedStaticShadows =
     resolvedShadows && resolvedQuality === "desktop";
+  const signatureCornerBuilding = useMemo(
+    () => findSignatureCornerBuilding(resolvedLayout),
+    [resolvedLayout],
+  );
+  const layoutWithoutSignatureCorner = useMemo(
+    () => replaceSignatureCornerBuilding(resolvedLayout),
+    [resolvedLayout],
+  );
   const useAuthoredDowntown = authoredDowntownReady;
   const resolvedPowerState = useMemo(
     () =>
@@ -75,9 +88,9 @@ export const BayCityWorld = memo(function BayCityWorld({
   const presentationLayout = useMemo(
     () =>
       useAuthoredDowntown
-        ? replaceProceduralDowntownBlocks(resolvedLayout)
-        : resolvedLayout,
-    [resolvedLayout, useAuthoredDowntown],
+        ? replaceProceduralDowntownBlocks(layoutWithoutSignatureCorner)
+        : layoutWithoutSignatureCorner,
+    [layoutWithoutSignatureCorner, useAuthoredDowntown],
   );
   const authoredRoutePlan = useMemo(
     () => createAuthoredRoutePlan(presentationLayout),
@@ -106,6 +119,13 @@ export const BayCityWorld = memo(function BayCityWorld({
           powerState={resolvedPowerState}
           shadows={resolvedStaticShadows}
         />
+        {signatureCornerBuilding ? (
+          <SignatureCornerBuilding
+            building={signatureCornerBuilding}
+            quality={resolvedQuality}
+            shadows={resolvedStaticShadows}
+          />
+        ) : null}
         <ModelAssetBoundary fallback={null}>
           <AuthoredDowntownBuildings
             onReady={markAuthoredDowntownReady}

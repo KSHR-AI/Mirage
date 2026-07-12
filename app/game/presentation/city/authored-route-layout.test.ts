@@ -12,6 +12,7 @@ import {
   ROUTE_STREET_LIFE_DISTANCE,
   shouldShowRouteStreetLife,
 } from "./route-street-life";
+import { replaceSignatureCornerBuilding } from "./signature-corner-layout";
 
 describe("createAuthoredRoutePlan", () => {
   it("only renders micro-detail near the authored route", () => {
@@ -111,7 +112,9 @@ describe("createAuthoredRoutePlan", () => {
 
   it("covers the real presentation layout after authored downtown replacement", () => {
     const presentation = replaceProceduralDowntownBlocks(
-      createBayCityLayout({ quality: "desktop", seed: 2407 }),
+      replaceSignatureCornerBuilding(
+        createBayCityLayout({ quality: "desktop", seed: 2407 }),
+      ),
     );
     const plan = createAuthoredRoutePlan(presentation);
 
@@ -121,11 +124,11 @@ describe("createAuthoredRoutePlan", () => {
       ),
     ).toBe(false);
     expect(plan.facade.length).toBeGreaterThan(120);
-    expect(plan.storefrontGlass).toHaveLength(21);
-    expect(plan.awnings).toHaveLength(7);
+    expect(plan.storefrontGlass).toHaveLength(15);
+    expect(plan.awnings).toHaveLength(5);
     expect(plan.practicalLights).toHaveLength(4);
-    expect(plan.storefrontBackdrops).toHaveLength(21);
-    expect(plan.storefrontDisplays).toHaveLength(168);
+    expect(plan.storefrontBackdrops).toHaveLength(15);
+    expect(plan.storefrontDisplays).toHaveLength(120);
   });
 
   it("only replaces matching primitives and emits valid transforms", () => {

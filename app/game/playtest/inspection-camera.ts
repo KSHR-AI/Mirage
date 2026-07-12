@@ -28,6 +28,10 @@ export const PLAYTEST_INSPECTION_POSES: Readonly<Record<string, Pose>> =
       position: Object.freeze([0, 1.4, 7] as const),
       rotationY: 1.1,
     }),
+    "signature-corner": Object.freeze({
+      position: Object.freeze([0, 1.4, 0] as const),
+      rotationY: -0.7,
+    }),
   });
 
 export function resolvePlaytestInspectionPose(

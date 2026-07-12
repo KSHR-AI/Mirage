@@ -482,16 +482,21 @@ async function routeInspectionScenario(
 
     await capture(scenario, page, outDir, "corridor");
     if (!mobile) {
-      for (const inspection of ["route-block-side", "route-facade"]) {
+      const inspections = [
+        { capture: "sidewalk", key: "route-block-side" },
+        { capture: "facade", key: "route-facade" },
+        { capture: "corner", key: "signature-corner" },
+      ];
+      for (const inspection of inspections) {
         await page.evaluate(
           ({ eventName, key }) =>
             window.dispatchEvent(new CustomEvent(eventName, { detail: key })),
-          { eventName: PLAYTEST_INSPECTION_EVENT, key: inspection },
+          { eventName: PLAYTEST_INSPECTION_EVENT, key: inspection.key },
         );
         await page.waitForFunction(
           (expected) =>
             document.documentElement.dataset.mirageInspectionPose === expected,
-          inspection,
+          inspection.key,
         );
         await page.waitForTimeout(300);
         const resolvedInspection = await page.evaluate(
@@ -499,23 +504,13 @@ async function routeInspectionScenario(
         );
         addCheck(
           scenario,
-          `${inspection}-inspection-pose`,
-          resolvedInspection === inspection,
+          `${inspection.key}-inspection-pose`,
+          resolvedInspection === inspection.key,
           resolvedInspection,
-          inspection,
+          inspection.key,
         );
-        await capture(
-          scenario,
-          page,
-          outDir,
-          inspection === "route-block-side" ? "sidewalk" : "facade",
-        );
-        await inspectCanvas(
-          scenario,
-          page,
-          outDir,
-          inspection === "route-block-side" ? "sidewalk" : "facade",
-        );
+        await capture(scenario, page, outDir, inspection.capture);
+        await inspectCanvas(scenario, page, outDir, inspection.capture);
       }
     }
     addCheck(scenario, "runtime-errors", errors.length === 0, errors, "none");

@@ -41,6 +41,12 @@ describe("resolvePlaytestInspectionPose", () => {
       position: [0, 1.4, 7],
       rotationY: 1.1,
     });
+    expect(
+      resolvePlaytestInspectionPose("?inspect=signature-corner", true),
+    ).toEqual({
+      position: [0, 1.4, 0],
+      rotationY: -0.7,
+    });
   });
 
   it("stays inert outside enabled playtest builds", () => {
