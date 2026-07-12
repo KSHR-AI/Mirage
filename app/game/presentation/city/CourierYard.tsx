@@ -1,11 +1,13 @@
 "use client";
 
 import { Clone, useGLTF, useTexture } from "@react-three/drei";
-import { useEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { InstancedPrimitives } from "./InstancedPrimitives";
 import {
+  COURIER_YARD_SECURITY_LIGHTS,
   createCourierYardDetailPlan,
+  type CourierYardSecurityLight,
   type CourierYardModelPlacement,
 } from "./courier-yard-layout";
 import { createPbrTextureSet, disposePbrTextureSet } from "./surface-textures";
@@ -489,6 +491,7 @@ export function CourierYard({
         opacity={0.38}
         transparent
       />
+      <YardWetPatches patches={detailPlan.wetPatches} />
       <InstancedPrimitives
         instances={detailPlan.safetyMarkings}
         material="basic"
@@ -540,6 +543,7 @@ export function CourierYard({
         toneMapped={false}
       />
       <YardGantrySignage />
+      <YardSecurityLighting enabled={shadows} />
       <YardWear />
       {DEPOT_DOOR_CENTERS.map((x) => (
         <group key={`courier-depot-light-${x}`}>
@@ -556,25 +560,98 @@ export function CourierYard({
           </mesh>
         </group>
       ))}
-      {shadows ? (
-        <>
-          <pointLight
-            color="#ffc77c"
-            decay={2}
-            distance={14}
-            intensity={11}
-            position={[70, 4.8, 39.8]}
-          />
-          <pointLight
-            color="#ffb86b"
-            decay={2}
-            distance={8}
-            intensity={18}
-            position={[70, 3.7, 38.05]}
-          />
-        </>
-      ) : null}
     </group>
+  );
+}
+
+function YardWetPatches({
+  patches,
+}: {
+  readonly patches: readonly BoxInstance[];
+}) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const transform = useMemo(() => new THREE.Object3D(), []);
+  const color = useMemo(() => new THREE.Color(), []);
+  const geometry = useMemo(createYardWetPatchGeometry, []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    patches.forEach((patch, index) => {
+      transform.position.set(...patch.position);
+      transform.rotation.set(0, patch.rotationY, 0);
+      transform.scale.set(patch.scale[0], 1, patch.scale[2]);
+      transform.updateMatrix();
+      mesh.setMatrixAt(index, transform.matrix);
+      mesh.setColorAt(index, color.set(patch.color));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.computeBoundingBox();
+    mesh.computeBoundingSphere();
+  }, [color, patches, transform]);
+
+  if (patches.length === 0) return null;
+  return (
+    <instancedMesh
+      args={[geometry, undefined, patches.length]}
+      frustumCulled
+      ref={meshRef}
+      renderOrder={1}
+    >
+      <meshBasicMaterial
+        depthWrite={false}
+        opacity={0.12}
+        polygonOffset
+        polygonOffsetFactor={-1}
+        toneMapped
+        transparent
+        vertexColors
+      />
+    </instancedMesh>
+  );
+}
+
+function createYardWetPatchGeometry() {
+  const shape = new THREE.Shape();
+  for (let index = 0; index < 32; index += 1) {
+    const angle = (index / 32) * Math.PI * 2;
+    const radius =
+      1 + Math.sin(angle * 3 + 0.4) * 0.11 + Math.sin(angle * 7) * 0.055;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    if (index === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  }
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2);
+}
+
+function YardSecurityLighting({ enabled }: { readonly enabled: boolean }) {
+  if (!enabled) return null;
+  return (
+    <group name="courier-yard-security-lighting">
+      {COURIER_YARD_SECURITY_LIGHTS.map((light) => (
+        <YardSecurityLight key={light.id} light={light} />
+      ))}
+    </group>
+  );
+}
+
+function YardSecurityLight({
+  light,
+}: {
+  readonly light: CourierYardSecurityLight;
+}) {
+  return (
+    <pointLight
+      color={light.color}
+      decay={2}
+      distance={13}
+      intensity={light.intensity}
+      position={light.position}
+    />
   );
 }
 

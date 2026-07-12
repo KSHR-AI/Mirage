@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { createCourierYardDetailPlan } from "./courier-yard-layout";
+import {
+  COURIER_YARD_SECURITY_LIGHTS,
+  createCourierYardDetailPlan,
+} from "./courier-yard-layout";
 
 describe("createCourierYardDetailPlan", () => {
   it("authors a deterministic open loading bay and dock frame", () => {
@@ -17,6 +20,7 @@ describe("createCourierYardDetailPlan", () => {
     expect(first.drainSlats.length).toBeGreaterThan(30);
     expect(first.perimeterStructure.length).toBeGreaterThanOrEqual(8);
     expect(first.perimeterDetails.length).toBeGreaterThan(20);
+    expect(first.wetPatches).toHaveLength(5);
     expect(
       first.perimeterStructure.some(
         (part) => part.id === "yard-gantry-sign-back",
@@ -67,6 +71,7 @@ describe("createCourierYardDetailPlan", () => {
     expect(mobile.perimeterStructure).toEqual(desktop.perimeterStructure);
     expect(mobile.perimeterDetails).toHaveLength(2);
     expect(mobile.perimeterLights).toHaveLength(2);
+    expect(mobile.wetPatches).toHaveLength(3);
 
     const ids = new Set<string>();
     for (const values of Object.values(desktop)) {
@@ -79,6 +84,18 @@ describe("createCourierYardDetailPlan", () => {
           true,
         );
       }
+    }
+  });
+
+  it("places distinct security fixtures over the playable yard", () => {
+    expect(COURIER_YARD_SECURITY_LIGHTS).toHaveLength(2);
+    expect(
+      new Set(COURIER_YARD_SECURITY_LIGHTS.map((light) => light.color)).size,
+    ).toBe(2);
+    for (const light of COURIER_YARD_SECURITY_LIGHTS) {
+      expect(light.position[1]).toBeGreaterThan(5);
+      expect(light.position[2]).toBeGreaterThan(48);
+      expect(light.intensity).toBeGreaterThanOrEqual(15);
     }
   });
 });

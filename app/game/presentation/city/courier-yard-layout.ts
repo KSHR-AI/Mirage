@@ -21,7 +21,31 @@ export type CourierYardDetailPlan = {
   readonly palletBoards: readonly BoxInstance[];
   readonly safetyMarkings: readonly BoxInstance[];
   readonly tireMarks: readonly BoxInstance[];
+  readonly wetPatches: readonly BoxInstance[];
 };
+
+export type CourierYardSecurityLight = {
+  readonly color: string;
+  readonly id: string;
+  readonly intensity: number;
+  readonly position: CityVec3;
+};
+
+export const COURIER_YARD_SECURITY_LIGHTS: readonly CourierYardSecurityLight[] =
+  Object.freeze([
+    Object.freeze({
+      color: "#cdebf0",
+      id: "yard-security-west",
+      intensity: 15,
+      position: [65.2, 5.36, 48.72] as CityVec3,
+    }),
+    Object.freeze({
+      color: "#ffe2ad",
+      id: "yard-security-east",
+      intensity: 15,
+      position: [74.8, 5.36, 48.72] as CityVec3,
+    }),
+  ]);
 
 function box(
   id: string,
@@ -338,6 +362,43 @@ export function createCourierYardDetailPlan(
       "#d8ff62",
     ),
   ];
+  const wetPatches = [
+    box(
+      "yard-wet-gate-west",
+      [64.2, 0.309, 50.9],
+      [2.65, 0.008, 1.18],
+      "#25383b",
+      0.18,
+    ),
+    box(
+      "yard-wet-gate-east",
+      [73.8, 0.309, 50.2],
+      [2.25, 0.008, 1.05],
+      "#3a3630",
+      -0.22,
+    ),
+    box(
+      "yard-wet-coupe",
+      [61.9, 0.309, 52.6],
+      [1.85, 0.008, 0.82],
+      "#233336",
+      -0.08,
+    ),
+    box(
+      "yard-wet-dock",
+      [69.8, 0.309, 41.15],
+      [3.2, 0.008, 1.35],
+      "#3a3129",
+      0.11,
+    ),
+    box(
+      "yard-wet-drain",
+      [67.1, 0.309, 45.55],
+      [2.15, 0.008, 0.62],
+      "#203033",
+      -0.3,
+    ),
+  ];
 
   const crateDefinitions = [
     crate("dock-crate-a", [62.15, 0.68, 39.45], [1.08, 0.82, 0.92], 0.08),
@@ -423,5 +484,6 @@ export function createCourierYardDetailPlan(
     ],
     safetyMarkings,
     tireMarks,
+    wetPatches: desktop ? wetPatches : wetPatches.slice(0, 3),
   };
 }
