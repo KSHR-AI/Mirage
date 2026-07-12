@@ -21,7 +21,9 @@ import {
 } from "../game/missions/afterlight-job";
 import { qualitySettings, type GameQualityTier } from "../game/performance";
 import {
+  PLAYTEST_INSPECTION_EVENT,
   isPlaytestAimInspection,
+  resolvePlaytestInspectionKey,
   resolvePlaytestInspectionPose,
 } from "../game/playtest/inspection-camera";
 import {
@@ -388,16 +390,32 @@ export const AfterlightScene = memo(function AfterlightScene({
 
   useEffect(() => {
     const enabled = process.env.NODE_ENV === "development";
-    const pose = resolvePlaytestInspectionPose(window.location.search, enabled);
-    if (!pose) return;
-    const inspectionKey = new URLSearchParams(window.location.search).get(
-      "inspect",
+    const applyInspection = (key: string, pose: Pose | null) => {
+      if (!pose) return;
+      document.documentElement.dataset.mirageInspectionPose = key;
+      setInspectionPose(pose);
+    };
+    const inspectionKey =
+      new URLSearchParams(window.location.search).get("inspect") ?? "";
+    const initialPose = resolvePlaytestInspectionPose(
+      window.location.search,
+      enabled,
     );
-    if (inspectionKey) {
-      document.documentElement.dataset.mirageInspectionPose = inspectionKey;
+    if (inspectionKey && initialPose) {
+      queueMicrotask(() => applyInspection(inspectionKey, initialPose));
     }
-    queueMicrotask(() => setInspectionPose(pose));
+    const handleInspection = (event: Event) => {
+      if (!(event instanceof CustomEvent) || typeof event.detail !== "string") {
+        return;
+      }
+      applyInspection(
+        event.detail,
+        resolvePlaytestInspectionKey(event.detail, enabled),
+      );
+    };
+    window.addEventListener(PLAYTEST_INSPECTION_EVENT, handleInspection);
     return () => {
+      window.removeEventListener(PLAYTEST_INSPECTION_EVENT, handleInspection);
       delete document.documentElement.dataset.mirageInspectionPose;
     };
   }, []);

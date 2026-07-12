@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   isPlaytestAimInspection,
+  PLAYTEST_INSPECTION_EVENT,
+  resolvePlaytestInspectionKey,
   resolvePlaytestInspectionPose,
 } from "./inspection-camera";
 
@@ -36,8 +38,8 @@ describe("resolvePlaytestInspectionPose", () => {
     expect(
       resolvePlaytestInspectionPose("?inspect=route-facade", true),
     ).toEqual({
-      position: [9.7, 1.15, 1.5],
-      rotationY: 0,
+      position: [-2, 1.4, 9.52],
+      rotationY: -Math.PI / 2,
     });
   });
 
@@ -46,6 +48,16 @@ describe("resolvePlaytestInspectionPose", () => {
       resolvePlaytestInspectionPose("?inspect=route-block", false),
     ).toBeNull();
     expect(resolvePlaytestInspectionPose("?inspect=unknown", true)).toBeNull();
+  });
+
+  it("resolves live inspection keys for the development camera event", () => {
+    expect(PLAYTEST_INSPECTION_EVENT).toBe("mirage:inspection-pose");
+    expect(resolvePlaytestInspectionKey("route-block-side", true)).toEqual({
+      position: [2, 1.4, 9.52],
+      rotationY: Math.PI / 2,
+    });
+    expect(resolvePlaytestInspectionKey("route-block-side", false)).toBeNull();
+    expect(resolvePlaytestInspectionKey("unknown", true)).toBeNull();
   });
 
   it("only forces aim for the named development inspection", () => {

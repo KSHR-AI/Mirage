@@ -21,7 +21,9 @@ describe("ambient life definitions", () => {
     );
     expect(first.slice(0, 4).every((vehicle) => !vehicle.van)).toBe(true);
     expect(first.filter((vehicle) => vehicle.van)).toHaveLength(2);
-    expect(first[3]?.offset).toBe(74);
+    expect(first.slice(0, 4).map((vehicle) => vehicle.offset)).toEqual([
+      18, -18, -42, 42,
+    ]);
   });
 
   it("keeps the first pedestrians on both central sidewalks", () => {
@@ -29,6 +31,9 @@ describe("ambient life definitions", () => {
 
     expect(civilians.slice(0, 4).map((civilian) => civilian.x)).toEqual([
       -6.6, 6.6, -6.6, 6.6,
+    ]);
+    expect(civilians.slice(0, 4).map((civilian) => civilian.startZ)).toEqual([
+      18, -20, 28, -30,
     ]);
     expect(civilians.every((civilian) => civilian.speed > 0)).toBe(true);
   });

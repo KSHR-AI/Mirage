@@ -137,6 +137,9 @@ export const BayCityWorld = memo(function BayCityWorld({
             authoredRouteReady ? authoredRoutePlan.licensedStreetlightIds : []
           }
           powerState={resolvedPowerState}
+          suppressedPropIds={
+            authoredRouteReady ? authoredRoutePlan.suppressedPropIds : []
+          }
         />
       </group>
     </>

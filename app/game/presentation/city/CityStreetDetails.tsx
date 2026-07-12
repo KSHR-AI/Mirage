@@ -17,6 +17,7 @@ type CityStreetDetailsProps = {
   licensedPropIds?: readonly string[];
   licensedStreetlightIds?: readonly string[];
   powerState: CityPowerState;
+  suppressedPropIds?: readonly string[];
 };
 
 export const CityStreetDetails = memo(function CityStreetDetails({
@@ -24,14 +25,15 @@ export const CityStreetDetails = memo(function CityStreetDetails({
   licensedPropIds = [],
   licensedStreetlightIds = [],
   powerState,
+  suppressedPropIds = [],
 }: CityStreetDetailsProps) {
-  const licensedProps = useMemo(
-    () => new Set(licensedPropIds),
-    [licensedPropIds],
-  );
   const licensedStreetlights = useMemo(
     () => new Set(licensedStreetlightIds),
     [licensedStreetlightIds],
+  );
+  const excludedPrimitiveProps = useMemo(
+    () => new Set([...licensedPropIds, ...suppressedPropIds]),
+    [licensedPropIds, suppressedPropIds],
   );
   const lights = useMemo(
     () =>
@@ -88,7 +90,7 @@ export const CityStreetDetails = memo(function CityStreetDetails({
       <InstancedPrimitives
         instances={vegetation.crowns}
         roughness={0.9}
-        shape="icosahedron"
+        shape="sphere"
       />
 
       <InstancedPrimitives
@@ -115,7 +117,7 @@ export const CityStreetDetails = memo(function CityStreetDetails({
 
       <StreetProps
         includePrimitiveHydrants={layout.quality !== "desktop"}
-        licensedPropIds={licensedProps}
+        licensedPropIds={excludedPrimitiveProps}
         props={layout.props}
       />
       {layout.quality === "desktop" ? <LicensedHydrants limit={5} /> : null}
@@ -236,17 +238,45 @@ function createTrafficSignalParts(
 
 function createTreeParts(features: readonly PointFeature[]) {
   return {
-    crowns: features.map((feature) => ({
-      color: feature.color,
-      id: `${feature.id}-crown`,
-      position: [
-        feature.position[0],
-        feature.position[1] + 3.25,
-        feature.position[2],
-      ] as [number, number, number],
-      rotationY: feature.rotationY,
-      scale: [2.35, 2.85, 2.35] as [number, number, number],
-    })),
+    crowns: features.flatMap((feature) => {
+      const cosine = Math.cos(feature.rotationY);
+      const sine = Math.sin(feature.rotationY);
+      return [
+        {
+          color: feature.color,
+          id: `${feature.id}-crown-main`,
+          position: [
+            feature.position[0],
+            feature.position[1] + 3.55,
+            feature.position[2],
+          ] as [number, number, number],
+          rotationY: feature.rotationY,
+          scale: [1.75, 2.25, 1.75] as [number, number, number],
+        },
+        {
+          color: "#3c6656",
+          id: `${feature.id}-crown-left`,
+          position: [
+            feature.position[0] + cosine * 0.72,
+            feature.position[1] + 3.15,
+            feature.position[2] - sine * 0.72,
+          ] as [number, number, number],
+          rotationY: feature.rotationY + 0.4,
+          scale: [1.45, 1.65, 1.45] as [number, number, number],
+        },
+        {
+          color: "#294f47",
+          id: `${feature.id}-crown-right`,
+          position: [
+            feature.position[0] - cosine * 0.68,
+            feature.position[1] + 3.02,
+            feature.position[2] + sine * 0.68,
+          ] as [number, number, number],
+          rotationY: feature.rotationY - 0.5,
+          scale: [1.35, 1.55, 1.35] as [number, number, number],
+        },
+      ];
+    }),
     trunks: features.map((feature) => ({
       color: "#4c3c34",
       id: `${feature.id}-trunk`,

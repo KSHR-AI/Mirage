@@ -139,6 +139,13 @@ export function AuthoredRouteDetails({
       </group>
       <group name="authored-route-corridor-finish">
         <InstancedPrimitives
+          instances={plan.curbFaces}
+          metalness={0.08}
+          receiveShadow
+          roughness={0.78}
+        />
+        <InstancedPrimitives instances={plan.sidewalkSeams} material="basic" />
+        <InstancedPrimitives
           instances={plan.surfacePatches}
           metalness={0.08}
           receiveShadow
@@ -176,6 +183,17 @@ export function AuthoredRouteDetails({
           roughness={0.42}
         />
         <InstancedPrimitives
+          emissive="#6c4a3c"
+          emissiveIntensity={0.28}
+          instances={plan.storefrontBackdrops}
+          roughness={0.72}
+        />
+        <InstancedPrimitives
+          instances={plan.storefrontDisplays}
+          metalness={0.12}
+          roughness={0.55}
+        />
+        <InstancedPrimitives
           depthWrite={false}
           instances={plan.storefrontGlass}
           material="basic"
@@ -191,9 +209,72 @@ export function AuthoredRouteDetails({
           roughness={0.5}
         />
         <InstancedPrimitives
+          instances={plan.signFrames}
+          metalness={0.42}
+          roughness={0.34}
+        />
+        <InstancedPrimitives
           instances={plan.signs}
           material="basic"
           toneMapped={false}
+        />
+        <InstancedPrimitives
+          fog={false}
+          instances={plan.signGlyphs}
+          material="basic"
+          toneMapped={false}
+        />
+        <InstancedPrimitives
+          instances={plan.parkingMeterPoles}
+          metalness={0.68}
+          roughness={0.4}
+          shape="cylinder"
+        />
+        <InstancedPrimitives
+          instances={plan.parkingMeterHeads}
+          metalness={0.55}
+          roughness={0.38}
+        />
+        <InstancedPrimitives
+          instances={plan.bollards}
+          metalness={0.46}
+          receiveShadow
+          roughness={0.5}
+          shape="cylinder"
+        />
+        <InstancedPrimitives
+          instances={plan.benchFrames}
+          metalness={0.62}
+          receiveShadow
+          roughness={0.46}
+        />
+        <InstancedPrimitives
+          instances={plan.benchSlats}
+          receiveShadow
+          roughness={0.76}
+        />
+        <InstancedPrimitives
+          instances={plan.planterPots}
+          receiveShadow
+          roughness={0.82}
+          shape="cylinder"
+        />
+        <InstancedPrimitives
+          instances={plan.planterCrowns}
+          receiveShadow
+          roughness={0.9}
+          shape="icosahedron"
+        />
+        <InstancedPrimitives
+          instances={plan.utilityCabinets}
+          metalness={0.34}
+          receiveShadow
+          roughness={0.58}
+        />
+        <InstancedPrimitives
+          instances={plan.utilityPanels}
+          metalness={0.65}
+          roughness={0.35}
         />
         {plan.practicalLights.map((light) => (
           <pointLight

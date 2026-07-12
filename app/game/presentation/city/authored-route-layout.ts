@@ -8,6 +8,7 @@ import type {
   PointFeature,
   StreetProp,
 } from "./types";
+import { createRouteStreetLifePlan } from "./route-street-life";
 
 export const AUTHORED_ROUTE_FACADE_TARGET = "building-14-14-0";
 
@@ -84,7 +85,11 @@ export type AuthoredFacadePlacement = AuthoredModelPlacement & {
 export type AuthoredRoutePlan = {
   readonly awnings: readonly BoxInstance[];
   readonly barriers: readonly AuthoredModelPlacement[];
+  readonly benchFrames: readonly BoxInstance[];
+  readonly benchSlats: readonly BoxInstance[];
   readonly bins: readonly AuthoredModelPlacement[];
+  readonly bollards: readonly BoxInstance[];
+  readonly curbFaces: readonly BoxInstance[];
   readonly curbPaint: readonly BoxInstance[];
   readonly drainSlats: readonly BoxInstance[];
   readonly drains: readonly BoxInstance[];
@@ -93,12 +98,24 @@ export type AuthoredRoutePlan = {
   readonly licensedPropIds: readonly string[];
   readonly licensedStreetlightIds: readonly string[];
   readonly manholes: readonly BoxInstance[];
+  readonly parkingMeterHeads: readonly BoxInstance[];
+  readonly parkingMeterPoles: readonly BoxInstance[];
+  readonly planterCrowns: readonly BoxInstance[];
+  readonly planterPots: readonly BoxInstance[];
   readonly practicalLights: readonly RoutePracticalLight[];
+  readonly sidewalkSeams: readonly BoxInstance[];
+  readonly signFrames: readonly BoxInstance[];
+  readonly signGlyphs: readonly BoxInstance[];
   readonly signs: readonly BoxInstance[];
   readonly streetlights: readonly AuthoredModelPlacement[];
+  readonly storefrontBackdrops: readonly BoxInstance[];
+  readonly storefrontDisplays: readonly BoxInstance[];
   readonly storefrontFrames: readonly BoxInstance[];
   readonly storefrontGlass: readonly BoxInstance[];
+  readonly suppressedPropIds: readonly string[];
   readonly surfacePatches: readonly BoxInstance[];
+  readonly utilityCabinets: readonly BoxInstance[];
+  readonly utilityPanels: readonly BoxInstance[];
 };
 
 export type RoutePracticalLight = {
@@ -121,7 +138,7 @@ const ROUTE_ANCHORS = Object.freeze([
 const STREET_ASSET_LIMITS: Readonly<
   Record<CityQuality, { barriers: number; bins: number; streetlights: number }>
 > = Object.freeze({
-  desktop: Object.freeze({ barriers: 5, bins: 5, streetlights: 7 }),
+  desktop: Object.freeze({ barriers: 10, bins: 10, streetlights: 7 }),
   mobile: Object.freeze({ barriers: 1, bins: 1, streetlights: 2 }),
 });
 
@@ -625,9 +642,28 @@ export function createAuthoredRoutePlan(layout: CityLayout): AuthoredRoutePlan {
     ...proceduralStorefrontPlans,
     ...authoredStorefrontPlans,
   ];
+  const storefrontGlass = storefrontPlans.flatMap((plan) => plan.glass);
+  const signs = storefrontPlans.flatMap((plan) => plan.signs);
+  const streetLife = createRouteStreetLifePlan(
+    layout.quality,
+    storefrontGlass,
+    signs,
+  );
   const surface = createRouteSurfacePlan(layout.quality);
+  const licensedPropIds = new Set(
+    [...bins, ...barriers].map((prop) => prop.id),
+  );
+  const suppressedPropIds = layout.props
+    .filter(
+      (prop) =>
+        Math.abs(prop.position[0]) <= 24 &&
+        Math.abs(prop.position[2]) <= 24 &&
+        !licensedPropIds.has(prop.id),
+    )
+    .map((prop) => prop.id);
 
   return {
+    ...streetLife,
     awnings: storefrontPlans.flatMap((plan) => plan.awnings),
     barriers: barriers.map((barrier) => featurePlacement(barrier, 1)),
     bins: bins.map((bin) => featurePlacement(bin, 1)),
@@ -636,14 +672,15 @@ export function createAuthoredRoutePlan(layout: CityLayout): AuthoredRoutePlan {
     drains: surface.drains,
     facade: facadePlans.flatMap((plan) => plan.facade),
     fireEscapes: facadePlans.flatMap((plan) => plan.fireEscapes),
-    licensedPropIds: [...bins, ...barriers].map((prop) => prop.id),
+    licensedPropIds: [...licensedPropIds],
     licensedStreetlightIds: streetlights.map((light) => light.id),
     manholes: surface.manholes,
     practicalLights: surface.practicalLights,
-    signs: storefrontPlans.flatMap((plan) => plan.signs),
+    signs,
     streetlights: streetlights.map((light) => featurePlacement(light, 3.1)),
     storefrontFrames: storefrontPlans.flatMap((plan) => plan.frames),
-    storefrontGlass: storefrontPlans.flatMap((plan) => plan.glass),
+    storefrontGlass,
+    suppressedPropIds,
     surfacePatches: surface.patches,
   };
 }

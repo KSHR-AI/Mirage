@@ -10,6 +10,7 @@ import { renderedPixelStats } from "./lib/png-stats.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_URL = "http://127.0.0.1:3100";
+const PLAYTEST_INSPECTION_EVENT = "mirage:inspection-pose";
 const VALID_SCENARIOS = new Set([
   "all",
   "compact",
@@ -479,6 +480,37 @@ async function routeInspectionScenario(
     }
 
     await capture(scenario, page, outDir, "corridor");
+    if (!mobile) {
+      for (const inspection of ["route-block-side", "route-facade"]) {
+        await page.evaluate(
+          ({ eventName, key }) =>
+            window.dispatchEvent(new CustomEvent(eventName, { detail: key })),
+          { eventName: PLAYTEST_INSPECTION_EVENT, key: inspection },
+        );
+        await page.waitForFunction(
+          (expected) =>
+            document.documentElement.dataset.mirageInspectionPose === expected,
+          inspection,
+        );
+        await page.waitForTimeout(300);
+        const resolvedInspection = await page.evaluate(
+          () => document.documentElement.dataset.mirageInspectionPose,
+        );
+        addCheck(
+          scenario,
+          `${inspection}-inspection-pose`,
+          resolvedInspection === inspection,
+          resolvedInspection,
+          inspection,
+        );
+        await capture(
+          scenario,
+          page,
+          outDir,
+          inspection === "route-block-side" ? "sidewalk" : "facade",
+        );
+      }
+    }
     addCheck(scenario, "runtime-errors", errors.length === 0, errors, "none");
     completeScenario(scenario);
   } catch (error) {

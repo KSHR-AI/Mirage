@@ -17,6 +17,8 @@ export interface AmbientCivilianDefinition {
 }
 
 const ROAD_LINES = [-84, -56, -28, 0, 28, 56, 84] as const;
+const CENTRAL_TRAFFIC_OFFSETS = [18, -18, -42, 42] as const;
+const CENTRAL_CIVILIAN_STARTS = [18, -20, 28, -30] as const;
 
 export function createAmbientVehicleDefinitions(
   count: number,
@@ -29,7 +31,10 @@ export function createAmbientVehicleDefinitions(
         id: 700 + index,
         axis: index % 2 === 0 ? ("x" as const) : ("z" as const),
         lane: road + (index % 4 < 2 ? -2.4 : 2.4),
-        offset: index === 3 ? 74 : ((index * 37 + 11) % 196) - 98,
+        offset:
+          index < CENTRAL_TRAFFIC_OFFSETS.length
+            ? CENTRAL_TRAFFIC_OFFSETS[index]
+            : ((index * 37 + 11) % 196) - 98,
         speed: 4.4 + (index % 5) * 0.72,
         direction: index % 3 === 0 ? (-1 as const) : (1 as const),
         van: index >= 4 && index % 5 === 0,
@@ -48,7 +53,10 @@ export function createAmbientCivilianDefinitions(
       return {
         id: 900 + index,
         x: road + (index % 2 ? 6.6 : -6.6),
-        startZ: ((index * 29 + 17) % 184) - 92,
+        startZ:
+          index < CENTRAL_CIVILIAN_STARTS.length
+            ? CENTRAL_CIVILIAN_STARTS[index]
+            : ((index * 29 + 17) % 184) - 92,
         direction: index % 2 ? (1 as const) : (-1 as const),
         speed: 0.72 + (index % 4) * 0.13,
       };

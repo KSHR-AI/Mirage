@@ -33,8 +33,8 @@ describe("createAuthoredRoutePlan", () => {
     );
     expect(first.fireEscapes[0]?.rotationY).toBe(Math.PI / 2);
     expect(first.streetlights).toHaveLength(7);
-    expect(first.bins.length).toBeLessThanOrEqual(5);
-    expect(first.barriers.length).toBeLessThanOrEqual(5);
+    expect(first.bins.length).toBeLessThanOrEqual(10);
+    expect(first.barriers.length).toBeLessThanOrEqual(10);
     expect(first.storefrontGlass).toHaveLength(24);
     expect(first.storefrontFrames).toHaveLength(32);
     expect(first.awnings).toHaveLength(8);
@@ -45,6 +45,16 @@ describe("createAuthoredRoutePlan", () => {
     expect(first.drains).toHaveLength(4);
     expect(first.drainSlats).toHaveLength(20);
     expect(first.curbPaint).toHaveLength(4);
+    expect(first.curbFaces).toHaveLength(8);
+    expect(first.sidewalkSeams).toHaveLength(24);
+    expect(first.storefrontBackdrops).toHaveLength(24);
+    expect(first.storefrontDisplays).toHaveLength(192);
+    expect(first.signFrames).toHaveLength(8);
+    expect(first.signGlyphs).toHaveLength(24);
+    expect(first.parkingMeterPoles).toHaveLength(8);
+    expect(first.benchSlats).toHaveLength(6);
+    expect(first.planterPots).toHaveLength(4);
+    expect(first.utilityCabinets).toHaveLength(4);
   });
 
   it("keeps the mobile plan materially lighter", () => {
@@ -70,6 +80,16 @@ describe("createAuthoredRoutePlan", () => {
     expect(mobile.drains).toHaveLength(2);
     expect(mobile.drainSlats).toHaveLength(0);
     expect(mobile.curbPaint).toHaveLength(2);
+    expect(mobile.curbFaces).toHaveLength(4);
+    expect(mobile.sidewalkSeams).toHaveLength(4);
+    expect(mobile.storefrontBackdrops).toHaveLength(6);
+    expect(mobile.storefrontDisplays).toHaveLength(0);
+    expect(mobile.signFrames).toHaveLength(3);
+    expect(mobile.signGlyphs).toHaveLength(6);
+    expect(mobile.parkingMeterPoles).toHaveLength(4);
+    expect(mobile.benchSlats).toHaveLength(2);
+    expect(mobile.planterPots).toHaveLength(2);
+    expect(mobile.utilityCabinets).toHaveLength(2);
   });
 
   it("covers the real presentation layout after authored downtown replacement", () => {
@@ -87,6 +107,8 @@ describe("createAuthoredRoutePlan", () => {
     expect(plan.storefrontGlass).toHaveLength(21);
     expect(plan.awnings).toHaveLength(7);
     expect(plan.practicalLights).toHaveLength(4);
+    expect(plan.storefrontBackdrops).toHaveLength(21);
+    expect(plan.storefrontDisplays).toHaveLength(168);
   });
 
   it("only replaces matching primitives and emits valid transforms", () => {
@@ -103,18 +125,44 @@ describe("createAuthoredRoutePlan", () => {
       ...plan.barriers,
       ...plan.streetlights,
       ...plan.awnings,
+      ...plan.benchFrames,
+      ...plan.benchSlats,
+      ...plan.bollards,
+      ...plan.curbFaces,
       ...plan.curbPaint,
       ...plan.drainSlats,
       ...plan.drains,
       ...plan.manholes,
+      ...plan.parkingMeterHeads,
+      ...plan.parkingMeterPoles,
+      ...plan.planterCrowns,
+      ...plan.planterPots,
+      ...plan.sidewalkSeams,
+      ...plan.signFrames,
+      ...plan.signGlyphs,
       ...plan.signs,
+      ...plan.storefrontBackdrops,
+      ...plan.storefrontDisplays,
       ...plan.storefrontFrames,
       ...plan.storefrontGlass,
       ...plan.surfacePatches,
+      ...plan.utilityCabinets,
+      ...plan.utilityPanels,
     ];
 
     for (const id of plan.licensedPropIds) {
       expect(["barrier", "bin"]).toContain(propById.get(id)?.kind);
+    }
+    for (const prop of layout.props.filter(
+      (candidate) =>
+        Math.abs(candidate.position[0]) <= 24 &&
+        Math.abs(candidate.position[2]) <= 24,
+    )) {
+      expect(
+        plan.licensedPropIds.includes(prop.id) ||
+          plan.suppressedPropIds.includes(prop.id),
+        prop.id,
+      ).toBe(true);
     }
     for (const id of plan.licensedStreetlightIds) {
       expect(lightById.has(id)).toBe(true);
