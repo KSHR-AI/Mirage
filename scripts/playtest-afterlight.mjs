@@ -482,8 +482,13 @@ async function routeInspectionScenario(
 
     await capture(scenario, page, outDir, "corridor");
     const inspections = mobile
-      ? [{ capture: "yard", key: "yard-opening" }]
+      ? [
+          { capture: "hero-loadout", key: "hero-close" },
+          { capture: "yard", key: "yard-opening" },
+        ]
       : [
+          { capture: "hero-loadout", key: "hero-close" },
+          { capture: "hero-aim", key: "hero-aim" },
           { capture: "sidewalk", key: "route-block-side" },
           { capture: "facade", key: "route-facade" },
           { capture: "corner", key: "signature-corner" },
@@ -513,6 +518,53 @@ async function routeInspectionScenario(
         resolvedInspection,
         inspection.key,
       );
+      if (inspection.key === "hero-close") {
+        const loadout = await page.evaluate(() =>
+          JSON.parse(
+            document.documentElement.dataset.mirageAgentLoadout ?? "null",
+          ),
+        );
+        addCheck(
+          scenario,
+          "hero-loadout-visible",
+          loadout?.visible === true && loadout?.meshCount > 0,
+          loadout,
+          "visible animated loadout mesh",
+        );
+        addCheck(
+          scenario,
+          "hero-loadout-tactical-palette",
+          loadout?.colors?.includes("#173b40") === true,
+          loadout?.colors,
+          "includes #173b40",
+        );
+      }
+      if (inspection.key === "hero-aim") {
+        await page.waitForFunction(
+          () => document.documentElement.dataset.mirageAgentAnimation === "aim",
+        );
+        const { action, animation } = await page.evaluate(() => ({
+          action: JSON.parse(
+            document.documentElement.dataset.mirageAgentAction ?? "null",
+          ),
+          animation:
+            document.documentElement.dataset.mirageAgentAnimation ?? null,
+        }));
+        addCheck(
+          scenario,
+          "hero-aim-animation",
+          animation === "aim",
+          animation,
+          "aim",
+        );
+        addCheck(
+          scenario,
+          "hero-aim-action-running",
+          action?.running === true && action?.scheduled === true,
+          action,
+          "running scheduled action",
+        );
+      }
       await capture(scenario, page, outDir, inspection.capture);
       await inspectCanvas(scenario, page, outDir, inspection.capture);
     }

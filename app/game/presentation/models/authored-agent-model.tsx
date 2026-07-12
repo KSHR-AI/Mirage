@@ -51,10 +51,52 @@ export interface AuthoredAgentMaterialTreatment {
   readonly transparent?: boolean;
 }
 
+export interface AuthoredRunnerLoadoutProbe {
+  readonly colors: readonly string[];
+  readonly meshCount: number;
+  readonly visible: boolean;
+}
+
 interface PreparedAgentModel {
   readonly geometries: readonly BufferGeometry[];
   readonly materials: readonly Material[];
   readonly scene: Object3D;
+}
+
+function belongsToNamedNode(object: Object3D, nodeName: string): boolean {
+  let candidate: Object3D | null = object;
+  while (candidate) {
+    if (candidate.name === nodeName) return true;
+    candidate = candidate.parent;
+  }
+  return false;
+}
+
+export function inspectAuthoredRunnerLoadout(
+  scene: Object3D,
+): AuthoredRunnerLoadoutProbe {
+  const loadout = scene.getObjectByName("Backpack");
+  const colors = new Set<string>();
+  let meshCount = 0;
+
+  loadout?.traverse((object) => {
+    if (!(object instanceof Mesh)) return;
+    meshCount += 1;
+    const materials = Array.isArray(object.material)
+      ? object.material
+      : [object.material];
+    for (const material of materials) {
+      if (material instanceof MeshStandardMaterial) {
+        colors.add(`#${material.color.getHexString()}`);
+      }
+    }
+  });
+
+  return Object.freeze({
+    colors: Object.freeze([...colors].sort()),
+    meshCount,
+    visible: Boolean(loadout?.visible),
+  });
 }
 
 export const AUTHORED_AGENT_MODEL_URLS: Readonly<
@@ -172,17 +214,45 @@ export function getAuthoredAgentMaterialTreatment(
   }
 }
 
+export function getAuthoredRunnerLoadoutTreatment(
+  materialName: string,
+  appearance: AgentAppearance,
+): AuthoredAgentMaterialTreatment | null {
+  const canonicalName = materialName.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  switch (canonicalName) {
+    case "green":
+      return agentMaterialTreatment("#173b40", 0.48, 0.08);
+    case "lightgreen":
+      return agentMaterialTreatment("#41585b", 0.5, 0.12);
+    case "brown":
+      return agentMaterialTreatment("#20292d", 0.57, 0.08);
+    case "brown2":
+      return agentMaterialTreatment("#11181c", 0.52, 0.16);
+    case "gold":
+      return agentMaterialTreatment(appearance.accent, 0.22, 0.76, {
+        emissive: appearance.accent,
+        emissiveIntensity: 0.08,
+      });
+    default:
+      return getAuthoredAgentMaterialTreatment(
+        materialName,
+        appearance,
+        "player",
+      );
+  }
+}
+
 function applyAgentMaterialTreatment(
   material: Material,
   appearance: AgentAppearance,
   role: AgentVisualRole,
+  override?: AuthoredAgentMaterialTreatment | null,
 ) {
   if (!(material instanceof MeshStandardMaterial)) return;
-  const treatment = getAuthoredAgentMaterialTreatment(
-    material.name,
-    appearance,
-    role,
-  );
+  const treatment =
+    override ??
+    getAuthoredAgentMaterialTreatment(material.name, appearance, role);
   if (!treatment) return;
 
   material.color.set(treatment.color);
@@ -207,14 +277,11 @@ function prepareAuthoredAgentModel(
 ): PreparedAgentModel {
   const scene = SkeletonUtils.clone(source);
   const materialClones = new Map<Material, Material>();
+  const ownedMaterials = new Set<Material>();
   const geometries: BufferGeometry[] = [];
   const smoothHero = role === "player" && quality === "desktop";
 
   scene.traverse((object) => {
-    if (role === "player" && object.name === "Backpack") {
-      object.visible = false;
-      return;
-    }
     if (!(object instanceof Mesh)) return;
     if (smoothHero) {
       const geometry = object.geometry.clone();
@@ -226,12 +293,21 @@ function prepareAuthoredAgentModel(
     const sourceMaterials = Array.isArray(object.material)
       ? object.material
       : [object.material];
+    const loadout = role === "player" && belongsToNamedNode(object, "Backpack");
     const materials = sourceMaterials.map((sourceMaterial) => {
-      const existing = materialClones.get(sourceMaterial);
+      const existing = loadout ? undefined : materialClones.get(sourceMaterial);
       if (existing) return existing;
       const clone = sourceMaterial.clone();
-      applyAgentMaterialTreatment(clone, appearance, role);
-      materialClones.set(sourceMaterial, clone);
+      applyAgentMaterialTreatment(
+        clone,
+        appearance,
+        role,
+        loadout
+          ? getAuthoredRunnerLoadoutTreatment(clone.name, appearance)
+          : undefined,
+      );
+      ownedMaterials.add(clone);
+      if (!loadout) materialClones.set(sourceMaterial, clone);
       return clone;
     });
     object.material = Array.isArray(object.material) ? materials : materials[0];
@@ -239,7 +315,7 @@ function prepareAuthoredAgentModel(
 
   return {
     geometries,
-    materials: [...materialClones.values()],
+    materials: [...ownedMaterials],
     scene,
   };
 }
@@ -518,6 +594,10 @@ export function AuthoredAgentModel({
     }),
     [clonedScene],
   );
+  const loadoutProbe = useMemo(
+    () => inspectAuthoredRunnerLoadout(clonedScene),
+    [clonedScene],
+  );
 
   useEffect(
     () => () => {
@@ -526,6 +606,22 @@ export function AuthoredAgentModel({
     },
     [preparedModel],
   );
+
+  useEffect(() => {
+    if (
+      process.env.NODE_ENV !== "development" ||
+      role !== "player" ||
+      typeof document === "undefined" ||
+      !new URLSearchParams(window.location.search).has("inspect")
+    ) {
+      return;
+    }
+    document.documentElement.dataset.mirageAgentLoadout =
+      JSON.stringify(loadoutProbe);
+    return () => {
+      delete document.documentElement.dataset.mirageAgentLoadout;
+    };
+  }, [loadoutProbe, role]);
 
   useLayoutEffect(() => {
     if (directionRootRef.current) {

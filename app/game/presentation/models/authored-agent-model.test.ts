@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { BoxGeometry, Group, Mesh, MeshStandardMaterial } from "three";
 
 import {
   AUTHORED_AGENT_CLIP_CANDIDATES,
   AUTHORED_AGENT_MODEL_URLS,
   dampAuthoredAgentDirection,
   getAuthoredAgentMaterialTreatment,
+  getAuthoredRunnerLoadoutTreatment,
+  inspectAuthoredRunnerLoadout,
   getAuthoredAgentTimeScale,
   getAuthoredAgentTurnLean,
   getAuthoredAgentVariation,
@@ -189,5 +192,42 @@ describe("authored agent model helpers", () => {
     expect(
       getAuthoredAgentMaterialTreatment("Unknown", player, "player"),
     ).toBeNull();
+  });
+
+  it("gives the runner loadout a distinct tactical material treatment", () => {
+    const player = getAgentAppearance(1, "player");
+
+    expect(getAuthoredRunnerLoadoutTreatment("Green", player)).toMatchObject({
+      color: "#173b40",
+      metalness: 0.08,
+    });
+    expect(getAuthoredRunnerLoadoutTreatment("Brown2", player)).toMatchObject({
+      color: "#11181c",
+      roughness: 0.52,
+    });
+    expect(getAuthoredRunnerLoadoutTreatment("Gold", player)).toMatchObject({
+      color: player.accent,
+      emissive: player.accent,
+      metalness: 0.76,
+    });
+  });
+
+  it("reports the visible loadout mesh and its rendered material colors", () => {
+    const scene = new Group();
+    const loadout = new Group();
+    loadout.name = "Backpack";
+    loadout.add(
+      new Mesh(
+        new BoxGeometry(1, 1, 1),
+        new MeshStandardMaterial({ color: "#173b40" }),
+      ),
+    );
+    scene.add(loadout);
+
+    expect(inspectAuthoredRunnerLoadout(scene)).toEqual({
+      colors: ["#173b40"],
+      meshCount: 1,
+      visible: true,
+    });
   });
 });

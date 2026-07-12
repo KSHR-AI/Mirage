@@ -418,8 +418,7 @@ export const AfterlightScene = memo(function AfterlightScene({
   const [inspectionKey, setInspectionKey] = useState<string | null>(null);
   const inspectionAim =
     process.env.NODE_ENV === "development" &&
-    typeof window !== "undefined" &&
-    isPlaytestAimInspection(window.location.search, true);
+    isPlaytestAimInspection(`?inspect=${inspectionKey ?? ""}`, true);
 
   useEffect(() => {
     const enabled = process.env.NODE_ENV === "development";

@@ -10,12 +10,12 @@ import {
 describe("resolvePlaytestInspectionPose", () => {
   it("resolves named development inspection poses", () => {
     expect(resolvePlaytestInspectionPose("?inspect=hero-close", true)).toEqual({
-      position: [64, 1.4, 58.5],
-      rotationY: 0,
+      position: [64, 1.15, 56],
+      rotationY: Math.PI,
     });
     expect(resolvePlaytestInspectionPose("?inspect=hero-aim", true)).toEqual({
       position: [64, 1.15, 56],
-      rotationY: -0.55,
+      rotationY: Math.PI - 0.55,
     });
     expect(
       resolvePlaytestInspectionPose("?inspect=yard-opening", true),

@@ -5,12 +5,12 @@ export const PLAYTEST_INSPECTION_EVENT = "mirage:inspection-pose";
 export const PLAYTEST_INSPECTION_POSES: Readonly<Record<string, Pose>> =
   Object.freeze({
     "hero-close": Object.freeze({
-      position: Object.freeze([64, 1.4, 58.5] as const),
-      rotationY: 0,
+      position: Object.freeze([64, 1.15, 56] as const),
+      rotationY: Math.PI,
     }),
     "hero-aim": Object.freeze({
       position: Object.freeze([64, 1.15, 56] as const),
-      rotationY: -0.55,
+      rotationY: Math.PI - 0.55,
     }),
     "yard-opening": Object.freeze({
       position: Object.freeze([64, 1.15, 56] as const),
