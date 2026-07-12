@@ -7,6 +7,7 @@ describe("input device profile", () => {
       prefersTouchControls({
         coarsePointer: false,
         finePointer: true,
+        touchPoints: 0,
         viewportWidth: 722,
       }),
     ).toBe(false);
@@ -17,6 +18,18 @@ describe("input device profile", () => {
       prefersTouchControls({
         coarsePointer: true,
         finePointer: false,
+        touchPoints: 1,
+        viewportWidth: 390,
+      }),
+    ).toBe(true);
+  });
+
+  it("prefers touch on a narrow touch device that also reports fine input", () => {
+    expect(
+      prefersTouchControls({
+        coarsePointer: true,
+        finePointer: true,
+        touchPoints: 5,
         viewportWidth: 390,
       }),
     ).toBe(true);
@@ -27,6 +40,7 @@ describe("input device profile", () => {
       prefersTouchControls({
         coarsePointer: false,
         finePointer: false,
+        touchPoints: 0,
         viewportWidth: 700,
       }),
     ).toBe(true);
@@ -34,6 +48,7 @@ describe("input device profile", () => {
       prefersTouchControls({
         coarsePointer: false,
         finePointer: false,
+        touchPoints: 0,
         viewportWidth: 900,
       }),
     ).toBe(false);

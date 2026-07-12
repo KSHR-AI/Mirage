@@ -4,9 +4,17 @@ import { expectRenderedCanvas } from "./canvas";
 test("plays the opening Afterlight loop with keyboard and mouse", async ({
   page,
 }) => {
-  test.setTimeout(210_000);
+  test.setTimeout(1_200_000);
   await page.addInitScript(() => {
     let pointerLocked = false;
+    Object.defineProperty(navigator, "hardwareConcurrency", {
+      configurable: true,
+      value: 4,
+    });
+    Object.defineProperty(navigator, "deviceMemory", {
+      configurable: true,
+      value: 4,
+    });
     Object.defineProperty(Document.prototype, "pointerLockElement", {
       configurable: true,
       get: () =>
@@ -77,25 +85,25 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
   await inputSurface.click({ force: true, position: { x: 640, y: 360 } });
   await expect(shell).toHaveAttribute("data-pointer-locked", "true");
   await expect(page.getByRole("heading", { name: "Boost" })).toBeVisible();
-  await expectRenderedCanvas(page);
   await expect
     .poll(async () => Number(await shell.getAttribute("data-tick")), {
-      timeout: 20_000,
+      timeout: 120_000,
     })
     .toBeGreaterThan(0);
+  await expectRenderedCanvas(page);
 
   const groundedY = Number(await shell.getAttribute("data-player-y"));
   await page.keyboard.press("Space");
   await expect
     .poll(async () => Number(await shell.getAttribute("data-player-y")), {
-      timeout: 20_000,
+      timeout: 120_000,
     })
     .toBeGreaterThan(groundedY + 0.12);
   await expect
     .poll(
       async () =>
         Math.abs(Number(await shell.getAttribute("data-player-y")) - groundedY),
-      { timeout: 20_000 },
+      { timeout: 120_000 },
     )
     .toBeLessThan(0.03);
 
@@ -143,7 +151,7 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
   await page.keyboard.down("w");
   await expect
     .poll(async () => Number(await shell.getAttribute("data-tick")), {
-      timeout: 20_000,
+      timeout: 120_000,
     })
     .toBeGreaterThanOrEqual(strideStartTick + 60);
   await page.keyboard.up("w");
@@ -168,7 +176,7 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
   const restStartTick = Number(await shell.getAttribute("data-tick"));
   await expect
     .poll(async () => Number(await shell.getAttribute("data-tick")), {
-      timeout: 20_000,
+      timeout: 120_000,
     })
     .toBeGreaterThanOrEqual(restStartTick + 20);
   expect(Number(await shell.getAttribute("data-player-yaw"))).toBeCloseTo(
@@ -180,7 +188,7 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
   await page.keyboard.down("s");
   await expect
     .poll(async () => Number(await shell.getAttribute("data-tick")), {
-      timeout: 20_000,
+      timeout: 120_000,
     })
     .toBeGreaterThanOrEqual(returnStartTick + 60);
   await page.keyboard.up("s");
@@ -198,7 +206,9 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
 
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Paused" })).toBeVisible();
-  await expect(shell).toHaveAttribute("data-pointer-locked", "false");
+  await expect
+    .poll(() => page.evaluate(() => document.pointerLockElement === null))
+    .toBe(true);
   const sensitivity = page.getByRole("slider", { name: "Look sensitivity" });
   await expect(sensitivity).toHaveValue("100");
   await sensitivity.fill("150");

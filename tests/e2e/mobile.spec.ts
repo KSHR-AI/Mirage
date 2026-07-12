@@ -3,6 +3,18 @@ import { expectRenderedCanvas } from "./canvas";
 
 test("exposes a complete playable touch control set", async ({ page }) => {
   await page.addInitScript(() => {
+    Object.defineProperty(navigator, "hardwareConcurrency", {
+      configurable: true,
+      value: 4,
+    });
+    Object.defineProperty(navigator, "deviceMemory", {
+      configurable: true,
+      value: 4,
+    });
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      value: 5,
+    });
     HTMLElement.prototype.setPointerCapture = () => undefined;
     HTMLElement.prototype.releasePointerCapture = () => undefined;
   });
@@ -23,6 +35,83 @@ test("exposes a complete playable touch control set", async ({ page }) => {
     await expect(
       page.getByRole("button", { name: label, exact: true }),
     ).toBeVisible();
+  }
+
+  const layout = await page.evaluate(() => {
+    const hud = document.querySelector('[aria-label="Afterlight mission HUD"]');
+    const mission = hud?.querySelector('section[aria-live="polite"]');
+    const lower = hud?.querySelector("footer");
+    const controls = document.querySelector(
+      '[aria-label="Touch game controls"]',
+    );
+    if (!(mission instanceof HTMLElement)) throw new Error("Mission missing");
+    if (!(lower instanceof HTMLElement)) throw new Error("Lower HUD missing");
+    if (!(controls instanceof HTMLElement)) {
+      throw new Error("Touch controls missing");
+    }
+
+    const missionRect = mission.getBoundingClientRect();
+    const lowerRect = lower.getBoundingClientRect();
+    const controlsRect = controls.getBoundingClientRect();
+    const targetRects = [...controls.querySelectorAll("button")].map(
+      (button) => {
+        const bounds = button.getBoundingClientRect();
+        return {
+          bottom: bounds.bottom,
+          height: bounds.height,
+          left: bounds.left,
+          right: bounds.right,
+          top: bounds.top,
+          width: bounds.width,
+        };
+      },
+    );
+    const overlapCount = targetRects.flatMap((candidate, index) =>
+      targetRects
+        .slice(index + 1)
+        .filter(
+          (other) =>
+            candidate.left < other.right &&
+            candidate.right > other.left &&
+            candidate.top < other.bottom &&
+            candidate.bottom > other.top,
+        ),
+    ).length;
+    const visibleObjectives = [...mission.querySelectorAll("li")].filter(
+      (element) => {
+        const bounds = element.getBoundingClientRect();
+        return (
+          getComputedStyle(element).display !== "none" && bounds.height > 0
+        );
+      },
+    ).length;
+
+    return {
+      controlsHeight: controlsRect.height,
+      lowerHeight: lowerRect.height,
+      lowerTouchGap: controlsRect.top - lowerRect.bottom,
+      missionHeight: missionRect.height,
+      missionWidthRatio: missionRect.width / innerWidth,
+      overlapCount,
+      sceneBandRatio: (lowerRect.top - missionRect.bottom) / innerHeight,
+      targetRects,
+      visibleObjectives,
+    };
+  });
+
+  expect(layout.missionHeight).toBeLessThanOrEqual(132);
+  expect(layout.missionWidthRatio).toBeLessThanOrEqual(0.8);
+  expect(layout.sceneBandRatio).toBeGreaterThanOrEqual(0.4);
+  expect(layout.visibleObjectives).toBeGreaterThanOrEqual(1);
+  expect(layout.visibleObjectives).toBeLessThanOrEqual(2);
+  expect(layout.lowerHeight).toBeLessThanOrEqual(70);
+  expect(layout.controlsHeight).toBeLessThanOrEqual(104);
+  expect(layout.lowerTouchGap).toBeGreaterThanOrEqual(8);
+  expect(layout.overlapCount).toBe(0);
+  expect(layout.targetRects).toHaveLength(8);
+  for (const target of layout.targetRects) {
+    expect(target.width).toBeGreaterThanOrEqual(44);
+    expect(target.height).toBeGreaterThanOrEqual(44);
   }
 
   const shell = page.getByTestId("afterlight-game");

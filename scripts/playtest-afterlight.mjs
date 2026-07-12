@@ -10,7 +10,6 @@ import { renderedPixelStats } from "./lib/png-stats.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_URL = "http://127.0.0.1:3100";
-const CANVAS_INSPECTION_TIMEOUT_MS = 90_000;
 const VALID_SCENARIOS = new Set([
   "all",
   "compact",
@@ -136,11 +135,7 @@ async function telemetry(shell) {
     "vehicle-yaw",
     "vehicle-health",
   ];
-  const values = {};
-  for (const name of names) {
-    values[name] = await shell.getAttribute(`data-${name}`);
-  }
-  return values;
+  return attributeSnapshot(shell, names);
 }
 
 function angleDelta(from, to) {
@@ -293,11 +288,36 @@ async function waitForStablePaint(page) {
   });
 }
 
+async function capturePagePng(page, clip) {
+  const session = await page.context().newCDPSession(page);
+  try {
+    let captureClip = clip;
+    if (!captureClip) {
+      const metrics = await session.send("Page.getLayoutMetrics");
+      captureClip = {
+        height: metrics.cssContentSize.height,
+        width: metrics.cssContentSize.width,
+        x: 0,
+        y: 0,
+      };
+    }
+    const capture = await session.send("Page.captureScreenshot", {
+      captureBeyondViewport: true,
+      clip: { ...captureClip, scale: 1 },
+      format: "png",
+      fromSurface: true,
+    });
+    return Buffer.from(capture.data, "base64");
+  } finally {
+    await session.detach();
+  }
+}
+
 async function capture(scenario, page, outDir, name) {
   const fileName = `${scenario.id}-${name}.png`;
   const filePath = path.join(outDir, fileName);
   await waitForStablePaint(page);
-  await page.screenshot({ fullPage: true, path: filePath });
+  await writeFile(filePath, await capturePagePng(page));
   scenario.screenshots.push(fileName);
 }
 
@@ -306,14 +326,20 @@ async function inspectCanvas(scenario, page, outDir, name) {
   const canvas = page.locator("canvas#afterlight-renderer");
   await canvas.waitFor({ state: "visible", timeout: 30_000 });
   await waitForStablePaint(page);
-  const bounds = await canvas.boundingBox({
-    timeout: CANVAS_INSPECTION_TIMEOUT_MS,
+  const bounds = await page.evaluate(() => {
+    const element = document.querySelector("canvas#afterlight-renderer");
+    if (!(element instanceof HTMLCanvasElement)) return undefined;
+    const rect = element.getBoundingClientRect();
+    return {
+      height: rect.height,
+      width: rect.width,
+      x: rect.left,
+      y: rect.top,
+    };
   });
   if (!bounds) throw new Error("Afterlight canvas has no visible bounds");
-  const png = await page.screenshot({
-    clip: bounds,
-    path: path.join(outDir, fileName),
-  });
+  const png = await capturePagePng(page, bounds);
+  await writeFile(path.join(outDir, fileName), png);
   const stats = renderedPixelStats(png);
   scenario.screenshots.push(fileName);
   scenario.canvas = stats;
@@ -375,11 +401,11 @@ async function desktopScenario(browser, baseURL, outDir, headed) {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "hardwareConcurrency", {
       configurable: true,
-      value: 8,
+      value: 4,
     });
     Object.defineProperty(navigator, "deviceMemory", {
       configurable: true,
-      value: 8,
+      value: 4,
     });
     let pointerLockElement = null;
     Object.defineProperty(Document.prototype, "pointerLockElement", {
@@ -823,11 +849,15 @@ async function mobileScenario(browser, baseURL, outDir, headed) {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "hardwareConcurrency", {
       configurable: true,
-      value: 8,
+      value: 4,
     });
     Object.defineProperty(navigator, "deviceMemory", {
       configurable: true,
-      value: 8,
+      value: 4,
+    });
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      value: 5,
     });
     HTMLElement.prototype.setPointerCapture = () => undefined;
     HTMLElement.prototype.releasePointerCapture = () => undefined;
@@ -1054,11 +1084,15 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "hardwareConcurrency", {
       configurable: true,
-      value: 8,
+      value: 4,
     });
     Object.defineProperty(navigator, "deviceMemory", {
       configurable: true,
-      value: 8,
+      value: 4,
+    });
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      value: 5,
     });
     HTMLElement.prototype.setPointerCapture = () => undefined;
     HTMLElement.prototype.releasePointerCapture = () => undefined;
@@ -1089,11 +1123,22 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
       const mission = hud.querySelector('section[aria-live="polite"]');
       const lower = hud.querySelector("footer");
       const touchControls = document.querySelector(
-        '[aria-label="Touch controls"]',
+        '[aria-label="Touch game controls"]',
       );
       const touchButtons = touchControls
-        ? [...touchControls.querySelectorAll("button")].map(rect)
+        ? [...touchControls.querySelectorAll("button")]
+            .map(rect)
+            .filter(Boolean)
         : [];
+      const visibleObjectives = mission
+        ? [...mission.querySelectorAll("li")].filter((element) => {
+            if (!(element instanceof HTMLElement)) return false;
+            const bounds = element.getBoundingClientRect();
+            return (
+              getComputedStyle(element).display !== "none" && bounds.height > 0
+            );
+          }).length
+        : 0;
       const optionalBadge = [...hud.querySelectorAll("small")].find(
         (element) => element.textContent?.trim() === "OPTIONAL",
       );
@@ -1101,10 +1146,17 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
       const optionalLabel = optionalCopy?.querySelector("span");
       const missionRect = rect(mission);
       const lowerRect = rect(lower);
+      const touchRect = rect(touchControls);
 
       return {
         lower: lowerRect,
+        lowerTouchGap:
+          lowerRect && touchRect ? touchRect.top - lowerRect.bottom : -1,
         mission: missionRect,
+        sceneBandRatio:
+          missionRect && lowerRect
+            ? (lowerRect.top - missionRect.bottom) / innerHeight
+            : -1,
         objective: optionalLabel
           ? {
               clientHeight: optionalLabel.clientHeight,
@@ -1116,9 +1168,10 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
           : undefined,
         topRegions,
         touchButtons,
-        touchControls: rect(touchControls),
+        touchControls: touchRect,
         verticalGap:
           missionRect && lowerRect ? lowerRect.top - missionRect.bottom : -1,
+        visibleObjectives,
         viewport: { height: innerHeight, width: innerWidth },
       };
     });
@@ -1168,6 +1221,58 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
       layout.verticalGap >= 16,
       layout.verticalGap,
       ">= 16px between mission and lower HUD",
+    );
+
+    addCheck(
+      scenario,
+      "compact-scene-first-composition",
+      Boolean(layout.mission) &&
+        layout.mission.height <= 132 &&
+        layout.mission.width <= layout.viewport.width * 0.8 &&
+        layout.sceneBandRatio >= 0.4 &&
+        layout.visibleObjectives >= 1 &&
+        layout.visibleObjectives <= 2,
+      {
+        mission: layout.mission,
+        sceneBandRatio: layout.sceneBandRatio,
+        visibleObjectives: layout.visibleObjectives,
+      },
+      "mission panel stays compact and preserves >= 40% clear scene height",
+    );
+
+    const touchOverlaps = layout.touchButtons.flatMap((candidate, index) =>
+      layout.touchButtons
+        .slice(index + 1)
+        .filter(
+          (other) =>
+            candidate.left < other.right &&
+            candidate.right > other.left &&
+            candidate.top < other.bottom &&
+            candidate.bottom > other.top,
+        ),
+    );
+    addCheck(
+      scenario,
+      "compact-touch-target-layout",
+      layout.touchButtons.length === 8 &&
+        layout.touchButtons.every(
+          (target) => target.width >= 44 && target.height >= 44,
+        ) &&
+        touchOverlaps.length === 0 &&
+        layout.touchControls?.height <= 104 &&
+        layout.lower?.height <= 70 &&
+        layout.lowerTouchGap >= 8,
+      {
+        lowerHeight: layout.lower?.height,
+        lowerTouchGap: layout.lowerTouchGap,
+        overlaps: touchOverlaps,
+        targetSizes: layout.touchButtons.map(({ height, width }) => ({
+          height,
+          width,
+        })),
+        touchHeight: layout.touchControls?.height,
+      },
+      "eight non-overlapping 44px targets below a <= 70px instrument rail",
     );
 
     const touchLabels = [

@@ -1955,6 +1955,27 @@
     padding: 10px 28px 10px 11px;
   }
 
+  .hudWithTouch .missionPanel {
+    width: min(252px, calc(100vw - 20px));
+    max-height: 132px;
+    gap: 3px;
+    padding: 8px 20px 8px 10px;
+  }
+
+  .hudWithTouch .missionTitle,
+  .hudWithTouch .objectiveSummary,
+  .hudWithTouch .objectiveList li:not([data-active="true"]) {
+    display: none;
+  }
+
+  .hudWithTouch .missionPanel h2 {
+    font-size: 15px;
+  }
+
+  .hudWithTouch .chapterTrack {
+    margin-bottom: 1px;
+  }
+
   .missionPanel h2 {
     font-size: 17px;
   }
@@ -1978,6 +1999,29 @@
     right: max(10px, env(safe-area-inset-right));
     bottom: max(292px, calc(env(safe-area-inset-bottom) + 280px));
     width: min(260px, calc(100vw - 20px));
+  }
+
+  .hudWithTouch .notifications {
+    bottom: max(226px, calc(env(safe-area-inset-bottom) + 216px));
+    width: min(210px, calc(100vw - 20px));
+    gap: 4px;
+  }
+
+  .hudWithTouch .notification {
+    max-width: 210px;
+    padding: 6px 8px 6px 18px;
+  }
+
+  .hudWithTouch .notification:not(:last-child) {
+    display: none;
+  }
+
+  .hudWithTouch .notification span {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 8px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .hudRoot:not(.hudWithTouch) .notifications {
@@ -2007,7 +2051,84 @@
   }
 
   .hudWithTouch .lowerHud {
-    bottom: max(174px, calc(env(safe-area-inset-bottom) + 164px));
+    bottom: max(112px, calc(env(safe-area-inset-bottom) + 102px));
+    height: 64px;
+    grid-template-columns: 64px minmax(0, 1fr) 58px;
+    grid-template-rows: 34px 24px;
+    gap: 4px 6px;
+  }
+
+  .hudWithTouch .minimap {
+    width: 64px;
+    height: 64px;
+  }
+
+  .hudWithTouch .mapGrid {
+    background-size: 9px 9px;
+  }
+
+  .hudWithTouch .mapNorth {
+    top: 4px;
+    font-size: 7px;
+  }
+
+  .hudWithTouch .mapDistrict {
+    right: 4px;
+    bottom: 3px;
+    left: 4px;
+    font-size: 5px;
+  }
+
+  .hudWithTouch .vitals {
+    gap: 3px;
+  }
+
+  .hudWithTouch .meterGroup {
+    gap: 1px;
+  }
+
+  .hudWithTouch .meterLabel {
+    font-size: 6px;
+  }
+
+  .hudWithTouch .meterLabel strong {
+    font-size: 7px;
+  }
+
+  .hudWithTouch .meterTrack {
+    height: 4px;
+  }
+
+  .hudWithTouch .driveReadout {
+    display: flex;
+    align-items: end;
+    justify-content: flex-end;
+  }
+
+  .hudWithTouch .locationReadout {
+    display: none;
+  }
+
+  .hudWithTouch .speedReadout strong {
+    font-size: 21px;
+  }
+
+  .hudWithTouch .weapon {
+    width: 58px;
+    padding: 5px 5px 5px 2px;
+  }
+
+  .hudWithTouch .weaponName span,
+  .hudWithTouch .weapon > small {
+    display: none;
+  }
+
+  .hudWithTouch .ammoCount strong {
+    font-size: 17px;
+  }
+
+  .hudWithTouch .ammoCount span {
+    font-size: 6px;
   }
 
   .minimap {
@@ -2306,34 +2427,34 @@
     right: max(10px, env(safe-area-inset-right));
     bottom: max(8px, env(safe-area-inset-bottom));
     left: max(10px, env(safe-area-inset-left));
-    height: 146px;
+    height: 96px;
   }
 
   .controlStick {
-    width: 104px;
-    height: 104px;
+    width: 88px;
+    height: 88px;
   }
 
   .lookStick {
-    left: 116px;
-    width: 86px;
-    height: 86px;
+    left: 90px;
+    width: 60px;
+    height: 60px;
   }
 
   .stickKnob {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
   }
 
   .touchActionGrid {
-    grid-template-columns: repeat(2, 46px);
-    grid-template-rows: repeat(3, 42px);
-    gap: 6px;
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(2, 44px);
+    gap: 5px;
   }
 
   .touchAction {
-    width: 46px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
   }
 }
 
@@ -2377,6 +2498,11 @@
   .missionPanel {
     width: min(326px, calc(100vw - 20px));
     max-height: 202px;
+  }
+
+  .hudWithTouch .missionPanel {
+    width: min(246px, calc(100vw - 20px));
+    max-height: 132px;
   }
 
   .objectiveList li {
@@ -2438,9 +2564,9 @@
   }
 
   .lookStick {
-    left: 112px;
-    width: 82px;
-    height: 82px;
+    left: 90px;
+    width: 60px;
+    height: 60px;
   }
 }
 

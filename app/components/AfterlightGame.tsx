@@ -8,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import * as THREE from "three";
@@ -180,15 +179,16 @@ function readControlSettings(): ControlSettings {
 }
 
 function getTouchSnapshot(): boolean {
+  const viewportWidth = Math.min(
+    window.innerWidth,
+    window.screen.width || window.innerWidth,
+  );
   return prefersTouchControls({
     coarsePointer: window.matchMedia("(pointer: coarse)").matches,
     finePointer: window.matchMedia("(pointer: fine)").matches,
-    viewportWidth: window.innerWidth,
+    touchPoints: navigator.maxTouchPoints,
+    viewportWidth,
   });
-}
-
-function getServerTouchSnapshot(): boolean {
-  return false;
 }
 
 function subscribeToTouch(onStoreChange: () => void): () => void {
@@ -202,6 +202,16 @@ function subscribeToTouch(onStoreChange: () => void): () => void {
     fineQuery.removeEventListener("change", onStoreChange);
     window.removeEventListener("resize", onStoreChange);
   };
+}
+
+function useTouchControls(): boolean {
+  const [touch, setTouch] = useState(false);
+  useEffect(() => {
+    const refresh = () => setTouch(getTouchSnapshot());
+    refresh();
+    return subscribeToTouch(refresh);
+  }, []);
+  return touch;
 }
 
 function track(event: string, value?: string): void {
@@ -587,11 +597,7 @@ function gamepadActive(gamepad: Gamepad): boolean {
 }
 
 export function AfterlightGame() {
-  const touch = useSyncExternalStore(
-    subscribeToTouch,
-    getTouchSnapshot,
-    getServerTouchSnapshot,
-  );
+  const touch = useTouchControls();
   const [initialSession] = useState(() => {
     const state = createInitialAfterlightState(GAME_SEED);
     const stepController = new AfterlightStepController(state.seed);

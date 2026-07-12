@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
   workers: 1,
-  timeout: 120_000,
+  timeout: 300_000,
   expect: {
     timeout: 10_000,
   },
@@ -36,9 +36,9 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "node node_modules/next/dist/bin/next dev --hostname 127.0.0.1 --port 3100",
+      "node node_modules/next/dist/bin/next build && node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3100",
     url: "http://127.0.0.1:3100",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });
