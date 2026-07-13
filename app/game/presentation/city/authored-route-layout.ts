@@ -1,4 +1,3 @@
-import { AUTHORED_DOWNTOWN_PLACEMENTS } from "../../content/authored-downtown";
 import type {
   BoxInstance,
   BuildingInstance,
@@ -143,11 +142,6 @@ const STREET_ASSET_LIMITS: Readonly<
   desktop: Object.freeze({ barriers: 10, bins: 10, streetlights: 7 }),
   mobile: Object.freeze({ barriers: 1, bins: 1, streetlights: 2 }),
 });
-
-const ROUTE_DOWNTOWN_STOREFRONT_IDS = Object.freeze([
-  "authored-downtown-medium",
-  "authored-downtown-small",
-] as const);
 
 function routeDistanceSquared(feature: PointFeature): number {
   let nearest = Number.POSITIVE_INFINITY;
@@ -441,34 +435,6 @@ function createStorefrontPlan(
   };
 }
 
-function authoredDowntownStorefrontBuilding(
-  id: (typeof ROUTE_DOWNTOWN_STOREFRONT_IDS)[number],
-): BuildingInstance | undefined {
-  const placement = AUTHORED_DOWNTOWN_PLACEMENTS.find(
-    (candidate) => candidate.id === id,
-  );
-  if (!placement) return undefined;
-  const { collision } = placement;
-  const height = collision.maxY - collision.minY;
-  return {
-    color: "#46565b",
-    district: "afterlight",
-    id: placement.id,
-    position: [
-      (collision.minX + collision.maxX) / 2,
-      collision.minY + height / 2,
-      (collision.minZ + collision.maxZ) / 2,
-    ],
-    roofHeight: 0,
-    rotationY: 0,
-    scale: [
-      collision.maxX - collision.minX,
-      height,
-      collision.maxZ - collision.minZ,
-    ],
-  };
-}
-
 function createRouteSurfacePlan(quality: CityQuality) {
   const patches = [
     routeBox(
@@ -631,19 +597,7 @@ export function createAuthoredRoutePlan(layout: CityLayout): AuthoredRoutePlan {
       ? [createStorefrontPlan(building, layout.quality, target.side, index)]
       : [];
   });
-  const authoredStorefrontPlans = ROUTE_DOWNTOWN_STOREFRONT_IDS.slice(
-    0,
-    layout.quality === "desktop" ? ROUTE_DOWNTOWN_STOREFRONT_IDS.length : 1,
-  ).flatMap((id, index) => {
-    const building = authoredDowntownStorefrontBuilding(id);
-    return building
-      ? [createStorefrontPlan(building, layout.quality, "south", index + 8)]
-      : [];
-  });
-  const storefrontPlans = [
-    ...proceduralStorefrontPlans,
-    ...authoredStorefrontPlans,
-  ];
+  const storefrontPlans = proceduralStorefrontPlans;
   const storefrontGlass = storefrontPlans.flatMap((plan) => plan.glass);
   const signs = storefrontPlans.flatMap((plan) => plan.signs);
   const streetLife = createRouteStreetLifePlan(

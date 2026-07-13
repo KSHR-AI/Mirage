@@ -221,6 +221,35 @@ describe("Signal-9 cadence and reload", () => {
     ]);
   });
 
+  it("reloads to an unlocked extended magazine capacity", () => {
+    const { physics } = recordingPort();
+    const started = stepSignal9(
+      createSignal9State({
+        magazine: 24,
+        magazineCapacity: 36,
+        reserve: 24,
+      }),
+      command(physics, {
+        tick: 5,
+        input: { firePressed: false, reloadPressed: true },
+      }),
+    );
+    const completed = stepSignal9(
+      started.state,
+      command(physics, { tick: 5 + SIGNAL_9_SPEC.reloadTicks }),
+    );
+
+    expect(completed.state).toMatchObject({
+      magazine: 36,
+      magazineCapacity: 36,
+      reserve: 12,
+    });
+    expect(completed.events[0]).toMatchObject({
+      type: "weapon-reloaded",
+      roundsLoaded: 12,
+    });
+  });
+
   it("loads only available reserve rounds", () => {
     const { physics } = recordingPort();
     const started = stepSignal9(

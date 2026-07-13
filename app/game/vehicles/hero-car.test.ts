@@ -9,6 +9,7 @@ import {
 import {
   DEFAULT_ARCADE_CAR_CONFIG,
   HERO_CAR_TARGET_SPEED,
+  STREET_TUNED_ARCADE_CAR_CONFIG,
   decomposeVehicleMotion,
   evaluateSafeExit,
   steeringAngleForSpeed,
@@ -125,6 +126,22 @@ describe("arcade hero car", () => {
     }
 
     expect(decomposeVehicleMotion(boosted).forwardSpeed).toBeCloseTo(32, 10);
+  });
+
+  it("applies the street tune through the same deterministic car model", () => {
+    let tuned = vehicle();
+    const command = input({ throttle: 1, sprint: true });
+    for (let tick = 0; tick < 240; tick += 1) {
+      tuned = stepHeroCar(
+        tuned,
+        command,
+        SIMULATION_DT,
+        STREET_TUNED_ARCADE_CAR_CONFIG,
+      );
+    }
+
+    expect(decomposeVehicleMotion(tuned).forwardSpeed).toBeCloseTo(36, 10);
+    expect(STREET_TUNED_ARCADE_CAR_CONFIG.targetSpeed).toBe(29);
   });
 
   it("retains controlled lateral slip during a braking turn", () => {

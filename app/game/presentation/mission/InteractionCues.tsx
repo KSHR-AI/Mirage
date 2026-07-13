@@ -1,11 +1,13 @@
 "use client";
 
 import { memo } from "react";
+import type { GameQualityTier } from "../../performance";
 import type { InteractionCuePlan } from "./types";
 import { INTERACTION_COLORS } from "./plan";
 
 export interface MissionInteractionCuesProps {
   readonly cues: readonly InteractionCuePlan[];
+  readonly quality: GameQualityTier;
   readonly reducedMotion: boolean;
 }
 
@@ -182,8 +184,27 @@ function DestinationCue({
   );
 }
 
+function LowCue({
+  cue,
+  color,
+}: {
+  readonly cue: InteractionCuePlan;
+  readonly color: string;
+}) {
+  const radius = Math.min(3.2, Math.max(0.7, cue.radius * 0.45));
+  return (
+    <group name={`mission-cue-${cue.id}`} position={cue.position}>
+      <mesh renderOrder={8} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[radius, 0.06, 4, 18]} />
+        <CueMaterial color={color} opacity={0.78} />
+      </mesh>
+    </group>
+  );
+}
+
 export const MissionInteractionCues = memo(function MissionInteractionCues({
   cues,
+  quality,
   reducedMotion,
 }: MissionInteractionCuesProps) {
   return (
@@ -193,6 +214,9 @@ export const MissionInteractionCues = memo(function MissionInteractionCues({
     >
       {cues.map((cue) => {
         const color = INTERACTION_COLORS[cue.tone];
+        if (quality === "low") {
+          return <LowCue color={color} cue={cue} key={cue.id} />;
+        }
         if (cue.kind === "target") {
           return (
             <TargetCue

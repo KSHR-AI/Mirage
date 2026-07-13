@@ -1,16 +1,13 @@
 "use client";
 
 import { memo, useCallback, useMemo, useState } from "react";
-import { ModelAssetBoundary } from "../models/ModelAssetBoundary";
-import { AuthoredDowntownBuildings } from "./AuthoredDowntownBuildings";
-import { AuthoredRouteDetails } from "./AuthoredRouteDetails";
+import { BlockRouteDetails } from "./BlockRouteDetails";
 import { CityArchitecture } from "./CityArchitecture";
 import { CityAtmosphere } from "./CityAtmosphere";
 import { CityLandmarks } from "./CityLandmarks";
 import { CityStreetDetails } from "./CityStreetDetails";
 import { CitySurface } from "./CitySurface";
 import { SignatureCornerBuilding } from "./SignatureCornerBuilding";
-import { replaceProceduralDowntownBlocks } from "./authored-downtown-layout";
 import { createAuthoredRoutePlan } from "./authored-route-layout";
 import { createBayCityLayout } from "./city-layout";
 import { createPoweredCityPowerState, type CityPowerState } from "./power";
@@ -52,12 +49,7 @@ export const BayCityWorld = memo(function BayCityWorld({
   shadows,
   visible = true,
 }: BayCityWorldProps) {
-  const [authoredDowntownReady, setAuthoredDowntownReady] = useState(false);
   const [authoredRouteReady, setAuthoredRouteReady] = useState(false);
-  const markAuthoredDowntownReady = useCallback(
-    () => setAuthoredDowntownReady(true),
-    [],
-  );
   const markAuthoredRouteReady = useCallback(
     () => setAuthoredRouteReady(true),
     [],
@@ -78,20 +70,13 @@ export const BayCityWorld = memo(function BayCityWorld({
     () => replaceSignatureCornerBuilding(resolvedLayout),
     [resolvedLayout],
   );
-  const useAuthoredDowntown = authoredDowntownReady;
   const resolvedPowerState = useMemo(
     () =>
       powerState ??
       createPoweredCityPowerState(resolvedLayout.seed, 0, reducedMotion),
     [powerState, reducedMotion, resolvedLayout.seed],
   );
-  const presentationLayout = useMemo(
-    () =>
-      useAuthoredDowntown
-        ? replaceProceduralDowntownBlocks(layoutWithoutSignatureCorner)
-        : layoutWithoutSignatureCorner,
-    [layoutWithoutSignatureCorner, useAuthoredDowntown],
-  );
+  const presentationLayout = layoutWithoutSignatureCorner;
   const authoredRoutePlan = useMemo(
     () => createAuthoredRoutePlan(presentationLayout),
     [presentationLayout],
@@ -126,20 +111,12 @@ export const BayCityWorld = memo(function BayCityWorld({
             shadows={resolvedStaticShadows}
           />
         ) : null}
-        <ModelAssetBoundary fallback={null}>
-          <AuthoredDowntownBuildings
-            onReady={markAuthoredDowntownReady}
-            powerState={resolvedPowerState}
-            shadows={resolvedStaticShadows}
-          />
-        </ModelAssetBoundary>
-        <ModelAssetBoundary fallback={null}>
-          <AuthoredRouteDetails
-            onReady={markAuthoredRouteReady}
-            plan={authoredRoutePlan}
-            shadows={resolvedStaticShadows}
-          />
-        </ModelAssetBoundary>
+        <BlockRouteDetails
+          onReady={markAuthoredRouteReady}
+          plan={authoredRoutePlan}
+          quality={resolvedQuality}
+          shadows={resolvedStaticShadows}
+        />
         <CityLandmarks
           activeZone={activeZone}
           missionProgress={missionProgress}

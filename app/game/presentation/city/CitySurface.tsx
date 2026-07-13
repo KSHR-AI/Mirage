@@ -1,8 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useTexture } from "@react-three/drei";
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { InstancedPrimitives } from "./InstancedPrimitives";
 import { createCityRng } from "./seed";
@@ -74,86 +73,18 @@ export const CitySurface = memo(function CitySurface({
   );
 });
 
-const ASPHALT_TEXTURE_ROOT = "/game-assets/textures/asphalt-04";
-
-function repeatedTexture(
-  source: THREE.Texture,
-  repeatX: number,
-  repeatY: number,
-  colorSpace: THREE.ColorSpace = THREE.NoColorSpace,
-) {
-  const texture = source.clone();
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(repeatX, repeatY);
-  texture.anisotropy = 8;
-  texture.colorSpace = colorSpace;
-  texture.needsUpdate = true;
-  return texture;
-}
-
 function RoadSurface({ instances }: { instances: readonly BoxInstance[] }) {
-  const [sourceColor, sourceNormal, sourceRoughness] = useTexture([
-    `${ASPHALT_TEXTURE_ROOT}/base-color.jpg`,
-    `${ASPHALT_TEXTURE_ROOT}/normal-gl.jpg`,
-    `${ASPHALT_TEXTURE_ROOT}/roughness.jpg`,
-  ]);
-  const materials = useMemo(() => {
-    const create = (repeatX: number, repeatY: number) => ({
-      map: repeatedTexture(sourceColor, repeatX, repeatY, THREE.SRGBColorSpace),
-      normalMap: repeatedTexture(sourceNormal, repeatX, repeatY),
-      roughnessMap: repeatedTexture(sourceRoughness, repeatX, repeatY),
-    });
-    return {
-      horizontal: create(64, 3),
-      vertical: create(3, 64),
-    };
-  }, [sourceColor, sourceNormal, sourceRoughness]);
-  useEffect(
-    () => () => {
-      Object.values(materials).forEach((set) => {
-        set.map.dispose();
-        set.normalMap.dispose();
-        set.roughnessMap.dispose();
-      });
-    },
-    [materials],
-  );
-
-  const vertical = useMemo(
-    () => instances.filter((instance) => instance.id.startsWith("road-v-")),
-    [instances],
-  );
-  const horizontal = useMemo(
-    () => instances.filter((instance) => instance.id.startsWith("road-h-")),
-    [instances],
-  );
-  const renderRoads = (
-    roads: readonly BoxInstance[],
-    set: (typeof materials)["vertical"],
-  ) => (
+  return (
     <InstancedPrimitives
       clearcoat={0.72}
       clearcoatRoughness={0.2}
       color="#89999b"
-      instances={roads}
-      map={set.map}
+      instances={instances}
       material="physical"
       metalness={0.16}
-      normalMap={set.normalMap}
-      normalScale={[0.3, 0.3]}
       receiveShadow
-      roughness={0.58}
-      roughnessMap={set.roughnessMap}
-      useInstanceColors={false}
+      roughness={0.64}
     />
-  );
-
-  return (
-    <group name="licensed-asphalt-roads">
-      {renderRoads(vertical, materials.vertical)}
-      {renderRoads(horizontal, materials.horizontal)}
-    </group>
   );
 }
 

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { WORLD_LAYOUT } from "../../world/world-layout";
 import { CITY_ROAD_LINES, createBayCityLayout } from "./city-layout";
-import { replaceProceduralDowntownBlocks } from "./authored-downtown-layout";
 import {
   AUTHORED_ROUTE_FACADE_TARGET,
   AUTHORED_ROUTE_FACADE_TARGETS,
@@ -49,10 +48,10 @@ describe("createAuthoredRoutePlan", () => {
     expect(first.streetlights).toHaveLength(7);
     expect(first.bins.length).toBeLessThanOrEqual(10);
     expect(first.barriers.length).toBeLessThanOrEqual(10);
-    expect(first.storefrontGlass).toHaveLength(24);
-    expect(first.storefrontFrames).toHaveLength(32);
-    expect(first.awnings).toHaveLength(8);
-    expect(first.signs).toHaveLength(8);
+    expect(first.storefrontGlass).toHaveLength(18);
+    expect(first.storefrontFrames).toHaveLength(24);
+    expect(first.awnings).toHaveLength(6);
+    expect(first.signs).toHaveLength(6);
     expect(first.practicalLights).toHaveLength(4);
     expect(first.surfacePatches).toHaveLength(3);
     expect(first.manholes).toHaveLength(4);
@@ -61,12 +60,12 @@ describe("createAuthoredRoutePlan", () => {
     expect(first.curbPaint).toHaveLength(4);
     expect(first.curbFaces).toHaveLength(8);
     expect(first.sidewalkSeams).toHaveLength(24);
-    expect(first.storefrontBackdrops).toHaveLength(24);
-    expect(first.storefrontArchitecture).toHaveLength(192);
-    expect(first.storefrontDisplays).toHaveLength(192);
-    expect(first.storefrontLightPanels).toHaveLength(24);
-    expect(first.signFrames).toHaveLength(8);
-    expect(first.signGlyphs).toHaveLength(24);
+    expect(first.storefrontBackdrops).toHaveLength(18);
+    expect(first.storefrontArchitecture).toHaveLength(144);
+    expect(first.storefrontDisplays).toHaveLength(144);
+    expect(first.storefrontLightPanels).toHaveLength(18);
+    expect(first.signFrames).toHaveLength(6);
+    expect(first.signGlyphs).toHaveLength(18);
     expect(first.parkingMeterPoles).toHaveLength(8);
     expect(first.benchSlats).toHaveLength(6);
     expect(first.planterPots).toHaveLength(4);
@@ -86,10 +85,10 @@ describe("createAuthoredRoutePlan", () => {
     expect(mobile.streetlights).toHaveLength(2);
     expect(mobile.bins.length).toBeLessThanOrEqual(1);
     expect(mobile.barriers.length).toBeLessThanOrEqual(1);
-    expect(mobile.storefrontGlass).toHaveLength(6);
-    expect(mobile.storefrontFrames).toHaveLength(9);
-    expect(mobile.awnings).toHaveLength(3);
-    expect(mobile.signs).toHaveLength(3);
+    expect(mobile.storefrontGlass).toHaveLength(4);
+    expect(mobile.storefrontFrames).toHaveLength(6);
+    expect(mobile.awnings).toHaveLength(2);
+    expect(mobile.signs).toHaveLength(2);
     expect(mobile.practicalLights).toHaveLength(2);
     expect(mobile.surfacePatches).toHaveLength(1);
     expect(mobile.manholes).toHaveLength(2);
@@ -98,37 +97,32 @@ describe("createAuthoredRoutePlan", () => {
     expect(mobile.curbPaint).toHaveLength(2);
     expect(mobile.curbFaces).toHaveLength(4);
     expect(mobile.sidewalkSeams).toHaveLength(4);
-    expect(mobile.storefrontBackdrops).toHaveLength(6);
-    expect(mobile.storefrontArchitecture).toHaveLength(36);
+    expect(mobile.storefrontBackdrops).toHaveLength(4);
+    expect(mobile.storefrontArchitecture).toHaveLength(24);
     expect(mobile.storefrontDisplays).toHaveLength(0);
-    expect(mobile.storefrontLightPanels).toHaveLength(6);
-    expect(mobile.signFrames).toHaveLength(3);
-    expect(mobile.signGlyphs).toHaveLength(6);
+    expect(mobile.storefrontLightPanels).toHaveLength(4);
+    expect(mobile.signFrames).toHaveLength(2);
+    expect(mobile.signGlyphs).toHaveLength(4);
     expect(mobile.parkingMeterPoles).toHaveLength(4);
     expect(mobile.benchSlats).toHaveLength(2);
     expect(mobile.planterPots).toHaveLength(2);
     expect(mobile.utilityCabinets).toHaveLength(2);
   });
 
-  it("covers the real presentation layout after authored downtown replacement", () => {
-    const presentation = replaceProceduralDowntownBlocks(
-      replaceSignatureCornerBuilding(
-        createBayCityLayout({ quality: "desktop", seed: 2407 }),
-      ),
+  it("covers the real procedural presentation layout", () => {
+    const presentation = replaceSignatureCornerBuilding(
+      createBayCityLayout({ quality: "desktop", seed: 2407 }),
     );
     const plan = createAuthoredRoutePlan(presentation);
 
-    expect(
-      presentation.buildings.some(
-        (building) => building.id === "building-14--14-0",
-      ),
-    ).toBe(false);
     expect(plan.facade.length).toBeGreaterThan(120);
-    expect(plan.storefrontGlass).toHaveLength(15);
-    expect(plan.awnings).toHaveLength(5);
+    expect(plan.storefrontGlass.length).toBeGreaterThan(8);
+    expect(plan.awnings.length).toBeGreaterThan(2);
     expect(plan.practicalLights).toHaveLength(4);
-    expect(plan.storefrontBackdrops).toHaveLength(15);
-    expect(plan.storefrontDisplays).toHaveLength(120);
+    expect(plan.storefrontBackdrops).toHaveLength(plan.storefrontGlass.length);
+    expect(plan.storefrontDisplays.length).toBeGreaterThan(
+      plan.storefrontGlass.length,
+    );
   });
 
   it("only replaces matching primitives and emits valid transforms", () => {

@@ -26,6 +26,7 @@ export const SIGNAL_9_SPEC = {
 
 export interface Signal9StateOptions {
   readonly magazine?: number;
+  readonly magazineCapacity?: number;
   readonly reserve?: number;
 }
 
@@ -91,7 +92,8 @@ function assertSignal9State(state: WeaponState) {
     throw new RangeError(`expected ${SIGNAL_9_SPEC.id} weapon state`);
   }
   assertNonNegativeInteger(state.magazine, "magazine");
-  if (state.magazine > SIGNAL_9_SPEC.magazineCapacity) {
+  const capacity = signal9MagazineCapacity(state);
+  if (state.magazine > capacity) {
     throw new RangeError("magazine exceeds Signal-9 capacity");
   }
   assertNonNegativeInteger(state.reserve, "reserve");
@@ -105,6 +107,9 @@ function withoutReload(state: WeaponState): WeaponState {
   return {
     id: state.id,
     magazine: state.magazine,
+    ...(state.magazineCapacity !== undefined
+      ? { magazineCapacity: state.magazineCapacity }
+      : {}),
     reserve: state.reserve,
     cooldownTicks: state.cooldownTicks,
   };
@@ -112,7 +117,7 @@ function withoutReload(state: WeaponState): WeaponState {
 
 function completeReload(state: WeaponState) {
   const roundsLoaded = Math.min(
-    SIGNAL_9_SPEC.magazineCapacity - state.magazine,
+    signal9MagazineCapacity(state) - state.magazine,
     state.reserve,
   );
   return {
@@ -149,14 +154,29 @@ function damageForTrace(
 export function createSignal9State(
   options: Signal9StateOptions = {},
 ): WeaponState {
+  const magazineCapacity =
+    options.magazineCapacity ?? SIGNAL_9_SPEC.magazineCapacity;
+  assertNonNegativeInteger(magazineCapacity, "magazineCapacity");
+  if (magazineCapacity < SIGNAL_9_SPEC.magazineCapacity) {
+    throw new RangeError("magazineCapacity cannot be below standard capacity");
+  }
   const state: WeaponState = {
     id: SIGNAL_9_SPEC.id,
-    magazine: options.magazine ?? SIGNAL_9_SPEC.magazineCapacity,
+    magazine: options.magazine ?? magazineCapacity,
+    ...(magazineCapacity !== SIGNAL_9_SPEC.magazineCapacity
+      ? { magazineCapacity }
+      : {}),
     reserve: options.reserve ?? SIGNAL_9_SPEC.defaultReserve,
     cooldownTicks: 0,
   };
   assertSignal9State(state);
   return state;
+}
+
+export function signal9MagazineCapacity(state: WeaponState): number {
+  const capacity = state.magazineCapacity ?? SIGNAL_9_SPEC.magazineCapacity;
+  assertNonNegativeInteger(capacity, "magazineCapacity");
+  return capacity;
 }
 
 export function stepSignal9(
@@ -195,7 +215,7 @@ export function stepSignal9(
 
   if (
     command.input.reloadPressed &&
-    next.magazine < SIGNAL_9_SPEC.magazineCapacity &&
+    next.magazine < signal9MagazineCapacity(next) &&
     next.reserve > 0
   ) {
     const completesAtTick = command.tick + SIGNAL_9_SPEC.reloadTicks;

@@ -16,6 +16,34 @@ import {
 import { stableHash } from "./runtime";
 
 describe("initial Afterlight state", () => {
+  it("starts a district contract at its authored checkpoint with prerequisites", () => {
+    const state = createInitialAfterlightState(2407, "vault-breach");
+
+    expect(state.mission).toMatchObject({
+      missionId: "vault-breach",
+      phaseIndex: 0,
+    });
+    expect(state.checkpointId).toBe("afterlight:checkpoint:vault");
+    expect(state.inventory.has("afterlight-vault-credential")).toBe(true);
+    expect(state.heat).toMatchObject({ mode: "respond", wantedLevel: 1 });
+    expect(state.actors.get(state.playerId)?.pose.position).toEqual([
+      14, 1.15, -32,
+    ]);
+    expect(
+      state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe)?.pose.position,
+    ).toEqual([20, 0.72, -28]);
+  });
+
+  it("arms standalone pursuit heat so Bridge Run can transition to search", () => {
+    const state = createInitialAfterlightState(2407, "bridge-run");
+    expect(state.heat).toEqual({
+      value: 70,
+      wantedLevel: 3,
+      mode: "respond",
+      unseenTicks: 0,
+    });
+  });
+
   it("creates the canonical player, vehicles, weapon, and mission", () => {
     const state = createInitialAfterlightState();
 
@@ -61,12 +89,15 @@ describe("initial Afterlight state", () => {
 
   it("seeds the simulated courier from every selected encounter", () => {
     AFTERLIGHT_ENCOUNTER_VARIANTS.forEach((encounter, seed) => {
-      const courier = createInitialAfterlightState(seed).vehicles.get(
-        AFTERLIGHT_ENTITY_IDS.courier,
+      const state = createInitialAfterlightState(seed);
+      const courier = state.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier);
+      const vaultGuards = Object.entries(AFTERLIGHT_ENTITY_IDS).filter(
+        ([name, id]) => name.startsWith("vaultGuard") && state.actors.has(id),
       );
 
       expect(courier?.pose.position).toEqual(encounter.courierSpawn);
       expect(courier?.routeId).toBe(encounter.courierRouteId);
+      expect(vaultGuards).toHaveLength(encounter.vaultGuardCount);
     });
   });
 

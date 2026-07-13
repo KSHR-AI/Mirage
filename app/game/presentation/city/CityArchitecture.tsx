@@ -1,19 +1,13 @@
 "use client";
 
-import { useTexture } from "@react-three/drei";
-import { memo, useEffect, useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
   createFacadeDetailPlan,
   createPoweredFacadeGlazing,
 } from "./facade-details";
 import { InstancedPrimitives } from "./InstancedPrimitives";
 import { filterPoweredCityFeatures, type CityPowerState } from "./power";
-import {
-  createColorTexture,
-  createPbrTextureSet,
-  disposePbrTextureSet,
-  liftFacadeColor,
-} from "./surface-textures";
+import { liftFacadeColor } from "./facade-palette";
 import type { BoxInstance, CityLayout } from "./types";
 
 type CityArchitectureProps = {
@@ -22,42 +16,11 @@ type CityArchitectureProps = {
   shadows: boolean;
 };
 
-const CONCRETE_TEXTURE_ROOT = "/game-assets/textures/concrete-wall-007";
-const CORRUGATED_TEXTURE_ROOT = "/game-assets/textures/corrugated-iron-02";
-
 export const CityArchitecture = memo(function CityArchitecture({
   layout,
   powerState,
   shadows,
 }: CityArchitectureProps) {
-  const concrete = useTexture({
-    arm: `${CONCRETE_TEXTURE_ROOT}/arm.jpg`,
-    color: `${CONCRETE_TEXTURE_ROOT}/base-color.jpg`,
-    normal: `${CONCRETE_TEXTURE_ROOT}/normal-gl.jpg`,
-  });
-  const corrugatedColor = useTexture(
-    `${CORRUGATED_TEXTURE_ROOT}/base-color.jpg`,
-  );
-  const facadeTextures = useMemo(() => {
-    const concreteSources = [
-      concrete.color,
-      concrete.normal,
-      concrete.arm,
-    ] as const;
-    return {
-      concreteLow: createPbrTextureSet(concreteSources, [2, 2]),
-      concreteMid: createPbrTextureSet(concreteSources, [2.5, 4]),
-      corrugated: createColorTexture(corrugatedColor, [3, 7]),
-    };
-  }, [concrete.arm, concrete.color, concrete.normal, corrugatedColor]);
-  useEffect(
-    () => () => {
-      disposePbrTextureSet(facadeTextures.concreteLow);
-      disposePbrTextureSet(facadeTextures.concreteMid);
-      facadeTextures.corrugated.dispose();
-    },
-    [facadeTextures],
-  );
   const facadeInstances = useMemo(() => {
     const prepared = layout.buildings.map((building) => ({
       ...building,
@@ -120,6 +83,64 @@ export const CityArchitecture = memo(function CityArchitecture({
     () => createPoweredFacadeGlazing(facadeDetails.glazing, poweredWindows),
     [facadeDetails.glazing, poweredWindows],
   );
+  const mobileOpaqueDetails = useMemo(
+    () => [
+      ...facadeDetails.structure,
+      ...plinths,
+      ...cornices,
+      ...layout.roofDetails,
+    ],
+    [cornices, facadeDetails.structure, layout.roofDetails, plinths],
+  );
+  const mobileFacadePanels = useMemo(
+    () => [...facadeDetails.glazing, ...facadeDetails.frames],
+    [facadeDetails.frames, facadeDetails.glazing],
+  );
+  const mobilePoweredPanels = useMemo(
+    () => [...poweredFacadeGlazing, ...poweredNeonSigns],
+    [poweredFacadeGlazing, poweredNeonSigns],
+  );
+
+  if (layout.quality === "mobile") {
+    return (
+      <group name="procedural-city-architecture">
+        <group
+          name="procedural-city-camera-collision"
+          userData={{ cameraCollisionRoot: true }}
+        >
+          <InstancedPrimitives
+            instances={layout.buildings}
+            metalness={0.08}
+            receiveShadow
+            roughness={0.72}
+          />
+        </group>
+        <group
+          name="procedural-city-facade-detail"
+          userData={{ cameraCollision: false }}
+        >
+          <InstancedPrimitives
+            instances={mobileOpaqueDetails}
+            metalness={0.14}
+            receiveShadow
+            roughness={0.7}
+          />
+          <InstancedPrimitives
+            instances={mobileFacadePanels}
+            material="basic"
+          />
+          <InstancedPrimitives
+            depthWrite={false}
+            instances={mobilePoweredPanels}
+            material="basic"
+            opacity={0.72}
+            toneMapped={false}
+            transparent
+          />
+        </group>
+      </group>
+    );
+  }
 
   return (
     <group name="procedural-city-architecture">
@@ -132,7 +153,6 @@ export const CityArchitecture = memo(function CityArchitecture({
             <InstancedPrimitives
               castShadow={shadows}
               instances={facadeInstances.masonry}
-              map={facadeTextures.concreteMid.map}
               metalness={0.03}
               receiveShadow
               roughness={0.9}
@@ -140,7 +160,6 @@ export const CityArchitecture = memo(function CityArchitecture({
             <InstancedPrimitives
               castShadow={shadows}
               instances={facadeInstances.industrial}
-              map={facadeTextures.corrugated}
               metalness={0.2}
               receiveShadow
               roughness={0.7}
@@ -176,11 +195,6 @@ export const CityArchitecture = memo(function CityArchitecture({
         <InstancedPrimitives
           castShadow={shadows}
           instances={plinths}
-          map={
-            layout.quality === "desktop"
-              ? facadeTextures.concreteLow.map
-              : undefined
-          }
           metalness={0.14}
           receiveShadow
           roughness={0.86}

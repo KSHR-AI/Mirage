@@ -2,7 +2,7 @@
 
 import { memo, useMemo } from "react";
 import { InstancedPrimitives } from "./InstancedPrimitives";
-import { LicensedHydrants } from "./LicensedStreetProps";
+import { BlockHydrants } from "./LicensedStreetProps";
 import { filterPoweredCityFeatures, type CityPowerState } from "./power";
 import type {
   BoxInstance,
@@ -52,6 +52,64 @@ export const CityStreetDetails = memo(function CityStreetDetails({
     () => createTreeParts(layout.trees),
     [layout.trees],
   );
+  const mobileProps = useMemo(
+    () =>
+      layout.props
+        .filter((prop) => !excludedPrimitiveProps.has(prop.id))
+        .map(propToInstance),
+    [excludedPrimitiveProps, layout.props],
+  );
+  const mobileStructures = useMemo(
+    () => [
+      ...lights.poles,
+      ...lights.arms,
+      ...signals.poles,
+      ...signals.arms,
+      ...signals.heads,
+      ...mobileProps,
+    ],
+    [
+      lights.arms,
+      lights.poles,
+      mobileProps,
+      signals.arms,
+      signals.heads,
+      signals.poles,
+    ],
+  );
+  const mobileLamps = useMemo(
+    () => [...lights.bulbs, ...signals.lamps],
+    [lights.bulbs, signals.lamps],
+  );
+
+  if (layout.quality === "mobile") {
+    return (
+      <group name="street-furniture">
+        <InstancedPrimitives
+          instances={mobileStructures}
+          metalness={0.34}
+          roughness={0.58}
+        />
+        <InstancedPrimitives
+          instances={vegetation.trunks}
+          roughness={0.98}
+          shape="cylinder"
+        />
+        <InstancedPrimitives
+          instances={vegetation.crowns}
+          roughness={0.9}
+          shape="sphere"
+        />
+        <InstancedPrimitives
+          depthWrite={false}
+          instances={mobileLamps}
+          material="basic"
+          shape="sphere"
+          toneMapped={false}
+        />
+      </group>
+    );
+  }
 
   return (
     <group name="street-furniture">
@@ -120,7 +178,7 @@ export const CityStreetDetails = memo(function CityStreetDetails({
         licensedPropIds={excludedPrimitiveProps}
         props={layout.props}
       />
-      {layout.quality === "desktop" ? <LicensedHydrants limit={5} /> : null}
+      {layout.quality === "desktop" ? <BlockHydrants limit={5} /> : null}
     </group>
   );
 });

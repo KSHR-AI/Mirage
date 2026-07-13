@@ -11,12 +11,6 @@ import {
   type VehicleAppearance,
   type VehicleVisualKind,
 } from "./appearance";
-import {
-  AuthoredHeroCoupeModel,
-  AuthoredPoliceCoupeModel,
-  AuthoredTrafficCoupeModel,
-} from "./authored-hero-coupe";
-import { ModelAssetBoundary } from "./ModelAssetBoundary";
 import { ProfiledVanBody } from "./profiled-van-body";
 import type {
   ModelQuality,
@@ -993,6 +987,164 @@ export function RoadVehicleModel({
   const armored = kind === "armored-courier";
   const van = kind === "traffic-van" || armored;
 
+  if (quality === "mobile") {
+    const roofY =
+      dimensions.bodyY +
+      dimensions.bodyHeight * 0.25 +
+      dimensions.cabinHeight * 0.5;
+    const frontLampZ = -dimensions.length * 0.5 - 0.015;
+    const rearLampZ = dimensions.length * 0.5 + 0.015;
+    const emergencyPulse = emergencyLights
+      ? 1.5 + Math.abs(normalizedPhase - 0.5) * 5
+      : 0.08;
+
+    return (
+      <group {...groupProps}>
+        <mesh position={[0, dimensions.bodyY, 0]} receiveShadow>
+          <boxGeometry
+            args={[dimensions.width, dimensions.bodyHeight, dimensions.length]}
+          />
+          <meshStandardMaterial
+            color={appearance.body}
+            metalness={armored ? 0.34 : 0.22}
+            roughness={armored ? 0.68 : 0.48}
+          />
+        </mesh>
+        <mesh position={[0, dimensions.bodyY - 0.27, 0]}>
+          <boxGeometry
+            args={[dimensions.width * 0.84, 0.18, dimensions.length * 0.88]}
+          />
+          <meshStandardMaterial
+            color="#182024"
+            metalness={0.42}
+            roughness={0.58}
+          />
+        </mesh>
+        <mesh position={[0, roofY, dimensions.cabinZ]}>
+          <boxGeometry
+            args={[
+              dimensions.width * (van ? 0.88 : 0.74),
+              dimensions.cabinHeight,
+              dimensions.cabinLength,
+            ]}
+          />
+          <meshStandardMaterial
+            color={van ? appearance.secondary : appearance.cabin}
+            emissive={van ? "#000000" : "#173038"}
+            emissiveIntensity={van ? 0 : 0.1}
+            metalness={van ? 0.24 : 0.45}
+            roughness={van ? 0.58 : 0.25}
+          />
+        </mesh>
+
+        {[
+          [-wheelX, frontZ],
+          [wheelX, frontZ],
+          [-wheelX, rearZ],
+          [wheelX, rearZ],
+        ].map(([x, z], index) => (
+          <mesh
+            key={`${x}-${z}`}
+            position={[x, dimensions.wheelRadius, z]}
+            rotation={[spin, index < 2 ? normalizedSteering * 0.42 : 0, 0]}
+          >
+            <boxGeometry
+              args={[
+                dimensions.wheelWidth,
+                dimensions.wheelRadius * 1.72,
+                dimensions.wheelRadius * 1.72,
+              ]}
+            />
+            <meshStandardMaterial color="#101416" roughness={0.84} />
+          </mesh>
+        ))}
+
+        <mesh position={[0, dimensions.bodyY + 0.06, frontLampZ]}>
+          <boxGeometry args={[dimensions.width * 0.68, 0.16, 0.045]} />
+          <meshStandardMaterial
+            color={headlights ? "#ffe7a8" : "#6d6858"}
+            emissive={headlights ? "#ffd77a" : "#171713"}
+            emissiveIntensity={headlights ? 2.8 : 0.08}
+            roughness={0.3}
+          />
+        </mesh>
+        <mesh position={[0, dimensions.bodyY + 0.04, rearLampZ]}>
+          <boxGeometry args={[dimensions.width * 0.66, 0.15, 0.045]} />
+          <meshStandardMaterial
+            color="#a62f35"
+            emissive="#e53f4e"
+            emissiveIntensity={brakeLights || disabled ? 3.8 : 0.58}
+            roughness={0.36}
+          />
+        </mesh>
+
+        {kind === "hero-coupe" ? (
+          <mesh
+            position={[0, dimensions.bodyY + 0.39, dimensions.length * 0.42]}
+          >
+            <boxGeometry args={[dimensions.width * 0.72, 0.1, 0.28]} />
+            <meshStandardMaterial
+              color={appearance.secondary}
+              metalness={0.58}
+              roughness={0.34}
+            />
+          </mesh>
+        ) : null}
+        {van ? (
+          <mesh position={[0, roofY, rearLampZ + 0.035]}>
+            <boxGeometry
+              args={[
+                dimensions.width * 0.7,
+                dimensions.cabinHeight * 0.62,
+                0.055,
+              ]}
+            />
+            <meshStandardMaterial
+              color={appearance.trim}
+              metalness={0.42}
+              roughness={0.58}
+            />
+          </mesh>
+        ) : null}
+        {kind === "police-interceptor" ? (
+          <group position={[0, roofY + dimensions.cabinHeight * 0.56, 0]}>
+            <mesh position={[-0.28, 0, 0]}>
+              <boxGeometry args={[0.5, 0.15, 0.24]} />
+              <meshStandardMaterial
+                color="#ee5263"
+                emissive="#ff2849"
+                emissiveIntensity={emergencyPulse}
+                roughness={0.25}
+              />
+            </mesh>
+            <mesh position={[0.28, 0, 0]}>
+              <boxGeometry args={[0.5, 0.15, 0.24]} />
+              <meshStandardMaterial
+                color="#58c8dc"
+                emissive="#32bce0"
+                emissiveIntensity={emergencyPulse}
+                roughness={0.25}
+              />
+            </mesh>
+          </group>
+        ) : null}
+        {normalizedDamage > 0.32 ? (
+          <mesh
+            position={[
+              dimensions.width * 0.32,
+              dimensions.bodyY + dimensions.bodyHeight * 0.52,
+              -dimensions.length * 0.3,
+            ]}
+            rotation={[-Math.PI / 2, 0, 0.35]}
+          >
+            <circleGeometry args={[0.25 + normalizedDamage * 0.2, 6]} />
+            <meshStandardMaterial color="#202223" roughness={1} />
+          </mesh>
+        ) : null}
+      </group>
+    );
+  }
+
   return (
     <group {...groupProps}>
       <group>
@@ -1152,28 +1304,17 @@ export function RoadVehicleModel({
 }
 
 export function HeroCoupeModel(props: VehicleModelProps) {
-  const fallback = (
+  return (
     <RoadVehicleModel
       {...props}
       entityId={props.entityId ?? "mirage-hero"}
       kind="hero-coupe"
     />
   );
-  return (
-    <ModelAssetBoundary fallback={fallback}>
-      <AuthoredHeroCoupeModel {...props} />
-    </ModelAssetBoundary>
-  );
 }
 
 export function TrafficSedanModel(props: VehicleModelProps) {
-  const fallback = <RoadVehicleModel {...props} kind="traffic-sedan" />;
-  if (props.quality !== "desktop") return fallback;
-  return (
-    <ModelAssetBoundary fallback={fallback}>
-      <AuthoredTrafficCoupeModel {...props} />
-    </ModelAssetBoundary>
-  );
+  return <RoadVehicleModel {...props} kind="traffic-sedan" />;
 }
 
 export function TrafficVanModel(props: VehicleModelProps) {
@@ -1194,18 +1335,12 @@ export function PoliceInterceptorModel({
   emergencyLights = true,
   ...props
 }: PoliceInterceptorModelProps) {
-  const fallback = (
+  return (
     <RoadVehicleModel
       {...props}
       emergencyLights={emergencyLights}
       kind="police-interceptor"
     />
-  );
-  if (props.quality !== "desktop") return fallback;
-  return (
-    <ModelAssetBoundary fallback={fallback}>
-      <AuthoredPoliceCoupeModel {...props} emergencyLights={emergencyLights} />
-    </ModelAssetBoundary>
   );
 }
 

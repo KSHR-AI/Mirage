@@ -1,8 +1,8 @@
 "use client";
 
-import { Clone, useGLTF, useTexture } from "@react-three/drei";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { BlockAssetModel, BLOCK_BARREL } from "../blocks";
 import { InstancedPrimitives } from "./InstancedPrimitives";
 import {
   COURIER_YARD_SECURITY_LIGHTS,
@@ -10,7 +10,6 @@ import {
   type CourierYardSecurityLight,
   type CourierYardModelPlacement,
 } from "./courier-yard-layout";
-import { createPbrTextureSet, disposePbrTextureSet } from "./surface-textures";
 import type { BoxInstance, CityQuality, CityVec3 } from "./types";
 
 interface CourierContainerDefinition {
@@ -30,10 +29,6 @@ const CONTAINER_PALETTE = [
   { body: "#986b82", trim: "#402d37" },
   { body: "#4d7d68", trim: "#203a32" },
 ] as const;
-
-const CONCRETE_TEXTURE_ROOT = "/game-assets/textures/concrete-wall-007";
-const CORRUGATED_TEXTURE_ROOT = "/game-assets/textures/corrugated-iron-02";
-const BARREL_MODEL_URL = "/game-assets/models/barrel_03.glb";
 
 function box(
   id: string,
@@ -296,49 +291,73 @@ export function CourierYard({
   readonly quality: CityQuality;
   readonly shadows: boolean;
 }) {
-  const concrete = useTexture({
-    arm: `${CONCRETE_TEXTURE_ROOT}/arm.jpg`,
-    color: `${CONCRETE_TEXTURE_ROOT}/base-color.jpg`,
-    normal: `${CONCRETE_TEXTURE_ROOT}/normal-gl.jpg`,
-  });
-  const corrugated = useTexture({
-    arm: `${CORRUGATED_TEXTURE_ROOT}/arm.jpg`,
-    color: `${CORRUGATED_TEXTURE_ROOT}/base-color.jpg`,
-    normal: `${CORRUGATED_TEXTURE_ROOT}/normal-gl.jpg`,
-  });
-  const textures = useMemo(() => {
-    const concreteSources = [
-      concrete.color,
-      concrete.normal,
-      concrete.arm,
-    ] as const;
-    const corrugatedSources = [
-      corrugated.color,
-      corrugated.normal,
-      corrugated.arm,
-    ] as const;
-    return {
-      concreteFacade: createPbrTextureSet(concreteSources, [4, 2]),
-      concreteYard: createPbrTextureSet(concreteSources, [6, 6]),
-      container: createPbrTextureSet(corrugatedSources, [3, 2]),
-      door: createPbrTextureSet(corrugatedSources, [2, 2]),
-    };
-  }, [
-    concrete.arm,
-    concrete.color,
-    concrete.normal,
-    corrugated.arm,
-    corrugated.color,
-    corrugated.normal,
-  ]);
-  useEffect(
-    () => () => Object.values(textures).forEach(disposePbrTextureSet),
-    [textures],
-  );
   const detailPlan = useMemo(
     () => createCourierYardDetailPlan(quality),
     [quality],
   );
+  const mobileOpaque = useMemo<BoxInstance[]>(
+    () => [
+      box("courier-yard-slab", [70, 0.289, 46.2], [20, 0.028, 18.4], "#939b96"),
+      box("courier-yard-depot", [70, 3.3, 33.5], [18, 6.4, 6], "#9ba6a3"),
+      box("courier-yard-roof", [70, 6.65, 33.5], [18.8, 0.4, 6.8], "#252f32"),
+      ...detailPlan.depotRoofline,
+      ...detailPlan.depotRelief,
+      ...CONTAINERS,
+      ...DEPOT_DOOR_PANELS,
+      ...DEPOT_STRUCTURE,
+      ...detailPlan.dockStructure,
+      ...detailPlan.interior,
+      ...detailPlan.crateBodies,
+      ...detailPlan.drains,
+      ...DEPOT_AWNINGS,
+      ...DEPOT_BUMPERS,
+      ...YARD_EDGE_DETAILS,
+      ...detailPlan.perimeterStructure,
+      ...detailPlan.perimeterDetails,
+      ...detailPlan.barrels.map((barrel) => ({
+        color: "#596b6d",
+        id: `${barrel.id}-mobile`,
+        position: barrel.position,
+        rotationY: barrel.rotationY,
+        scale: [
+          0.7 * barrel.scale[0],
+          1.05 * barrel.scale[1],
+          0.7 * barrel.scale[2],
+        ] as CityVec3,
+      })),
+    ],
+    [detailPlan],
+  );
+  const mobileSignals = useMemo(
+    () => [
+      ...detailPlan.depotGlazing,
+      ...detailPlan.depotLightPanels,
+      ...detailPlan.safetyMarkings,
+      ...YARD_HAZARD_STRIPES,
+      ...detailPlan.perimeterLights,
+    ],
+    [detailPlan],
+  );
+
+  if (quality === "mobile") {
+    return (
+      <group name="courier-yard">
+        <InstancedPrimitives
+          instances={mobileOpaque}
+          metalness={0.2}
+          receiveShadow
+          roughness={0.65}
+        />
+        <InstancedPrimitives
+          instances={mobileSignals}
+          material="basic"
+          toneMapped={false}
+        />
+        <YardSignage />
+        <YardGantrySignage />
+      </group>
+    );
+  }
 
   return (
     <group name="courier-yard">
@@ -348,25 +367,16 @@ export function CourierYard({
           color="#939b96"
           emissive="#35413f"
           emissiveIntensity={0.28}
-          emissiveMap={shadows ? textures.concreteYard.map : undefined}
-          map={shadows ? textures.concreteYard.map : undefined}
           metalness={0.04}
-          normalMap={shadows ? textures.concreteYard.normalMap : undefined}
-          normalScale={[0.32, 0.32]}
           roughness={0.93}
-          roughnessMap={shadows ? textures.concreteYard.armMap : undefined}
         />
       </mesh>
       <mesh castShadow={shadows} position={[70, 3.3, 33.5]} receiveShadow>
         <boxGeometry args={[18, 6.4, 6]} />
         <meshStandardMaterial
           color="#9ba6a3"
-          map={shadows ? textures.concreteFacade.map : undefined}
           metalness={0.08}
-          normalMap={shadows ? textures.concreteFacade.normalMap : undefined}
-          normalScale={[0.38, 0.38]}
           roughness={0.9}
-          roughnessMap={shadows ? textures.concreteFacade.armMap : undefined}
         />
       </mesh>
       <mesh position={[70, 6.65, 33.5]}>
@@ -412,14 +422,9 @@ export function CourierYard({
       <InstancedPrimitives
         castShadow={shadows}
         instances={CONTAINERS}
-        map={shadows ? textures.container.map : undefined}
         metalness={0.82}
-        metalnessMap={shadows ? textures.container.armMap : undefined}
-        normalMap={shadows ? textures.container.normalMap : undefined}
-        normalScale={[0.55, 0.55]}
         receiveShadow
         roughness={0.62}
-        roughnessMap={shadows ? textures.container.armMap : undefined}
       />
       <InstancedPrimitives
         castShadow={shadows}
@@ -442,14 +447,9 @@ export function CourierYard({
       />
       <InstancedPrimitives
         instances={DEPOT_DOOR_PANELS}
-        map={shadows ? textures.door.map : undefined}
         metalness={0.86}
-        metalnessMap={shadows ? textures.door.armMap : undefined}
-        normalMap={shadows ? textures.door.normalMap : undefined}
-        normalScale={[0.62, 0.62]}
         receiveShadow
         roughness={0.58}
-        roughnessMap={shadows ? textures.door.armMap : undefined}
       />
       <InstancedPrimitives
         instances={DEPOT_DOOR_DETAILS}
@@ -529,7 +529,11 @@ export function CourierYard({
         material="basic"
         toneMapped={false}
       />
-      <YardBarrels placements={detailPlan.barrels} shadows={shadows} />
+      <YardBarrels
+        placements={detailPlan.barrels}
+        quality={quality}
+        shadows={shadows}
+      />
       <YardSignage />
       <InstancedPrimitives
         castShadow={shadows}
@@ -762,29 +766,23 @@ function YardGantrySignage() {
 
 function YardBarrels({
   placements,
+  quality,
   shadows,
 }: {
   readonly placements: readonly CourierYardModelPlacement[];
+  readonly quality: CityQuality;
   readonly shadows: boolean;
 }) {
-  const { scene } = useGLTF(BARREL_MODEL_URL);
-  const model = useMemo(() => {
-    const prepared = scene.clone(true);
-    prepared.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) return;
-      object.castShadow = shadows;
-      object.receiveShadow = true;
-    });
-    return prepared;
-  }, [scene, shadows]);
-
   return (
-    <group name="licensed-cc0-yard-barrels">
+    <group name="block-yard-barrels">
       {placements.map((placement) => (
-        <Clone
+        <BlockAssetModel
+          asset={BLOCK_BARREL}
+          castShadow={shadows}
           key={placement.id}
-          object={model}
           position={placement.position}
+          quality={quality}
+          receiveShadow
           rotation={[0, placement.rotationY, 0]}
           scale={placement.scale}
         />

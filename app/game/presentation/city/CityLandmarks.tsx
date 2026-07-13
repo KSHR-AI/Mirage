@@ -41,7 +41,7 @@ export const CityLandmarks = memo(function CityLandmarks({
       name="authored-bay-city-landmarks"
       userData={{ cameraCollisionRoot: true }}
     >
-      <EmberSpan powerState={powerState} shadows={shadows} />
+      <EmberSpan powerState={powerState} quality={quality} shadows={shadows} />
       <AfterlightSpire
         powerState={powerState}
         quality={quality}
@@ -83,9 +83,11 @@ const BRIDGE_CABLE_POINTS: readonly CityVec3[] = [
 
 function EmberSpan({
   powerState,
+  quality,
   shadows,
 }: {
   powerState: CityPowerState;
+  quality: CityQuality;
   shadows: boolean;
 }) {
   const steel = useMemo<BoxInstance[]>(() => {
@@ -131,7 +133,7 @@ function EmberSpan({
 
   const suspenders = useMemo<BoxInstance[]>(() => {
     const values: BoxInstance[] = [];
-    for (let z = -108; z >= -234; z -= 7) {
+    for (let z = -108; z >= -234; z -= quality === "desktop" ? 7 : 14) {
       const top = cableHeightAt(z);
       for (const x of [-7.35, 7.35]) {
         values.push(
@@ -145,7 +147,7 @@ function EmberSpan({
       }
     }
     return values;
-  }, []);
+  }, [quality]);
 
   const towerLights = useMemo<BoxInstance[]>(
     () =>
@@ -195,6 +197,7 @@ function EmberSpan({
         <BridgeCable
           key={x}
           points={BRIDGE_CABLE_POINTS.map(([, y, z]) => [x, y, z])}
+          quality={quality}
         />
       ))}
       <InstancedPrimitives
@@ -208,7 +211,13 @@ function EmberSpan({
   );
 }
 
-function BridgeCable({ points }: { points: CityVec3[] }) {
+function BridgeCable({
+  points,
+  quality,
+}: {
+  points: CityVec3[];
+  quality: CityQuality;
+}) {
   const curve = useMemo(
     () =>
       new THREE.CatmullRomCurve3(
@@ -218,7 +227,15 @@ function BridgeCable({ points }: { points: CityVec3[] }) {
   );
   return (
     <mesh>
-      <tubeGeometry args={[curve, 72, 0.105, 6, false]} />
+      <tubeGeometry
+        args={[
+          curve,
+          quality === "desktop" ? 72 : 24,
+          0.105,
+          quality === "desktop" ? 6 : 4,
+          false,
+        ]}
+      />
       <meshStandardMaterial color="#df6b55" metalness={0.52} roughness={0.42} />
     </mesh>
   );

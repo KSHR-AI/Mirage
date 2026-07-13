@@ -1,11 +1,9 @@
 "use client";
 
-import { useTexture } from "@react-three/drei";
 import { memo, useEffect, useMemo } from "react";
 import { ExtrudeGeometry, Shape } from "three";
 
 import { InstancedPrimitives } from "./InstancedPrimitives";
-import { createColorTexture } from "./surface-textures";
 import {
   createSignatureCornerPlan,
   type SignatureCornerMass,
@@ -18,19 +16,11 @@ type SignatureCornerBuildingProps = {
   readonly shadows: boolean;
 };
 
-const CONCRETE_COLOR_URL =
-  "/game-assets/textures/concrete-wall-007/base-color.jpg";
-
 export const SignatureCornerBuilding = memo(function SignatureCornerBuilding({
   building,
   quality,
   shadows,
 }: SignatureCornerBuildingProps) {
-  const concreteSource = useTexture(CONCRETE_COLOR_URL);
-  const concrete = useMemo(
-    () => createColorTexture(concreteSource, [2.4, 5.5]),
-    [concreteSource],
-  );
   const plan = useMemo(
     () => createSignatureCornerPlan(building, quality),
     [building, quality],
@@ -42,10 +32,9 @@ export const SignatureCornerBuilding = memo(function SignatureCornerBuilding({
 
   useEffect(
     () => () => {
-      concrete.dispose();
       massGeometry.dispose();
     },
-    [concrete, massGeometry],
+    [massGeometry],
   );
 
   return (
@@ -64,7 +53,6 @@ export const SignatureCornerBuilding = memo(function SignatureCornerBuilding({
             color="#879195"
             emissive="#182326"
             emissiveIntensity={0.24}
-            map={concrete}
             metalness={0.04}
             roughness={0.88}
           />

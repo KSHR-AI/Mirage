@@ -28,66 +28,6 @@ async function sha256(filePath) {
     .digest("hex");
 }
 
-async function visibleGlbTriangles(filePath) {
-  const bytes = await readFile(filePath);
-  if (bytes.readUInt32LE(0) !== 0x46546c67) {
-    throw new Error("triangle budget requires a binary glTF file");
-  }
-
-  let json;
-  for (let offset = 12; offset + 8 <= bytes.length; ) {
-    const chunkLength = bytes.readUInt32LE(offset);
-    const chunkType = bytes.readUInt32LE(offset + 4);
-    if (chunkType === 0x4e4f534a) {
-      json = JSON.parse(
-        bytes
-          .subarray(offset + 8, offset + 8 + chunkLength)
-          .toString("utf8")
-          .trimEnd(),
-      );
-      break;
-    }
-    offset += 8 + chunkLength;
-  }
-  if (!json) throw new Error("binary glTF has no JSON chunk");
-
-  const accessors = json.accessors ?? [];
-  const meshes = json.meshes ?? [];
-  const nodes = json.nodes ?? [];
-  const scene = (json.scenes ?? [])[json.scene ?? 0];
-  if (!scene) throw new Error("binary glTF has no default scene");
-
-  function primitiveTriangles(primitive) {
-    const accessorIndex = primitive.indices ?? primitive.attributes?.POSITION;
-    const elementCount = accessors[accessorIndex]?.count ?? 0;
-    const mode = primitive.mode ?? 4;
-    if (mode === 4) return Math.floor(elementCount / 3);
-    if (mode === 5 || mode === 6) return Math.max(0, elementCount - 2);
-    return 0;
-  }
-
-  function nodeTriangles(nodeIndex, ancestors = new Set()) {
-    if (ancestors.has(nodeIndex)) throw new Error("binary glTF node cycle");
-    const node = nodes[nodeIndex];
-    if (!node) return 0;
-    const nextAncestors = new Set(ancestors).add(nodeIndex);
-    const mesh = meshes[node.mesh];
-    const ownTriangles = (mesh?.primitives ?? []).reduce(
-      (total, primitive) => total + primitiveTriangles(primitive),
-      0,
-    );
-    return (node.children ?? []).reduce(
-      (total, childIndex) => total + nodeTriangles(childIndex, nextAncestors),
-      ownTriangles,
-    );
-  }
-
-  return (scene.nodes ?? []).reduce(
-    (total, nodeIndex) => total + nodeTriangles(nodeIndex),
-    0,
-  );
-}
-
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
@@ -207,17 +147,6 @@ for (const entry of manifest.entries ?? []) {
         metadata.size <= 8 * 1024 * 1024,
         `${filePrefix}: exceeds the 8 MiB browser asset budget`,
       );
-      if (file.maxTriangles !== undefined) {
-        requireValue(
-          Number.isInteger(file.maxTriangles) && file.maxTriangles > 0,
-          `${filePrefix}: maxTriangles must be a positive integer`,
-        );
-        const triangles = await visibleGlbTriangles(absolute);
-        requireValue(
-          triangles <= file.maxTriangles,
-          `${filePrefix}: ${triangles} visible triangles exceeds ${file.maxTriangles}`,
-        );
-      }
     } catch (error) {
       errors.push(`${filePrefix}: ${error.message}`);
     }

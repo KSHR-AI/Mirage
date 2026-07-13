@@ -11,9 +11,7 @@ import {
   type AgentAppearance,
   type AgentVisualRole,
 } from "./appearance";
-import { AuthoredAgentModel } from "./authored-agent-model";
 import { MuzzleFlash } from "./effects";
-import { ModelAssetBoundary } from "./ModelAssetBoundary";
 import type {
   AgentAnimationState,
   AgentModelProps,
@@ -169,6 +167,47 @@ function Face({
       </mesh>
       <Hair appearance={appearance} quality={quality} />
     </>
+  );
+}
+
+function MobileHead({ appearance }: { appearance: AgentAppearance }) {
+  return (
+    <>
+      <mesh castShadow scale={[0.88, 1.08, 0.9]}>
+        <boxGeometry args={[0.36, 0.4, 0.34]} />
+        <meshStandardMaterial color={appearance.skin} roughness={0.84} />
+      </mesh>
+      <mesh castShadow position={[0, 0.17, -0.015]}>
+        <boxGeometry args={[0.38, 0.12, 0.35]} />
+        <meshStandardMaterial color={appearance.hair} roughness={0.9} />
+      </mesh>
+    </>
+  );
+}
+
+function MobileLimb({
+  color,
+  dimensions,
+  position,
+}: {
+  color: string;
+  dimensions: readonly [number, number, number];
+  position: readonly [number, number, number];
+}) {
+  return (
+    <mesh castShadow position={position}>
+      <boxGeometry args={dimensions} />
+      <meshStandardMaterial color={color} roughness={0.82} />
+    </mesh>
+  );
+}
+
+function MobileTorso({ appearance }: { appearance: AgentAppearance }) {
+  return (
+    <mesh castShadow scale={[appearance.shoulderScale, 1, 1]}>
+      <boxGeometry args={[0.48, 0.66, 0.34]} />
+      <meshStandardMaterial color={appearance.jacket} roughness={0.72} />
+    </mesh>
   );
 }
 
@@ -527,24 +566,74 @@ function AgentRig({
       <group ref={facingRef} scale={appearance.heightScale}>
         <group ref={rigRef}>
           <group ref={leftLegRef} position={[-0.14, 0.83, 0]}>
-            <Leg appearance={appearance} quality={quality} side={-1} />
+            {quality === "mobile" ? (
+              <MobileLimb
+                color={appearance.trousers}
+                dimensions={[0.2, 0.82, 0.24]}
+                position={[0, -0.43, 0.04]}
+              />
+            ) : (
+              <Leg appearance={appearance} quality={quality} side={-1} />
+            )}
           </group>
           <group ref={rightLegRef} position={[0.14, 0.83, 0]}>
-            <Leg appearance={appearance} quality={quality} side={1} />
+            {quality === "mobile" ? (
+              <MobileLimb
+                color={appearance.trousers}
+                dimensions={[0.2, 0.82, 0.24]}
+                position={[0, -0.43, 0.04]}
+              />
+            ) : (
+              <Leg appearance={appearance} quality={quality} side={1} />
+            )}
           </group>
           <group ref={torsoRef} position={[0, 1.28, 0]}>
-            <Torso appearance={appearance} quality={quality} role={role} />
+            {quality === "mobile" ? (
+              <MobileTorso appearance={appearance} />
+            ) : (
+              <Torso appearance={appearance} quality={quality} role={role} />
+            )}
           </group>
           <group ref={leftArmRef} position={[-0.34, 1.48, 0]}>
-            <Arm appearance={appearance} armored={tactical} quality={quality} />
+            {quality === "mobile" ? (
+              <MobileLimb
+                color={appearance.jacket}
+                dimensions={[0.16, 0.72, 0.18]}
+                position={[0, -0.36, 0]}
+              />
+            ) : (
+              <Arm
+                appearance={appearance}
+                armored={tactical}
+                quality={quality}
+              />
+            )}
           </group>
           <group ref={rightArmRef} position={[0.34, 1.48, 0]}>
-            <Arm appearance={appearance} armored={tactical} quality={quality} />
+            {quality === "mobile" ? (
+              <MobileLimb
+                color={appearance.jacket}
+                dimensions={[0.16, 0.72, 0.18]}
+                position={[0, -0.36, 0]}
+              />
+            ) : (
+              <Arm
+                appearance={appearance}
+                armored={tactical}
+                quality={quality}
+              />
+            )}
           </group>
           <group ref={headRef} position={[0, 1.82, 0.015]}>
-            <Face appearance={appearance} quality={quality} />
+            {quality === "mobile" ? (
+              <MobileHead appearance={appearance} />
+            ) : (
+              <Face appearance={appearance} quality={quality} />
+            )}
           </group>
-          <RoleDetails appearance={appearance} role={role} />
+          {quality === "desktop" ? (
+            <RoleDetails appearance={appearance} role={role} />
+          ) : null}
           {armed ? (
             <>
               <group
@@ -552,49 +641,64 @@ function AgentRig({
                 position={[0.18, 1.34, 0.56]}
                 visible={isAiming && state !== "down"}
               >
-                <mesh castShadow position={[0, 0, 0.07]}>
-                  <boxGeometry args={[0.11, 0.13, 0.45]} />
+                <mesh
+                  castShadow
+                  position={[0, 0, quality === "mobile" ? 0.12 : 0.07]}
+                >
+                  <boxGeometry
+                    args={
+                      quality === "mobile"
+                        ? [0.12, 0.14, 0.58]
+                        : [0.11, 0.13, 0.45]
+                    }
+                  />
                   <meshStandardMaterial
                     color="#141a1c"
                     metalness={0.62}
                     roughness={0.3}
                   />
                 </mesh>
-                <mesh
-                  castShadow
-                  position={[0, -0.13, -0.04]}
-                  rotation={[0.25, 0, 0]}
-                >
-                  <boxGeometry args={[0.1, 0.27, 0.13]} />
-                  <meshStandardMaterial
-                    color="#253036"
-                    metalness={0.28}
-                    roughness={0.57}
-                  />
-                </mesh>
-                <mesh
-                  position={[0, 0.012, 0.31]}
-                  rotation={[Math.PI / 2, 0, 0]}
-                >
-                  <cylinderGeometry args={[0.025, 0.025, 0.18, 8]} />
-                  <meshStandardMaterial
-                    color="#0c1113"
-                    metalness={0.72}
-                    roughness={0.22}
-                  />
-                </mesh>
+                {quality === "desktop" ? (
+                  <>
+                    <mesh
+                      castShadow
+                      position={[0, -0.13, -0.04]}
+                      rotation={[0.25, 0, 0]}
+                    >
+                      <boxGeometry args={[0.1, 0.27, 0.13]} />
+                      <meshStandardMaterial
+                        color="#253036"
+                        metalness={0.28}
+                        roughness={0.57}
+                      />
+                    </mesh>
+                    <mesh
+                      position={[0, 0.012, 0.31]}
+                      rotation={[Math.PI / 2, 0, 0]}
+                    >
+                      <cylinderGeometry args={[0.025, 0.025, 0.18, 8]} />
+                      <meshStandardMaterial
+                        color="#0c1113"
+                        metalness={0.72}
+                        roughness={0.22}
+                      />
+                    </mesh>
+                  </>
+                ) : null}
                 <MuzzleFlash
                   active={muzzleFlash || state === "fire"}
                   position={[0, 0.012, 0.43]}
                   quality={quality}
                 />
               </group>
-              <group position={[0.35, 0.91, 0.03]} rotation={[0, 0, -0.08]}>
-                <mesh castShadow>
-                  <boxGeometry args={[0.14, 0.35, 0.12]} />
-                  <meshStandardMaterial color="#14191b" roughness={0.66} />
-                </mesh>
-              </group>
+              {quality === "desktop" ? (
+                <group position={[0.35, 0.91, 0.03]} rotation={[0, 0, -0.08]}>
+                  <mesh castShadow>
+                    <boxGeometry args={[0.14, 0.35, 0.12]} />
+                    <meshStandardMaterial color="#14191b" roughness={0.66} />
+                  </mesh>
+                </group>
+              ) : null}
             </>
           ) : null}
         </group>
@@ -604,46 +708,21 @@ function AgentRig({
 }
 
 export function AgentModel(props: GenericAgentModelProps) {
-  const fallback = <AgentRig {...props} armed={props.role !== "civilian"} />;
-  return (
-    <ModelAssetBoundary fallback={fallback}>
-      <AuthoredAgentModel {...props} />
-    </ModelAssetBoundary>
-  );
+  return <AgentRig {...props} armed={props.role !== "civilian"} />;
 }
 
 export function PlayerAgentModel(props: AgentModelProps) {
-  const fallback = <AgentRig {...props} armed role="player" />;
-  return (
-    <ModelAssetBoundary fallback={fallback}>
-      <AuthoredAgentModel {...props} role="player" />
-    </ModelAssetBoundary>
-  );
+  return <AgentRig {...props} armed role="player" />;
 }
 
 export function CivilianModel(props: AgentModelProps) {
-  const fallback = <AgentRig {...props} armed={false} role="civilian" />;
-  return (
-    <ModelAssetBoundary fallback={fallback}>
-      <AuthoredAgentModel {...props} role="civilian" />
-    </ModelAssetBoundary>
-  );
+  return <AgentRig {...props} armed={false} role="civilian" />;
 }
 
 export function GuardModel(props: AgentModelProps) {
-  const fallback = <AgentRig {...props} armed role="guard" />;
-  return (
-    <ModelAssetBoundary fallback={fallback}>
-      <AuthoredAgentModel {...props} role="guard" />
-    </ModelAssetBoundary>
-  );
+  return <AgentRig {...props} armed role="guard" />;
 }
 
 export function PoliceOfficerModel(props: AgentModelProps) {
-  const fallback = <AgentRig {...props} armed role="police" />;
-  return (
-    <ModelAssetBoundary fallback={fallback}>
-      <AuthoredAgentModel {...props} role="police" />
-    </ModelAssetBoundary>
-  );
+  return <AgentRig {...props} armed role="police" />;
 }

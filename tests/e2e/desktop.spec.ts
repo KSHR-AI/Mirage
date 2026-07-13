@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { LOCOMOTION_TUNING } from "../../app/game/actors/locomotion";
+import { SIMULATION_HZ } from "../../app/game/core/contracts";
 import { expectRenderedCanvas } from "./canvas";
 
 test("plays the opening Afterlight loop with keyboard and mouse", async ({
@@ -40,7 +42,7 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
   await expect(
     page.getByRole("heading", { name: "MIRAGE", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Start the job" }).click();
+  await page.getByRole("button", { name: "Start contract" }).click();
 
   const decodedAudioDurations = await page.evaluate(async () => {
     const context = new AudioContext();
@@ -91,6 +93,16 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
     })
     .toBeGreaterThan(0);
   await expectRenderedCanvas(page);
+  await page.waitForFunction(
+    () => document.documentElement.dataset.mirageRenderer !== undefined,
+    undefined,
+    { timeout: 120_000 },
+  );
+  const renderer = await page.evaluate(() =>
+    JSON.parse(document.documentElement.dataset.mirageRenderer ?? "null"),
+  );
+  expect(renderer.calls).toBeLessThanOrEqual(160);
+  expect(renderer.triangles).toBeLessThanOrEqual(100_000);
 
   const groundedY = Number(await shell.getAttribute("data-player-y"));
   await page.keyboard.press("Space");
@@ -155,6 +167,7 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
     })
     .toBeGreaterThanOrEqual(strideStartTick + 60);
   await page.keyboard.up("w");
+  const strideEndTick = Number(await shell.getAttribute("data-tick"));
   const afterStride = Number(await shell.getAttribute("data-player-z"));
   const afterStrideX = Number(await shell.getAttribute("data-player-x"));
   const strideDistance = Math.hypot(
@@ -167,8 +180,11 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
     strideX * Math.sin(walkingCameraYaw) + strideZ * Math.cos(walkingCameraYaw);
   const lateralTravel =
     strideX * Math.cos(walkingCameraYaw) - strideZ * Math.sin(walkingCameraYaw);
+  const maximumWalkDistance =
+    ((strideEndTick - strideStartTick + 2) / SIMULATION_HZ) *
+    LOCOMOTION_TUNING.walkSpeed;
   expect(strideDistance).toBeGreaterThan(3);
-  expect(strideDistance).toBeLessThan(5.2);
+  expect(strideDistance).toBeLessThanOrEqual(maximumWalkDistance);
   expect(forwardTravel).toBeGreaterThan(3);
   expect(Math.abs(lateralTravel)).toBeLessThan(0.35);
 
@@ -251,7 +267,7 @@ test("keeps mouse-look and camera-relative movement in a narrow desktop window",
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 722, height: 825 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Start the job" }).click();
+  await page.getByRole("button", { name: "Start contract" }).click();
 
   const shell = page.getByTestId("afterlight-game");
   const inputSurface = page.locator(".game-input-surface");

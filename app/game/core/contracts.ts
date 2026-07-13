@@ -79,6 +79,7 @@ export interface VehicleState {
 export interface WeaponState {
   readonly id: string;
   readonly magazine: number;
+  readonly magazineCapacity?: number;
   readonly reserve: number;
   readonly cooldownTicks: number;
   readonly reloadingUntilTick?: Tick;

@@ -79,7 +79,13 @@ export const CityAtmosphere = memo(function CityAtmosphere({
         ]}
       />
       <mesh scale={500}>
-        <sphereGeometry args={[1, 32, 16]} />
+        <sphereGeometry
+          args={[
+            1,
+            quality === "desktop" ? 32 : 12,
+            quality === "desktop" ? 16 : 6,
+          ]}
+        />
         <meshBasicMaterial
           depthWrite={false}
           fog={false}
@@ -119,28 +125,38 @@ export const CityAtmosphere = memo(function CityAtmosphere({
       />
 
       <mesh position={[-126, 92, -196]}>
-        <sphereGeometry args={[8.5, 20, 14]} />
+        <sphereGeometry
+          args={[
+            8.5,
+            quality === "desktop" ? 20 : 8,
+            quality === "desktop" ? 14 : 6,
+          ]}
+        />
         <meshBasicMaterial color="#f7e7c3" fog={false} toneMapped={false} />
       </mesh>
-      <mesh position={[-126, 92, -194.5]}>
-        <ringGeometry args={[9.2, 13.5, 36]} />
-        <meshBasicMaterial
-          color="#e6b48a"
-          fog={false}
-          opacity={0.13}
-          side={2}
-          toneMapped={false}
-          transparent
-        />
-      </mesh>
-      <InstancedPrimitives
-        depthWrite={false}
-        fog={false}
-        instances={stars}
-        material="basic"
-        shape="sphere"
-        toneMapped={false}
-      />
+      {quality === "desktop" ? (
+        <>
+          <mesh position={[-126, 92, -194.5]}>
+            <ringGeometry args={[9.2, 13.5, 36]} />
+            <meshBasicMaterial
+              color="#e6b48a"
+              fog={false}
+              opacity={0.13}
+              side={2}
+              toneMapped={false}
+              transparent
+            />
+          </mesh>
+          <InstancedPrimitives
+            depthWrite={false}
+            fog={false}
+            instances={stars}
+            material="basic"
+            shape="sphere"
+            toneMapped={false}
+          />
+        </>
+      ) : null}
     </group>
   );
 });

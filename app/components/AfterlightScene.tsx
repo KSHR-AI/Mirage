@@ -15,10 +15,9 @@ import type {
   RenderSnapshot,
   VehicleState,
 } from "../game/core/contracts";
-import {
-  AFTERLIGHT_PHASE_IDS,
-  createAfterlightJob,
-} from "../game/missions/afterlight-job";
+import { AFTERLIGHT_PHASE_IDS } from "../game/missions/afterlight-job";
+import { createAfterlightMission } from "../game/missions/afterlight-contracts";
+import { activeAfterlightPoliceCount } from "../game/missions/afterlight-operations";
 import { qualitySettings, type GameQualityTier } from "../game/performance";
 import {
   PLAYTEST_INSPECTION_EVENT,
@@ -95,6 +94,7 @@ const VAULT_GUARDS = new Set<number>([
   AFTERLIGHT_ENTITY_IDS.vaultGuardB,
   AFTERLIGHT_ENTITY_IDS.vaultGuardC,
   AFTERLIGHT_ENTITY_IDS.vaultGuardD,
+  AFTERLIGHT_ENTITY_IDS.vaultGuardE,
 ]);
 const POLICE_IDS = [
   AFTERLIGHT_ENTITY_IDS.policeA,
@@ -666,29 +666,55 @@ export const AfterlightScene = memo(function AfterlightScene({
     };
   }, []);
 
+  const readyFrameCount = useRef(0);
+  const readySignaled = useRef(false);
+  const rendererSampleFrame = useRef(0);
+  useFrame(() => {
+    if (!onReady || readySignaled.current) return;
+    readyFrameCount.current += 1;
+    if (readyFrameCount.current < 2) return;
+    readySignaled.current = true;
+    onReady();
+  });
+  useFrame(() => {
+    rendererSampleFrame.current += 1;
+    if (rendererSampleFrame.current % 60 !== 0) return;
+    const render = gl.info.render;
+    document.documentElement.dataset.mirageRenderer = JSON.stringify({
+      calls: render.calls,
+      lines: render.lines,
+      points: render.points,
+      quality,
+      triangles: render.triangles,
+    });
+  });
+  useEffect(
+    () => () => {
+      delete document.documentElement.dataset.mirageRenderer;
+    },
+    [],
+  );
+
   useEffect(() => {
-    if (!onReady) return;
-    let cancelled = false;
     const compilation = gl.extensions.has("KHR_parallel_shader_compile")
       ? gl.compileAsync(rootScene, camera)
       : Promise.resolve(gl.compile(rootScene, camera));
-    void compilation
-      .catch(() => undefined)
-      .then(() => {
-        if (!cancelled) onReady();
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [camera, gl, onReady, quality, rootScene]);
+    void compilation.catch(() => undefined);
+  }, [camera, gl, quality, rootScene]);
 
   const definition = useMemo(
-    () => createAfterlightJob(state.seed),
-    [state.seed],
+    () => createAfterlightMission(state.mission.missionId, state.seed),
+    [state.mission.missionId, state.seed],
   );
   const phase =
     definition.phases[state.mission.phaseIndex] ?? definition.phases[0];
   const phaseId = phase.id;
+  const activePoliceCount = activeAfterlightPoliceCount(
+    definition.encounter,
+    phaseId,
+    state.heat.wantedLevel,
+    state.heat.mode,
+  );
   const visualQuality = modelQuality(quality);
   const actors = useMemo(
     () => new Map(snapshot.actors.map((actor) => [actor.id, actor])),
@@ -875,7 +901,7 @@ export const AfterlightScene = memo(function AfterlightScene({
         ) : null;
       })}
 
-      {POLICE_IDS.slice(0, state.heat.wantedLevel).map((id, index) => {
+      {POLICE_IDS.slice(0, activePoliceCount).map((id, index) => {
         const actor = actors.get(id);
         if (!actor) return null;
         return (

@@ -52,6 +52,20 @@ describe("run scoring", () => {
     ).toBe(0);
   });
 
+  it("scores short contracts against their own pace window", () => {
+    const score = scoreRun(
+      { ...perfect, completionTicks: 3_600 },
+      { targetCompletionTicks: 3_000, zeroPaceTicks: 7_200 },
+    );
+    expect(score.breakdown[0]).toMatchObject({ id: "pace", points: 300 });
+    expect(() =>
+      scoreRun(perfect, {
+        targetCompletionTicks: 3_000,
+        zeroPaceTicks: 3_000,
+      }),
+    ).toThrow("Zero-pace ticks");
+  });
+
   it("produces stable A, B, and C examples", () => {
     const rankA = scoreRun({
       ...perfect,

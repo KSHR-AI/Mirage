@@ -1,7 +1,6 @@
 "use client";
 
-import { useTexture } from "@react-three/drei";
-import { memo, useEffect, useMemo } from "react";
+import { memo } from "react";
 import { AFTERLIGHT_LANDMARKS } from "../../core/afterlight-state";
 import {
   AFTERLIGHT_ITEMS,
@@ -12,10 +11,6 @@ import {
   HeroCoupeModel,
   type ModelQuality,
 } from "../models";
-import {
-  createPbrTextureSet,
-  disposePbrTextureSet,
-} from "../city/surface-textures";
 import { INTERACTION_COLORS } from "./plan";
 import type {
   BlackoutSetpiecePlan,
@@ -31,7 +26,6 @@ const STEEL = "#263238";
 const DARK_STEEL = "#151d21";
 const CONCRETE = "#596064";
 const GLASS = "#b8e8ec";
-const CONCRETE_TEXTURE_ROOT = "/game-assets/textures/concrete-wall-007";
 
 function StandardMaterial({
   color,
@@ -84,22 +78,6 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
   const shadows = plan.quality.quality !== "low";
   const decorated = plan.quality.decorationLevel > 0;
   const premiumDetail = plan.quality.decorationLevel > 1;
-  const concrete = useTexture({
-    arm: `${CONCRETE_TEXTURE_ROOT}/arm.jpg`,
-    color: `${CONCRETE_TEXTURE_ROOT}/base-color.jpg`,
-    normal: `${CONCRETE_TEXTURE_ROOT}/normal-gl.jpg`,
-  });
-  const groundTexture = useMemo(
-    () =>
-      createPbrTextureSet(
-        [concrete.color, concrete.normal, concrete.arm],
-        [4, 4],
-      ),
-    [concrete.arm, concrete.color, concrete.normal],
-  );
-  useEffect(() => () => disposePbrTextureSet(groundTexture), [groundTexture]);
-  const usePbrGround = plan.quality.quality === "high";
-
   return (
     <group name="afterlight-boost-yard">
       <group position={plan.anchor}>
@@ -109,13 +87,8 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
             color="#8b938e"
             emissive="#35413f"
             emissiveIntensity={0.26}
-            emissiveMap={usePbrGround ? groundTexture.map : undefined}
-            map={usePbrGround ? groundTexture.map : undefined}
             metalness={0.06}
-            normalMap={usePbrGround ? groundTexture.normalMap : undefined}
-            normalScale={[0.28, 0.28]}
             roughness={0.92}
-            roughnessMap={usePbrGround ? groundTexture.armMap : undefined}
           />
         </mesh>
 

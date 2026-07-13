@@ -1,10 +1,6 @@
 import type { VehicleState } from "../core/contracts";
 import { vehiclePlanarExtents } from "../vehicles/building-collision";
 import {
-  AUTHORED_DOWNTOWN_PLACEMENTS,
-  belongsToAuthoredDowntownBlock,
-} from "../content/authored-downtown";
-import {
   CITY_EXTENTS,
   CITY_ROAD_LINES,
   createBayCityLayout,
@@ -114,15 +110,6 @@ function vehicleObstacle(vehicle: VehicleState): CharacterObstacle {
   });
 }
 
-const AUTHORED_DOWNTOWN_OBSTACLES: readonly CharacterObstacle[] = Object.freeze(
-  AUTHORED_DOWNTOWN_PLACEMENTS.map((placement) =>
-    Object.freeze({
-      id: placement.id,
-      ...placement.collision,
-    }),
-  ),
-);
-
 export function createAfterlightCharacterWorld(seed: number): CharacterWorld {
   const key = Math.trunc(seed) >>> 0 || 1;
   const cached = worlds.get(key);
@@ -132,9 +119,7 @@ export function createAfterlightCharacterWorld(seed: number): CharacterWorld {
   const world: CharacterWorld = Object.freeze({
     obstacles: Object.freeze(
       layout.buildings
-        .filter((building) => !belongsToAuthoredDowntownBlock(building.id))
         .map(buildingObstacle)
-        .concat(AUTHORED_DOWNTOWN_OBSTACLES)
         .concat(afterlightSpaceCharacterObstacles())
         .toSorted((left, right) => left.id.localeCompare(right.id)),
     ),

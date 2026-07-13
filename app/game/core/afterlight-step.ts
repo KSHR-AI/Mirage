@@ -10,20 +10,29 @@ import {
   AFTERLIGHT_OBJECTIVE_IDS,
   AFTERLIGHT_PHASE_IDS,
   AFTERLIGHT_TAGS,
-  createAfterlightJob,
+  selectAfterlightEncounter,
 } from "../missions/afterlight-job";
+import {
+  DEFAULT_AFTERLIGHT_CONTRACT_ID,
+  createAfterlightMission,
+  type AfterlightMissionDefinition,
+} from "../missions/afterlight-contracts";
+import { activeAfterlightPoliceCount } from "../missions/afterlight-operations";
 import {
   createMissionReducerState,
   reduceMissionState,
   restoreMissionState,
   type MissionReducerState,
 } from "../missions/reducer";
+import { hasAfterlightUpgradeMarker } from "../progression";
 import {
   applyVehicleCollisionImpulse,
   createTrafficAgent,
+  DEFAULT_ARCADE_CAR_CONFIG,
   resolveIntersectionReservations,
   resolveVehicleBuildingCollision,
   stepHeroCar,
+  STREET_TUNED_ARCADE_CAR_CONFIG,
   stepTrafficAgent,
   vehiclePlanarSpeed,
   type IntersectionReservation,
@@ -72,6 +81,7 @@ import type {
   GameState,
   InputFrame,
   MissionDefinition,
+  PoliceMode,
   Vec3,
   VehicleState,
   WeaponState,
@@ -124,6 +134,7 @@ const VAULT_GUARDS: readonly EntityId[] = Object.freeze([
   AFTERLIGHT_ENTITY_IDS.vaultGuardB,
   AFTERLIGHT_ENTITY_IDS.vaultGuardC,
   AFTERLIGHT_ENTITY_IDS.vaultGuardD,
+  AFTERLIGHT_ENTITY_IDS.vaultGuardE,
 ]);
 const POLICE_ACTORS: readonly EntityId[] = Object.freeze([
   AFTERLIGHT_ENTITY_IDS.policeA,
@@ -557,7 +568,7 @@ function directionToward(origin: Vec3, target: Vec3): Vec3 {
 }
 
 export class AfterlightStepController {
-  readonly definition: MissionDefinition;
+  readonly definition: AfterlightMissionDefinition;
   readonly step: RuntimeStep;
 
   private missionReducerState: MissionReducerState | undefined;
@@ -585,8 +596,11 @@ export class AfterlightStepController {
     new Map();
   private courierContactActive = false;
 
-  constructor(seed: number) {
-    this.definition = createAfterlightJob(seed);
+  constructor(
+    seed: number,
+    missionId: string = DEFAULT_AFTERLIGHT_CONTRACT_ID,
+  ) {
+    this.definition = createAfterlightMission(missionId, seed);
     this.characterWorld = createAfterlightCharacterWorld(seed);
     this.hostileCoverObstacles = AFTERLIGHT_MISSION_COVER.map(coverObstacle);
     this.hostileAi = new HostileAiSystem({
@@ -645,7 +659,14 @@ export class AfterlightStepController {
     if (driving) {
       this.characterMotor = INITIAL_CHARACTER_MOTOR_STATE;
       const previousHero = hero;
-      const proposedHero = stepHeroCar(hero, input);
+      const proposedHero = stepHeroCar(
+        hero,
+        input,
+        SIMULATION_DT,
+        hasAfterlightUpgradeMarker(state, "street-tune")
+          ? STREET_TUNED_ARCADE_CAR_CONFIG
+          : DEFAULT_ARCADE_CAR_CONFIG,
+      );
       const clampedHero = {
         ...proposedHero,
         pose: {
@@ -835,16 +856,22 @@ export class AfterlightStepController {
       input,
       player,
     );
-    this.stepHostiles(
-      phaseId,
-      collections,
-      events,
-      context.tick,
-      player,
-      driving,
-      state.heat.wantedLevel,
-      playerWeaponFired,
-    );
+    const hostileGraceActive =
+      context.tick - state.mission.startedAtTick <=
+      this.definition.contract.hostileGraceTicks;
+    if (!hostileGraceActive) {
+      this.stepHostiles(
+        phaseId,
+        collections,
+        events,
+        context.tick,
+        player,
+        driving,
+        state.heat.wantedLevel,
+        state.heat.mode,
+        playerWeaponFired,
+      );
+    }
 
     player = collections.actors.get(player.id) ?? player;
     hero = collections.vehicles.get(hero.id) ?? hero;
@@ -864,7 +891,15 @@ export class AfterlightStepController {
           event.type === "crime-witnessed",
       );
     const currentPlayer = collections.actors.get(state.playerId) ?? player;
-    const activePolice = POLICE_ACTORS.slice(0, state.heat.wantedLevel)
+    const activePolice = POLICE_ACTORS.slice(
+      0,
+      activeAfterlightPoliceCount(
+        this.definition.encounter,
+        phaseId,
+        state.heat.wantedLevel,
+        state.heat.mode,
+      ),
+    )
       .map((id) => collections.actors.get(id))
       .filter((actor): actor is ActorState => actor?.life === "alive");
     const playerVisible = activePolice.some(
@@ -1212,11 +1247,13 @@ export class AfterlightStepController {
     player: ActorState,
     driving: boolean,
     wantedLevel: 0 | 1 | 2 | 3,
+    policeMode: PoliceMode,
     playerWeaponFired: boolean,
   ): void {
     const activeIds = this.syncHostiles(
       phaseId,
       wantedLevel,
+      policeMode,
       collections,
       tick,
     );
@@ -1273,12 +1310,21 @@ export class AfterlightStepController {
   private syncHostiles(
     phaseId: string,
     wantedLevel: 0 | 1 | 2 | 3,
+    policeMode: PoliceMode,
     collections: StepCollections,
     tick: number,
   ): readonly EntityId[] {
     const activeIds = [
       ...activeGuardIds(phaseId),
-      ...POLICE_ACTORS.slice(0, wantedLevel),
+      ...POLICE_ACTORS.slice(
+        0,
+        activeAfterlightPoliceCount(
+          this.definition.encounter,
+          phaseId,
+          wantedLevel,
+          policeMode,
+        ),
+      ),
     ].sort((left, right) => left - right);
     const activeSet = new Set(activeIds);
 
@@ -1505,13 +1551,18 @@ export class AfterlightStepController {
   }
 }
 
-export function createAfterlightStep(seed: number): RuntimeStep {
-  return new AfterlightStepController(seed).step;
+export function createAfterlightStep(
+  seed: number,
+  missionId: string = DEFAULT_AFTERLIGHT_CONTRACT_ID,
+): RuntimeStep {
+  return new AfterlightStepController(seed, missionId).step;
 }
 
 export function restoreAfterlightCheckpointState(state: GameState): GameState {
   const checkpoint = afterlightCheckpoint(state.checkpointId);
-  const initialActors = createInitialAfterlightActors();
+  const initialActors = createInitialAfterlightActors(
+    selectAfterlightEncounter(state.seed),
+  );
   const actors = new Map(state.actors);
 
   for (const [id, initial] of initialActors) {
@@ -1530,7 +1581,7 @@ export function restoreAfterlightCheckpointState(state: GameState): GameState {
     ...player,
     pose: checkpoint.pose,
     velocity: [0, 0, 0],
-    health: 100,
+    health: hasAfterlightUpgradeMarker(state, "trauma-plates") ? 125 : 100,
     life: "alive",
   });
 
@@ -1541,13 +1592,18 @@ export function restoreAfterlightCheckpointState(state: GameState): GameState {
       ...hero,
       pose: checkpoint.vehiclePose ?? hero.pose,
       velocity: [0, 0, 0],
-      health: 100,
+      health: hasAfterlightUpgradeMarker(state, "reinforced-chassis")
+        ? 125
+        : 100,
       life: "active",
       occupiedBy: undefined,
     });
   }
 
-  const definition = createAfterlightJob(state.seed);
+  const definition = createAfterlightMission(
+    state.mission.missionId,
+    state.seed,
+  );
   const restored = restoreMissionState(definition, {
     ...state,
     tick: 0,

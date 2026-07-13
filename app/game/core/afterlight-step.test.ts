@@ -30,6 +30,7 @@ import {
 import { RngStreams } from "./rng";
 import { createGameRuntime } from "./runtime";
 import { vehiclePlanarExtents, vehiclePlanarSpeed } from "../vehicles";
+import { applyAfterlightUpgrade } from "../progression";
 import { createAfterlightCharacterWorld } from "../world/afterlight-character-world";
 import { AFTERLIGHT_CHARACTER_TUNING } from "../world/character-controller";
 
@@ -44,9 +45,12 @@ class AfterlightScenario {
   readonly controller: AfterlightStepController;
   readonly rng: RngStreams;
 
-  constructor() {
-    this.state = createInitialAfterlightState();
-    this.controller = new AfterlightStepController(this.state.seed);
+  constructor(missionId = "afterlight-job") {
+    this.state = createInitialAfterlightState(2407, missionId);
+    this.controller = new AfterlightStepController(
+      this.state.seed,
+      this.state.mission.missionId,
+    );
     this.rng = new RngStreams(this.state.seed);
   }
 
@@ -193,6 +197,30 @@ function placeHeroForBuildingImpact(scenario: AfterlightScenario) {
 }
 
 describe("Afterlight step", () => {
+  it("uses the purchased street tune in the deterministic driving step", () => {
+    const standard = new AfterlightScenario();
+    const tuned = new AfterlightScenario();
+    tuned.state = applyAfterlightUpgrade(tuned.state, "street-tune");
+
+    for (const scenario of [standard, tuned]) {
+      scenario.placeVehicle(AFTERLIGHT_ENTITY_IDS.heroCoupe, [0, 0.72, 70], 0, {
+        occupiedBy: AFTERLIGHT_ENTITY_IDS.player,
+        velocity: [0, 0, 0],
+      });
+      scenario.placeActor(AFTERLIGHT_ENTITY_IDS.player, [0, 1.15, 70]);
+      scenario.stepMany(60, { sprint: true, throttle: 1 });
+    }
+
+    const standardHero = standard.state.vehicles.get(
+      AFTERLIGHT_ENTITY_IDS.heroCoupe,
+    );
+    const tunedHero = tuned.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    if (!standardHero || !tunedHero) throw new Error("missing coupe fixture");
+    expect(vehiclePlanarSpeed(tunedHero)).toBeGreaterThan(
+      vehiclePlanarSpeed(standardHero) + 2,
+    );
+  });
+
   it("keeps forward locomotion aligned with pointer-controlled camera yaw", () => {
     const scenario = new AfterlightScenario();
     const initial = scenario.state.actors.get(AFTERLIGHT_ENTITY_IDS.player);
@@ -702,6 +730,142 @@ describe("Afterlight step", () => {
     }
 
     expect(first.hash()).toBe(second.hash());
+  });
+
+  it("holds district hostiles until the opening cinematic has cleared", () => {
+    const initial = createInitialAfterlightState(2407, "vault-breach");
+    const runtime = createGameRuntime(
+      initial,
+      createAfterlightStep(initial.seed, initial.mission.missionId),
+    );
+
+    for (let tick = 0; tick < 240; tick += 1) runtime.advance();
+
+    expect(runtime.state.tick).toBe(240);
+    expect(runtime.state.actors.get(runtime.state.playerId)?.health).toBe(100);
+  });
+
+  it("completes Courier Jack through collision, combat, and collection", () => {
+    const scenario = new AfterlightScenario("courier-jack");
+    const ids = AFTERLIGHT_ENTITY_IDS;
+    const courier = scenario.state.vehicles.get(ids.courier);
+    if (!courier) throw new Error("missing courier contract fixture");
+
+    scenario.placeVehicle(ids.courier, courier.pose.position, Math.PI, {
+      velocity: [0, 0, -14],
+    });
+    scenario.placeVehicle(ids.heroCoupe, courier.pose.position, Math.PI, {
+      occupiedBy: ids.player,
+      velocity: [0, 0, 26],
+    });
+    scenario.placeActor(ids.player, [
+      courier.pose.position[0],
+      1.15,
+      courier.pose.position[2],
+    ]);
+    scenario.step();
+    expect(scenario.state.mission.completedObjectiveIds).toContain(
+      AFTERLIGHT_OBJECTIVE_IDS.disableCourier,
+    );
+    scenario.placeVehicle(ids.courier, [70, 0.72, 42], Math.PI, {
+      velocity: [0, 0, 0],
+    });
+
+    scenario.placeVehicle(ids.heroCoupe, [52, 0.72, 52], 0, {
+      occupiedBy: undefined,
+      velocity: [0, 0, 0],
+    });
+    for (const [guardId, x] of [
+      [ids.keyholderGuardA, 66],
+      [ids.keyholderGuardB, 74],
+    ] as const) {
+      scenario.placeActor(ids.player, [x, 1.15, 44], Math.PI);
+      scenario.placeActor(guardId, [x, 1.15, 36], 0, {
+        health: 1,
+        life: "alive",
+      });
+      scenario.readyWeapon();
+      scenario.step({ firePressed: true, aim: true });
+      expect(scenario.state.actors.get(guardId)?.life, `guard ${guardId}`).toBe(
+        "down",
+      );
+    }
+    expect(scenario.state.mission.completedObjectiveIds).toContain(
+      AFTERLIGHT_OBJECTIVE_IDS.defeatKeyholderGuards,
+    );
+    scenario.placeActor(ids.player, [70, 1.15, 42]);
+    scenario.step({ interactPressed: true });
+    expect(scenario.state.inventory.has(AFTERLIGHT_ITEMS.vaultCredential)).toBe(
+      true,
+    );
+
+    expect(scenario.state.mission.completed).toBe(true);
+    expect(scenario.state.cash).toBe(4_000);
+  });
+
+  it("completes Vault Breach from its supplied credential", () => {
+    const scenario = new AfterlightScenario("vault-breach");
+    const ids = AFTERLIGHT_ENTITY_IDS;
+    scenario.placeActor(ids.player, AFTERLIGHT_LANDMARKS.vaultReader);
+    scenario.step({ interactPressed: true });
+    scenario.step({ interactPressed: true });
+    scenario.placeActor(ids.player, AFTERLIGHT_LANDMARKS.vaultExit);
+    scenario.step();
+
+    expect(scenario.state.mission.completed).toBe(true);
+    expect(scenario.state.inventory.has(AFTERLIGHT_ITEMS.afterlightCore)).toBe(
+      true,
+    );
+    expect(scenario.state.cash).toBe(6_500);
+  });
+
+  it("completes Blackout Hold after the authored defense timer", () => {
+    const scenario = new AfterlightScenario("blackout-hold");
+    scenario.placeActor(
+      AFTERLIGHT_ENTITY_IDS.player,
+      AFTERLIGHT_LANDMARKS.substationControl,
+    );
+    scenario.step({ interactPressed: true });
+    scenario.step();
+    scenario.stepMany(180);
+
+    expect(scenario.state.mission.completed).toBe(true);
+    expect(scenario.state.cash).toBe(3_000);
+  });
+
+  it("completes Bridge Run after launch, pursuit search, and escape", () => {
+    const scenario = new AfterlightScenario("bridge-run");
+    const ids = AFTERLIGHT_ENTITY_IDS;
+    for (const id of [ids.policeA, ids.policeB, ids.policeC, ids.policeD]) {
+      const actor = scenario.state.actors.get(id);
+      if (!actor) throw new Error(`missing police fixture ${id}`);
+      scenario.placeActor(id, actor.pose.position, actor.pose.rotationY, {
+        health: 0,
+        life: "down",
+      });
+    }
+    scenario.placeVehicle(ids.heroCoupe, AFTERLIGHT_LANDMARKS.bridgeLaunch, 0, {
+      occupiedBy: ids.player,
+      velocity: [0, 0, 0],
+    });
+    scenario.placeActor(ids.player, AFTERLIGHT_LANDMARKS.bridgeLaunch);
+    scenario.step({ interactPressed: true });
+    expect(scenario.state.mission.completedObjectiveIds).toContain(
+      AFTERLIGHT_OBJECTIVE_IDS.startAfterlightRun,
+    );
+    scenario.placeVehicle(ids.heroCoupe, AFTERLIGHT_LANDMARKS.bridgeEscape, 0, {
+      occupiedBy: ids.player,
+      velocity: [0, 0, 0],
+    });
+    scenario.placeActor(ids.player, AFTERLIGHT_LANDMARKS.bridgeEscape);
+    scenario.stepMany(650);
+    expect(["search", "return"]).toContain(scenario.state.heat.mode);
+    expect(scenario.state.mission.completedObjectiveIds).toContain(
+      AFTERLIGHT_OBJECTIVE_IDS.escapeAfterlightRun,
+    );
+
+    expect(scenario.state.mission.completed).toBe(true);
+    expect(scenario.state.cash).toBe(5_000);
   });
 
   it("runs every required objective through the playable critical path", () => {

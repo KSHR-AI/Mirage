@@ -90,6 +90,7 @@ export const AfterlightMissionSetpieces = memo(
         {interactionCuesVisible ? (
           <MissionInteractionCues
             cues={plan.cues}
+            quality={plan.quality.quality}
             reducedMotion={plan.reducedMotion}
           />
         ) : null}

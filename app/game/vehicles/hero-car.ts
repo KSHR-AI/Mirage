@@ -50,6 +50,14 @@ export const DEFAULT_ARCADE_CAR_CONFIG: ArcadeCarConfig = Object.freeze({
   handbrakeMinimumSpeed: 6,
 });
 
+export const STREET_TUNED_ARCADE_CAR_CONFIG: ArcadeCarConfig = Object.freeze({
+  ...DEFAULT_ARCADE_CAR_CONFIG,
+  targetSpeed: 29,
+  boostSpeed: 36,
+  acceleration: 18.5,
+  boostAcceleration: 24,
+});
+
 export interface VehicleMotion {
   readonly forwardSpeed: number;
   readonly lateralSpeed: number;

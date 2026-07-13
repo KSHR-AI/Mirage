@@ -21,6 +21,11 @@ export interface RunScoreInput {
   readonly vehicleDamage: number;
 }
 
+export interface RunPaceWindow {
+  readonly targetCompletionTicks: Tick;
+  readonly zeroPaceTicks: Tick;
+}
+
 export interface RunScoreBreakdownEntry {
   readonly id: RunScoreCategory;
   readonly label: string;
@@ -101,7 +106,10 @@ function rankFor(total: number, completed: boolean): RunRank {
   return "C";
 }
 
-export function scoreRun(input: RunScoreInput): RunScore {
+export function scoreRun(
+  input: RunScoreInput,
+  paceWindow: RunPaceWindow = RUN_SCORE_RULES,
+): RunScore {
   if (
     input.status !== "completed" &&
     input.status !== "failed" &&
@@ -148,15 +156,26 @@ export function scoreRun(input: RunScoreInput): RunScore {
   );
   const shotsHit = integer(input.shotsHit, "Shots hit", 0, shotsFired);
   const vehicleDamage = percentage(input.vehicleDamage, "Vehicle damage");
+  const targetCompletionTicks = integer(
+    paceWindow.targetCompletionTicks,
+    "Target completion ticks",
+    1,
+    REPLAY_LIMITS.maxTicks - 1,
+  );
+  const zeroPaceTicks = integer(
+    paceWindow.zeroPaceTicks,
+    "Zero-pace ticks",
+    targetCompletionTicks + 1,
+    REPLAY_LIMITS.maxTicks,
+  );
 
   const paceMultiplier =
     completionTicks === undefined
       ? 0
-      : completionTicks <= RUN_SCORE_RULES.targetCompletionTicks
+      : completionTicks <= targetCompletionTicks
         ? 1
-        : (RUN_SCORE_RULES.zeroPaceTicks - completionTicks) /
-          (RUN_SCORE_RULES.zeroPaceTicks -
-            RUN_SCORE_RULES.targetCompletionTicks);
+        : (zeroPaceTicks - completionTicks) /
+          (zeroPaceTicks - targetCompletionTicks);
   const pacePoints = points(RUN_SCORE_RULES.points.pace, paceMultiplier);
   const survivalPoints = Math.max(
     0,

@@ -2,12 +2,15 @@ import { createSignal9State, SIGNAL_9_SPEC } from "../combat";
 import {
   AFTERLIGHT_CHECKPOINT_IDS,
   AFTERLIGHT_DEFAULT_SEED,
-  createAfterlightJob,
   selectAfterlightEncounter,
   type AfterlightEncounterVariant,
 } from "../missions/afterlight-job";
+import {
+  DEFAULT_AFTERLIGHT_CONTRACT_ID,
+  createAfterlightMission,
+} from "../missions/afterlight-contracts";
 import { createMissionProgress } from "../missions/reducer";
-import { createHeatState } from "../ai/police/heat";
+import { createHeatState, heatFloorValue } from "../ai/police/heat";
 import { CONTRACT_VERSION } from "./contracts";
 import type {
   ActorState,
@@ -29,6 +32,7 @@ export const AFTERLIGHT_ENTITY_IDS = Object.freeze({
   vaultGuardB: 212,
   vaultGuardC: 213,
   vaultGuardD: 214,
+  vaultGuardE: 215,
   policeA: 301,
   policeB: 302,
   policeC: 303,
@@ -167,12 +171,13 @@ function vehicle(
   };
 }
 
-export function createInitialAfterlightActors(): ReadonlyMap<
-  EntityId,
-  ActorState
-> {
+export function createInitialAfterlightActors(
+  encounter: AfterlightEncounterVariant = selectAfterlightEncounter(
+    AFTERLIGHT_DEFAULT_SEED,
+  ),
+): ReadonlyMap<EntityId, ActorState> {
   const ids = AFTERLIGHT_ENTITY_IDS;
-  return new Map([
+  const actors = new Map([
     [
       ids.player,
       actor(
@@ -247,6 +252,10 @@ export function createInitialAfterlightActors(): ReadonlyMap<
       ),
     ],
     [
+      ids.vaultGuardE,
+      actor(ids.vaultGuardE, "guard", "afterlight", [14, 1.15, -53], 0, 90),
+    ],
+    [
       ids.policeA,
       actor(ids.policeA, "police", "police", [-86, 1.15, 78], 0, 100),
     ],
@@ -263,6 +272,17 @@ export function createInitialAfterlightActors(): ReadonlyMap<
       actor(ids.policeD, "police", "police", [82, 1.15, -82], 0, 100),
     ],
   ]);
+  const vaultRoster = [
+    ids.vaultGuardA,
+    ids.vaultGuardB,
+    ids.vaultGuardC,
+    ids.vaultGuardD,
+    ids.vaultGuardE,
+  ];
+  vaultRoster
+    .slice(encounter.vaultGuardCount)
+    .forEach((id) => actors.delete(id));
+  return actors;
 }
 
 export function createInitialAfterlightVehicles(
@@ -292,8 +312,37 @@ export function createInitialAfterlightVehicles(
 
 export function createInitialAfterlightState(
   seed = AFTERLIGHT_DEFAULT_SEED,
+  missionId: string = DEFAULT_AFTERLIGHT_CONTRACT_ID,
 ): GameState {
-  const definition = createAfterlightJob(seed);
+  const definition = createAfterlightMission(missionId, seed);
+  const checkpoint = afterlightCheckpoint(
+    definition.contract.startCheckpointId,
+  );
+  const actors = new Map(createInitialAfterlightActors(definition.encounter));
+  const player = actors.get(AFTERLIGHT_ENTITY_IDS.player);
+  if (!player) throw new Error("Cannot create Afterlight without a player");
+  actors.set(player.id, { ...player, pose: checkpoint.pose });
+
+  const vehicles = new Map(
+    createInitialAfterlightVehicles(definition.encounter),
+  );
+  const hero = vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+  if (hero && checkpoint.vehiclePose) {
+    vehicles.set(hero.id, { ...hero, pose: checkpoint.vehiclePose });
+  }
+  const heatLevel = Math.max(
+    0,
+    Math.min(3, Math.trunc(definition.phases[0]?.heatFloor ?? 0)),
+  ) as 0 | 1 | 2 | 3;
+  const heat =
+    heatLevel === 0
+      ? createHeatState()
+      : {
+          value: heatFloorValue(heatLevel),
+          wantedLevel: heatLevel,
+          mode: "respond" as const,
+          unseenTicks: 0,
+        };
 
   return {
     contractVersion: CONTRACT_VERSION,
@@ -301,14 +350,14 @@ export function createInitialAfterlightState(
     seed,
     paused: false,
     playerId: AFTERLIGHT_ENTITY_IDS.player,
-    actors: createInitialAfterlightActors(),
-    vehicles: createInitialAfterlightVehicles(definition.encounter),
+    actors,
+    vehicles,
     weapons: new Map([[SIGNAL_9_SPEC.id, createSignal9State()]]),
-    inventory: new Set(),
-    heat: createHeatState(),
+    inventory: new Set(definition.contract.startingInventory),
+    heat,
     mission: createMissionProgress(definition, 0),
     cash: 0,
-    checkpointId: AFTERLIGHT_START_CHECKPOINT_ID,
+    checkpointId: definition.contract.startCheckpointId,
   };
 }
 
@@ -322,7 +371,7 @@ export function afterlightCheckpoint(
 }
 
 export function hydrateAfterlightState(save: SaveGameV1): GameState {
-  const state = createInitialAfterlightState(save.seed);
+  const state = createInitialAfterlightState(save.seed, save.mission.missionId);
   const checkpoint = afterlightCheckpoint(save.checkpointId);
   const actors = new Map(state.actors);
   const player = actors.get(state.playerId);

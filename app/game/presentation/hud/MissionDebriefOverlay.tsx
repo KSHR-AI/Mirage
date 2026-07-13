@@ -12,7 +12,10 @@ export function MissionDebriefOverlay({
   earnedCash,
   optionalCompleted,
   optionalTotal,
+  completionHeading = "Afterlight delivered.",
+  completionSubhead = "Marin safehouse / Signal clear",
   stats = [],
+  masteryLabel,
   unlockLabel,
   isPersonalBest = false,
   onReplay,
@@ -29,8 +32,8 @@ export function MissionDebriefOverlay({
     >
       <header className={styles.debriefHeader}>
         <p>MIRAGE / JOB COMPLETE</p>
-        <h2 id="afterlight-debrief-title">Afterlight delivered.</h2>
-        <span>Marin safehouse / Signal clear</span>
+        <h2 id="afterlight-debrief-title">{completionHeading}</h2>
+        <span>{completionSubhead}</span>
       </header>
 
       <div
@@ -78,6 +81,13 @@ export function MissionDebriefOverlay({
         <p className={styles.unlockNotice}>
           <span>UNLOCKED</span>
           <strong>{unlockLabel}</strong>
+        </p>
+      ) : null}
+
+      {masteryLabel ? (
+        <p className={styles.masteryNotice}>
+          <span>ROUTE MASTERED</span>
+          <strong>{masteryLabel}</strong>
         </p>
       ) : null}
 

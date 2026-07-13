@@ -19,7 +19,7 @@ test("exposes a complete playable touch control set", async ({ page }) => {
     HTMLElement.prototype.releasePointerCapture = () => undefined;
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Start the job" }).click();
+  await page.getByRole("button", { name: "Start contract" }).click();
   await expectRenderedCanvas(page);
 
   for (const label of [

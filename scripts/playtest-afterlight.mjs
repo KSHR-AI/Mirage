@@ -11,6 +11,11 @@ import { renderedPixelStats } from "./lib/png-stats.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_URL = "http://127.0.0.1:3100";
 const PLAYTEST_INSPECTION_EVENT = "mirage:inspection-pose";
+const RENDER_BUDGETS = Object.freeze({
+  low: Object.freeze({ calls: 140, triangles: 90_000 }),
+  medium: Object.freeze({ calls: 160, triangles: 100_000 }),
+  high: Object.freeze({ calls: 200, triangles: 150_000 }),
+});
 const VALID_SCENARIOS = new Set([
   "all",
   "compact",
@@ -387,7 +392,7 @@ async function startGame(page, scenario, outDir, pathname = "/") {
     waitUntil: "domcontentloaded",
     timeout: 60_000,
   });
-  await page.getByRole("button", { name: "Start the job" }).click();
+  await page.getByRole("button", { name: "Start contract" }).click();
   const shell = page.getByTestId("afterlight-game");
   await shell.waitFor({ state: "visible", timeout: 30_000 });
   await waitForAttribute(
@@ -399,6 +404,31 @@ async function startGame(page, scenario, outDir, pathname = "/") {
   );
   addCheck(scenario, "scene-ready", true, "true", "true");
   await inspectCanvas(scenario, page, outDir, "start");
+  await page.waitForFunction(
+    () => document.documentElement.dataset.mirageRenderer !== undefined,
+    undefined,
+    { timeout: 45_000 },
+  );
+  const renderer = await page.evaluate(() =>
+    JSON.parse(document.documentElement.dataset.mirageRenderer ?? "null"),
+  );
+  const renderBudget =
+    RENDER_BUDGETS[renderer.quality] ?? RENDER_BUDGETS.medium;
+  scenario.renderer = renderer;
+  addCheck(
+    scenario,
+    "renderer-draw-budget",
+    renderer.calls <= renderBudget.calls,
+    renderer.calls,
+    `<= ${renderBudget.calls}`,
+  );
+  addCheck(
+    scenario,
+    "renderer-triangle-budget",
+    renderer.triangles <= renderBudget.triangles,
+    renderer.triangles,
+    `<= ${renderBudget.triangles}`,
+  );
   const startTick = await numberAttribute(shell, "data-tick");
   await waitForTick(page, shell, startTick + 5);
   addCheck(
@@ -716,7 +746,7 @@ async function openingCinematicScenario(
       timeout: 60_000,
     });
     const shell = page.getByTestId("afterlight-game");
-    await page.getByRole("button", { name: "Start the job" }).click();
+    await page.getByRole("button", { name: "Start contract" }).click();
     await shell.waitFor({ state: "visible", timeout: 30_000 });
     await waitForAttribute(
       page,
