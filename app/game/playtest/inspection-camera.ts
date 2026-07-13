@@ -53,8 +53,8 @@ const PLAYTEST_INSPECTION_POSES: Readonly<Record<string, Pose>> = Object.freeze(
       rotationY: 0,
     }),
     "sf-waterfront": Object.freeze({
-      position: Object.freeze([110, 13, 14] as const),
-      rotationY: -Math.PI / 2,
+      position: Object.freeze([118, 2.4, 36] as const),
+      rotationY: 0,
     }),
     "vehicle-fleet": Object.freeze({
       position: Object.freeze([0, 1.3, 8] as const),

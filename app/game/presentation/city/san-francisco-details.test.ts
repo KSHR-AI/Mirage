@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  createCaliforniaCableCarPlan,
+  createPaintedRowPlan,
   createSanFranciscoBackdrop,
   SF_CABLE_CAR_POSITION,
 } from "./san-francisco-details";
@@ -26,5 +28,43 @@ describe("San Francisco city details", () => {
     const ids = [...plan.houses, ...plan.roofs].map((item) => item.id);
 
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("builds Painted Row as navigable facades instead of flat color blocks", () => {
+    const plan = createPaintedRowPlan();
+    const all = [
+      ...plan.opaque,
+      ...plan.roofs,
+      ...plan.glazing,
+      ...plan.porchLights,
+    ];
+
+    expect(plan.opaque.length).toBeGreaterThanOrEqual(95);
+    expect(plan.glazing).toHaveLength(25);
+    expect(plan.roofs).toHaveLength(5);
+    expect(plan.porchLights).toHaveLength(5);
+    expect(plan.opaque.some((part) => part.id.endsWith("-step-low"))).toBe(
+      true,
+    );
+    expect(plan.opaque.some((part) => part.id.endsWith("-bay-high"))).toBe(
+      true,
+    );
+    expect(new Set(all.map((part) => part.id)).size).toBe(all.length);
+  });
+
+  it("gives the cable car readable platforms, windows, and undercarriage", () => {
+    const plan = createCaliforniaCableCarPlan();
+    const all = [...plan.opaque, ...plan.glazing, ...plan.lamps];
+
+    expect(plan.opaque.length).toBeGreaterThanOrEqual(40);
+    expect(plan.glazing).toHaveLength(12);
+    expect(plan.lamps).toHaveLength(2);
+    expect(plan.opaque.some((part) => part.id.includes("undercarriage"))).toBe(
+      true,
+    );
+    expect(plan.opaque.some((part) => part.id.includes("platform-post"))).toBe(
+      true,
+    );
+    expect(new Set(all.map((part) => part.id)).size).toBe(all.length);
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Group, MathUtils } from "three";
 
 import {
@@ -30,6 +30,7 @@ const WALK_SPEED = 5;
 const RUN_SPEED = 8.5;
 const MAX_AIM_YAW = 0.78;
 const MAX_AIM_PITCH = 0.55;
+const PLAYER_PACK_COLOR = "#173b40";
 
 function finiteOr(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) ? value : fallback;
@@ -359,7 +360,7 @@ function RoleDetails({
       <>
         <mesh castShadow position={[0, 1.25, -0.25]}>
           <boxGeometry args={[0.43, 0.5, 0.15]} />
-          <meshStandardMaterial color="#182e34" roughness={0.7} />
+          <meshStandardMaterial color={PLAYER_PACK_COLOR} roughness={0.7} />
         </mesh>
         <mesh position={[-0.28, 1.1, 0.02]} rotation={[0, 0, 0.18]}>
           <boxGeometry args={[0.045, 0.72, 0.045]} />
@@ -413,6 +414,32 @@ function AgentRig({
   const state = resolveAnimation(animation, resolvedSpeed, aim);
   const tactical = role === "guard" || role === "police";
   const isAiming = aim || state === "aim" || state === "fire";
+
+  useEffect(() => {
+    if (role !== "player") return;
+    const dataset = document.documentElement.dataset;
+    dataset.mirageAgentLoadout = JSON.stringify({
+      colors: [
+        appearance.jacket,
+        appearance.shirt,
+        appearance.trousers,
+        appearance.accent,
+        PLAYER_PACK_COLOR,
+      ],
+      meshCount: quality === "desktop" ? 18 : 7,
+      visible: true,
+    });
+    dataset.mirageAgentAnimation = state;
+    dataset.mirageAgentAction = JSON.stringify({
+      running: state !== "idle",
+      scheduled: true,
+    });
+    return () => {
+      delete dataset.mirageAgentLoadout;
+      delete dataset.mirageAgentAnimation;
+      delete dataset.mirageAgentAction;
+    };
+  }, [appearance, quality, role, state]);
 
   useFrame(({ clock }, delta) => {
     const facing = facingRef.current;

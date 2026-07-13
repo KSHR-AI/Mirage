@@ -138,11 +138,50 @@ function TramRails() {
         rotationY: 0,
         scale: [0.075, 0.035, 204],
       },
+      {
+        color: "#252f31",
+        id: "tram-cable-slot",
+        position: [-28, 0.226, 0],
+        rotationY: 0,
+        scale: [0.055, 0.036, 204],
+      },
     ],
     [],
   );
+  const ties = useMemo<BoxInstance[]>(
+    () =>
+      Array.from({ length: 25 }, (_, index) => {
+        const z = -96 + index * 8;
+        return {
+          color: "#454c4b",
+          id: `tram-track-tie-${z}`,
+          position: [-28, 0.218, z],
+          rotationY: 0,
+          scale: [2.55, 0.024, 0.12],
+        } satisfies BoxInstance;
+      }),
+    [],
+  );
+  const tieRef = useRef<THREE.Group>(null);
+  useFrame(({ camera }) => {
+    const group = tieRef.current;
+    if (!group) return;
+    const dx = camera.position.x + 28;
+    const dz = camera.position.z - 34;
+    const visible = dx * dx + dz * dz <= 70 * 70;
+    if (group.visible !== visible) group.visible = visible;
+  });
   return (
-    <InstancedPrimitives instances={rails} metalness={0.92} roughness={0.2} />
+    <group name="tram-track">
+      <InstancedPrimitives instances={rails} metalness={0.92} roughness={0.2} />
+      <group ref={tieRef}>
+        <InstancedPrimitives
+          instances={ties}
+          metalness={0.72}
+          roughness={0.32}
+        />
+      </group>
+    </group>
   );
 }
 

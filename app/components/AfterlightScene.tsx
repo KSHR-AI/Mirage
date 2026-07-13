@@ -862,8 +862,7 @@ export const AfterlightScene = memo(function AfterlightScene({
               targetPosition={targetPose.position}
             />
           ) : null}
-          {!ambientLifeInspection &&
-          (quality !== "low" || socialLifeInspection) ? (
+          {!ambientLifeInspection && (quality !== "low" || inspectionKey) ? (
             <AmbientSocialLife
               inspection={socialLifeInspection}
               quality={quality}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import { CourierYard } from "./CourierYard";
 import { InstancedPrimitives } from "./InstancedPrimitives";
@@ -12,6 +12,8 @@ import {
   type CityPowerState,
 } from "./power";
 import {
+  createCaliforniaCableCarPlan,
+  createPaintedRowPlan,
   createSanFranciscoBackdrop,
   SF_CABLE_CAR_POSITION,
 } from "./san-francisco-details";
@@ -31,6 +33,23 @@ type CityLandmarksProps = {
   reducedMotion: boolean;
   shadows: boolean;
 };
+
+function useLandmarkVisibility(
+  center: CityVec3,
+  maxDistance: number,
+): RefObject<THREE.Group | null> {
+  const groupRef = useRef<THREE.Group>(null);
+  const maxDistanceSquared = maxDistance * maxDistance;
+  useFrame(({ camera }) => {
+    const group = groupRef.current;
+    if (!group) return;
+    const dx = camera.position.x - center[0];
+    const dz = camera.position.z - center[2];
+    const visible = dx * dx + dz * dz <= maxDistanceSquared;
+    if (group.visible !== visible) group.visible = visible;
+  });
+  return groupRef;
+}
 
 export const CityLandmarks = memo(function CityLandmarks({
   activeZone,
@@ -96,6 +115,7 @@ function EmberSpan({
   quality: CityQuality;
   shadows: boolean;
 }) {
+  const closeDetailRef = useLandmarkVisibility([0, 0, -171], 150);
   const steel = useMemo<BoxInstance[]>(() => {
     const values: BoxInstance[] = [];
     for (const z of [-132, -196]) {
@@ -155,6 +175,53 @@ function EmberSpan({
     return values;
   }, [quality]);
 
+  const roadMarks = useMemo<BoxInstance[]>(() => {
+    const values: BoxInstance[] = [
+      cityBox(
+        "bridge-shoulder-west",
+        [-6.35, 0.46, -171],
+        [0.12, 0.025, 130],
+        "#e8e2ca",
+      ),
+      cityBox(
+        "bridge-shoulder-east",
+        [6.35, 0.46, -171],
+        [0.12, 0.025, 130],
+        "#e8e2ca",
+      ),
+    ];
+    for (let z = -109; z >= -233; z -= 8) {
+      for (const x of [-3.25, 3.25]) {
+        values.push(
+          cityBox(
+            `bridge-lane-${x}-${z}`,
+            [x, 0.46, z],
+            [0.09, 0.025, 4.2],
+            "#e8e2ca",
+          ),
+        );
+      }
+    }
+    return values;
+  }, []);
+
+  const railPosts = useMemo<BoxInstance[]>(() => {
+    const values: BoxInstance[] = [];
+    for (let z = -106; z >= -236; z -= quality === "desktop" ? 4 : 8) {
+      for (const x of [-7.75, 7.75]) {
+        values.push(
+          cityBox(
+            `bridge-rail-post-${x}-${z}`,
+            [x, 1.38, z],
+            [0.16, 1.5, 0.16],
+            "#9f3935",
+          ),
+        );
+      }
+    }
+    return values;
+  }, [quality]);
+
   const towerLights = useMemo<BoxInstance[]>(
     () =>
       [-132, -196].flatMap((z) =>
@@ -188,6 +255,18 @@ function EmberSpan({
         <boxGeometry args={[0.16, 0.035, 132]} />
         <meshBasicMaterial color="#e8bf56" toneMapped={false} />
       </mesh>
+      <group ref={closeDetailRef}>
+        <InstancedPrimitives
+          instances={roadMarks}
+          material="basic"
+          toneMapped={false}
+        />
+        <InstancedPrimitives
+          instances={railPosts}
+          metalness={0.32}
+          roughness={0.56}
+        />
+      </group>
       <InstancedPrimitives
         castShadow={shadows}
         instances={steel}
@@ -469,187 +548,75 @@ function AuroraVault({
 }
 
 function PaintedRow({ shadows }: { shadows: boolean }) {
-  const houses = useMemo<BoxInstance[]>(
-    () =>
-      ["#cf7281", "#59a2a2", "#d69a5f", "#8e7aaf", "#72a176"].map(
-        (color, index) =>
-          cityBox(
-            `safehouse-${index}`,
-            [-78 + index * 4, 4.4, 70],
-            [3.65, 8.7, 8.5],
-            color,
-          ),
-      ),
-    [],
-  );
-  const roofs = useMemo<BoxInstance[]>(
-    () =>
-      houses.map((house) =>
-        cityBox(
-          `${house.id}-roof`,
-          [house.position[0], 9.5, house.position[2]],
-          [4.4, 3, 7.1],
-          "#342f38",
-          Math.PI / 4,
-        ),
-      ),
-    [houses],
-  );
-  const fronts = useMemo<BoxInstance[]>(
-    () =>
-      houses.flatMap((house, index) => [
-        cityBox(
-          `${house.id}-window-low`,
-          [house.position[0], 3.4, 74.27],
-          [1.85, 1.15, 0.08],
-          index === 2 ? "#ffcf70" : "#a7dfe0",
-        ),
-        cityBox(
-          `${house.id}-window-high`,
-          [house.position[0], 6.4, 74.27],
-          [1.85, 1.15, 0.08],
-          "#ffd486",
-        ),
-      ]),
-    [houses],
-  );
-  const doors = useMemo<BoxInstance[]>(
-    () =>
-      houses.map((house, index) =>
-        cityBox(
-          `${house.id}-door`,
-          [house.position[0], 1.55, 74.34],
-          [1.05, 2.55, 0.12],
-          index === 2 ? "#d95455" : "#23383b",
-        ),
-      ),
-    [houses],
-  );
+  const plan = useMemo(() => createPaintedRowPlan(), []);
+  const groupRef = useLandmarkVisibility([-70, 4, 70], 105);
   return (
-    <group name="painted-row-safehouse">
+    <group name="painted-row-safehouse" ref={groupRef}>
       <InstancedPrimitives
         castShadow={shadows}
-        instances={houses}
+        instances={plan.opaque}
+        metalness={0.08}
         receiveShadow
-        roughness={0.76}
+        roughness={0.72}
       />
       <InstancedPrimitives
         castShadow={shadows}
-        instances={roofs}
-        roughness={0.82}
+        instances={plan.roofs}
+        roughness={0.8}
         shape="cone"
       />
-      <InstancedPrimitives instances={fronts} material="basic" />
-      <InstancedPrimitives instances={doors} roughness={0.68} />
-      <mesh position={[-70, 0.36, 75.3]}>
-        <boxGeometry args={[19, 0.5, 1.8]} />
-        <meshStandardMaterial color="#526263" roughness={0.86} />
-      </mesh>
+      <InstancedPrimitives instances={plan.glazing} material="basic" />
+      <InstancedPrimitives
+        fog={false}
+        instances={plan.porchLights}
+        material="basic"
+        toneMapped={false}
+      />
     </group>
   );
 }
 
 function CaliforniaCableCar({ shadows }: { shadows: boolean }) {
-  const body = useMemo<BoxInstance[]>(
-    () => [
-      cityBox("sf-cable-car-chassis", [0, 0.42, 0], [3.55, 0.42, 7], "#542d27"),
-      cityBox(
-        "sf-cable-car-lower",
-        [0, 1.08, 0],
-        [3.32, 0.95, 6.65],
-        "#a53d35",
-      ),
-      cityBox("sf-cable-car-cabin", [0, 2.12, 0], [3.16, 1.25, 4.3], "#f0d7a7"),
-      cityBox(
-        "sf-cable-car-front",
-        [0, 2.05, -2.72],
-        [3.18, 1.35, 1.1],
-        "#bd4d3e",
-      ),
-      cityBox(
-        "sf-cable-car-rear",
-        [0, 2.05, 2.72],
-        [3.18, 1.35, 1.1],
-        "#bd4d3e",
-      ),
-      cityBox("sf-cable-car-roof", [0, 3.05, 0], [3.72, 0.3, 6.9], "#eee0bb"),
-    ],
-    [],
-  );
-  const frames = useMemo<BoxInstance[]>(
-    () =>
-      [-2.05, -0.68, 0.68, 2.05].flatMap((z, index) => [
-        cityBox(
-          `sf-cable-car-window-west-${index}`,
-          [-1.59, 2.2, z],
-          [0.08, 0.86, 0.96],
-          "#427485",
-        ),
-        cityBox(
-          `sf-cable-car-window-east-${index}`,
-          [1.59, 2.2, z],
-          [0.08, 0.86, 0.96],
-          "#427485",
-        ),
-      ]),
-    [],
-  );
-  const trim = useMemo<BoxInstance[]>(
-    () => [
-      cityBox(
-        "sf-cable-car-belt-west",
-        [-1.67, 1.45, 0],
-        [0.09, 0.16, 6.5],
-        "#f3c96d",
-      ),
-      cityBox(
-        "sf-cable-car-belt-east",
-        [1.67, 1.45, 0],
-        [0.09, 0.16, 6.5],
-        "#f3c96d",
-      ),
-      cityBox(
-        "sf-cable-car-board-front",
-        [0, 2.64, -3.3],
-        [2.22, 0.45, 0.08],
-        "#263637",
-      ),
-      cityBox(
-        "sf-cable-car-board-rear",
-        [0, 2.64, 3.3],
-        [2.22, 0.45, 0.08],
-        "#263637",
-      ),
-    ],
-    [],
-  );
+  const plan = useMemo(() => createCaliforniaCableCarPlan(), []);
+  const groupRef = useLandmarkVisibility(SF_CABLE_CAR_POSITION, 82);
 
   return (
     <group
       name="san-francisco-cable-car"
       position={SF_CABLE_CAR_POSITION}
+      ref={groupRef}
       userData={{ cameraCollision: false }}
     >
       <InstancedPrimitives
         castShadow={shadows}
-        instances={body}
+        instances={plan.opaque}
         metalness={0.08}
         receiveShadow
         roughness={0.68}
       />
       <InstancedPrimitives
         depthWrite={false}
-        instances={frames}
+        instances={plan.glazing}
         metalness={0.32}
         opacity={0.82}
         roughness={0.18}
         transparent
       />
-      <InstancedPrimitives instances={trim} metalness={0.3} roughness={0.44} />
+      <InstancedPrimitives
+        fog={false}
+        instances={plan.lamps}
+        material="basic"
+        toneMapped={false}
+      />
       {[-1.25, 1.25].flatMap((x) =>
         [-2.25, 2.25].map((z) => (
-          <mesh key={`${x}-${z}`} position={[x, 0.08, z]}>
-            <cylinderGeometry args={[0.46, 0.46, 0.32, 10]} />
+          <mesh
+            castShadow={shadows}
+            key={`${x}-${z}`}
+            position={[x < 0 ? -1.68 : 1.68, 0.16, z]}
+            rotation={[0, 0, Math.PI / 2]}
+          >
+            <cylinderGeometry args={[0.46, 0.46, 0.38, 8]} />
             <meshStandardMaterial
               color="#202426"
               metalness={0.55}
@@ -658,16 +625,8 @@ function CaliforniaCableCar({ shadows }: { shadows: boolean }) {
           </mesh>
         )),
       )}
-      <mesh position={[0, 4.55, 0.15]} rotation={[0.14, 0, -0.18]}>
-        <cylinderGeometry args={[0.07, 0.07, 3.1, 6]} />
-        <meshStandardMaterial
-          color="#343f3f"
-          metalness={0.72}
-          roughness={0.35}
-        />
-      </mesh>
-      <mesh position={[0, 3.43, -2.6]}>
-        <sphereGeometry args={[0.25, 10, 8]} />
+      <mesh position={[0, 3.48, -2.65]}>
+        <sphereGeometry args={[0.24, 10, 8]} />
         <meshStandardMaterial
           color="#d9ae4d"
           metalness={0.78}
@@ -691,7 +650,7 @@ const SF_STREET_SIGNS = [
   },
   {
     crossStreet: "POWELL ST",
-    position: [-22.6, 0.3, 33.4] as CityVec3,
+    position: [-24.4, 0.3, 29.6] as CityVec3,
     street: "CALIFORNIA ST",
   },
   {
@@ -976,11 +935,24 @@ function BreakwaterTerminal({
 }
 
 function IndustrialWaterfront({ shadows }: { shadows: boolean }) {
+  const groupRef = useLandmarkVisibility([126, 0, 72], 60);
   const cranes = useMemo<BoxInstance[]>(() => {
     const values: BoxInstance[] = [];
     [118, 142].forEach((x, index) => {
       const z = index === 0 ? 72 : -62;
       values.push(
+        cityBox(
+          `crane-foot-west-${index}`,
+          [x - 2.4, 1.4, z],
+          [1, 2.8, 1],
+          "#b57d39",
+        ),
+        cityBox(
+          `crane-foot-east-${index}`,
+          [x + 2.4, 1.4, z],
+          [1, 2.8, 1],
+          "#b57d39",
+        ),
         cityBox(`crane-mast-${index}`, [x, 10, z], [0.72, 20, 0.72], "#d09a45"),
         cityBox(
           `crane-boom-${index}`,
@@ -1000,17 +972,81 @@ function IndustrialWaterfront({ shadows }: { shadows: boolean }) {
           [0.08, 11.5, 0.08],
           "#718083",
         ),
+        cityBox(
+          `crane-counterweight-${index}`,
+          [x - 3.2, 18.15, z],
+          [3.4, 1.55, 1.8],
+          "#8b6838",
+        ),
+        cityBox(
+          `crane-load-${index}`,
+          [x + 12.5, 6.4, z],
+          [2.4, 1.2, 1.35],
+          index ? "#4c8c89" : "#b85c48",
+        ),
       );
     });
     return values;
   }, []);
+  const dockCargo = useMemo<BoxInstance[]>(() => {
+    const colors = ["#3f7e7a", "#b75848", "#c08a3f", "#596a73", "#8b6073"];
+    const values: BoxInstance[] = [];
+    [72, -62].forEach((z, row) => {
+      for (let index = 0; index < 9; index += 1) {
+        const level = index > 5 ? 1 : 0;
+        const slot = level ? index - 6 : index;
+        values.push(
+          cityBox(
+            `dock-container-${row}-${index}`,
+            [110 + slot * 5.2, 1.35 + level * 2.55, z + (row ? -1.2 : 1.2)],
+            [4.65, 2.35, 2.2],
+            colors[(index + row * 2) % colors.length],
+          ),
+        );
+      }
+    });
+    values.push(
+      cityBox(
+        "waterfront-warehouse-door-a",
+        [66.8, 3.2, 78.53],
+        [4.8, 4.9, 0.08],
+        "#26383c",
+      ),
+      cityBox(
+        "waterfront-warehouse-door-b",
+        [73.2, 3.2, 78.53],
+        [4.8, 4.9, 0.08],
+        "#26383c",
+      ),
+      cityBox(
+        "waterfront-warehouse-canopy",
+        [70, 6.25, 79.1],
+        [13.5, 0.24, 1.4],
+        "#b65c4b",
+      ),
+      cityBox(
+        "waterfront-warehouse-sign",
+        [70, 7.25, 78.58],
+        [8.4, 0.62, 0.1],
+        "#e3c878",
+      ),
+    );
+    return values;
+  }, []);
   return (
-    <group name="industrial-waterfront">
+    <group name="industrial-waterfront" ref={groupRef}>
       <InstancedPrimitives
         castShadow={shadows}
         instances={cranes}
         metalness={0.52}
         roughness={0.43}
+      />
+      <InstancedPrimitives
+        castShadow={shadows}
+        instances={dockCargo}
+        metalness={0.12}
+        receiveShadow
+        roughness={0.68}
       />
       <mesh castShadow={shadows} position={[70, 4.1, 70]} receiveShadow>
         <boxGeometry args={[17, 7.8, 17]} />
