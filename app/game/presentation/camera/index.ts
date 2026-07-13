@@ -26,6 +26,7 @@ export {
   shortestCameraAngleDelta,
   solveAfterlightCameraFrame,
   stepAfterlightCameraControls,
+  translateAfterlightCameraFrameWithTarget,
 } from "./math";
 export type {
   AfterlightCameraImpulse,

@@ -470,6 +470,20 @@ export function solveAfterlightCameraFrame(
   return out;
 }
 
+export function translateAfterlightCameraFrameWithTarget(
+  frame: MutableCameraFrame,
+  deltaX: number,
+  deltaZ: number,
+) {
+  const x = finiteOr(deltaX, 0);
+  const z = finiteOr(deltaZ, 0);
+  frame.position.x += x;
+  frame.position.z += z;
+  frame.lookAt.x += x;
+  frame.lookAt.z += z;
+  return frame;
+}
+
 function impulseStrength(impulse: AfterlightCameraImpulse) {
   return clamp(finiteOr(impulse.strength, 0), 0, 1);
 }

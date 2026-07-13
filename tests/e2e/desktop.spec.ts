@@ -327,6 +327,12 @@ test("keeps mouse-look and camera-relative movement in a narrow desktop window",
   expect(forwardTravel).toBeGreaterThan(3);
   expect(Math.abs(lateralTravel)).toBeLessThan(0.5);
 
+  await page.waitForFunction(
+    () => document.documentElement.dataset.mirageCamera !== undefined,
+  );
+  const cameraBeforeStrafe = await page.evaluate(() =>
+    JSON.parse(document.documentElement.dataset.mirageCamera ?? "null"),
+  );
   const strafeStartX = Number(await shell.getAttribute("data-player-x"));
   const strafeStartZ = Number(await shell.getAttribute("data-player-z"));
   const strafeStartTick = Number(await shell.getAttribute("data-tick"));
@@ -337,6 +343,12 @@ test("keeps mouse-look and camera-relative movement in a narrow desktop window",
     })
     .toBeGreaterThanOrEqual(strafeStartTick + 45);
   await page.keyboard.up("d");
+  await page.waitForFunction((frame) => {
+    const telemetry = JSON.parse(
+      document.documentElement.dataset.mirageCamera ?? "null",
+    );
+    return telemetry?.frame > frame;
+  }, cameraBeforeStrafe.frame);
 
   const strafeX =
     Number(await shell.getAttribute("data-player-x")) - strafeStartX;
@@ -346,6 +358,35 @@ test("keeps mouse-look and camera-relative movement in a narrow desktop window",
     -strafeX * Math.cos(cameraYaw) + strafeZ * Math.sin(cameraYaw);
   const strafeForwardTravel =
     strafeX * Math.sin(cameraYaw) + strafeZ * Math.cos(cameraYaw);
+  const cameraAfterStrafe = await page.evaluate(() =>
+    JSON.parse(document.documentElement.dataset.mirageCamera ?? "null"),
+  );
+  const cameraTargetTravelX =
+    cameraAfterStrafe.target[0] - cameraBeforeStrafe.target[0];
+  const cameraTargetTravelZ =
+    cameraAfterStrafe.target[2] - cameraBeforeStrafe.target[2];
+  const cameraTargetDistance = Math.hypot(
+    cameraTargetTravelX,
+    cameraTargetTravelZ,
+  );
+  const cameraTravelX =
+    cameraAfterStrafe.position[0] - cameraBeforeStrafe.position[0];
+  const cameraTravelZ =
+    cameraAfterStrafe.position[2] - cameraBeforeStrafe.position[2];
+  const cameraTravelWithTarget =
+    (cameraTravelX * cameraTargetTravelX +
+      cameraTravelZ * cameraTargetTravelZ) /
+    cameraTargetDistance;
+  const cameraFocusFollowError = Math.hypot(
+    cameraAfterStrafe.lookAt[0] -
+      cameraBeforeStrafe.lookAt[0] -
+      cameraTargetTravelX,
+    cameraAfterStrafe.lookAt[2] -
+      cameraBeforeStrafe.lookAt[2] -
+      cameraTargetTravelZ,
+  );
   expect(screenRightTravel).toBeGreaterThan(2);
   expect(Math.abs(strafeForwardTravel)).toBeLessThan(0.5);
+  expect(cameraTravelWithTarget).toBeGreaterThan(cameraTargetDistance * 0.7);
+  expect(cameraFocusFollowError).toBeLessThan(0.15);
 });

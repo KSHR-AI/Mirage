@@ -16,6 +16,7 @@ import {
   shortestCameraAngleDelta,
   solveAfterlightCameraFrame,
   stepAfterlightCameraControls,
+  translateAfterlightCameraFrameWithTarget,
 } from "./math";
 import type {
   CameraControlState,
@@ -346,6 +347,18 @@ describe("camera collision and frame solving", () => {
     });
     expect(output.position.x).toBeCloseTo(0.2);
     expect(output.position.z).toBeCloseTo(-0.6);
+  });
+
+  it("carries the camera and focus point with planar target movement", () => {
+    const output = frame();
+    Object.assign(output.position, { x: 8, y: 5, z: -3 });
+    Object.assign(output.lookAt, { x: 10, y: 2, z: 4 });
+
+    const returned = translateAfterlightCameraFrameWithTarget(output, 2.5, -6);
+
+    expect(returned).toBe(output);
+    expect(output.position).toEqual({ x: 10.5, y: 5, z: -9 });
+    expect(output.lookAt).toEqual({ x: 12.5, y: 2, z: -2 });
   });
 });
 

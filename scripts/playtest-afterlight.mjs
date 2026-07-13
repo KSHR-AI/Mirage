@@ -1281,22 +1281,65 @@ async function narrowScenario(browser, baseURL, outDir, headed) {
       "forward > 3 and |lateral| < 0.5",
     );
 
+    await page.waitForFunction(
+      () => document.documentElement.dataset.mirageCamera !== undefined,
+    );
+    const cameraBeforeStrafe = await page.evaluate(() =>
+      JSON.parse(document.documentElement.dataset.mirageCamera ?? "null"),
+    );
     const strafeX = await numberAttribute(shell, "data-player-x");
     const strafeZ = await numberAttribute(shell, "data-player-z");
     const strafeTick = await numberAttribute(shell, "data-tick");
     await page.keyboard.down("d");
     await waitForTick(page, shell, strafeTick + 45);
     await page.keyboard.up("d");
+    await page.waitForFunction((frame) => {
+      const telemetry = JSON.parse(
+        document.documentElement.dataset.mirageCamera ?? "null",
+      );
+      return telemetry?.frame > frame;
+    }, cameraBeforeStrafe.frame);
     const strafeDx = (await numberAttribute(shell, "data-player-x")) - strafeX;
     const strafeDz = (await numberAttribute(shell, "data-player-z")) - strafeZ;
     const screenRight = -strafeDx * Math.cos(yaw) + strafeDz * Math.sin(yaw);
     const strafeForward = strafeDx * Math.sin(yaw) + strafeDz * Math.cos(yaw);
+    const cameraAfterStrafe = await page.evaluate(() =>
+      JSON.parse(document.documentElement.dataset.mirageCamera ?? "null"),
+    );
+    const cameraTargetDx =
+      cameraAfterStrafe.target[0] - cameraBeforeStrafe.target[0];
+    const cameraTargetDz =
+      cameraAfterStrafe.target[2] - cameraBeforeStrafe.target[2];
+    const cameraTargetDistance = Math.hypot(cameraTargetDx, cameraTargetDz);
+    const cameraTravelDx =
+      cameraAfterStrafe.position[0] - cameraBeforeStrafe.position[0];
+    const cameraTravelDz =
+      cameraAfterStrafe.position[2] - cameraBeforeStrafe.position[2];
+    const cameraTravelWithTarget =
+      (cameraTravelDx * cameraTargetDx + cameraTravelDz * cameraTargetDz) /
+      cameraTargetDistance;
+    const cameraFocusFollowError = Math.hypot(
+      cameraAfterStrafe.lookAt[0] -
+        cameraBeforeStrafe.lookAt[0] -
+        cameraTargetDx,
+      cameraAfterStrafe.lookAt[2] -
+        cameraBeforeStrafe.lookAt[2] -
+        cameraTargetDz,
+    );
     addCheck(
       scenario,
       "screen-right-strafe",
       screenRight > 2 && Math.abs(strafeForward) < 0.5,
       { screenRight, strafeForward },
       "D moves > 2 meters screen-right with < 0.5 meters forward drift",
+    );
+    addCheck(
+      scenario,
+      "camera-follows-player",
+      cameraTravelWithTarget > cameraTargetDistance * 0.7 &&
+        cameraFocusFollowError < 0.15,
+      { cameraFocusFollowError, cameraTargetDistance, cameraTravelWithTarget },
+      "camera travels with target and focus error stays below 0.15 meters",
     );
     scenario.telemetry = await telemetry(shell);
     scenario.graphics = await graphicsInfo(page);

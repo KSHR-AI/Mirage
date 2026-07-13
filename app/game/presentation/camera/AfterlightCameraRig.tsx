@@ -29,6 +29,7 @@ import {
   sampleAfterlightCameraShake,
   solveAfterlightCameraFrame,
   stepAfterlightCameraControls,
+  translateAfterlightCameraFrameWithTarget,
 } from "./math";
 import type {
   AfterlightCameraRigProps,
@@ -65,6 +66,7 @@ interface CameraRigRuntime {
   initialized: boolean;
   boomDistance: number;
   cinematicTime: number;
+  telemetryFrame: number;
   lastTargetX: number;
   lastTargetY: number;
   lastTargetZ: number;
@@ -164,6 +166,7 @@ function createRuntime(): CameraRigRuntime {
     initialized: false,
     boomDistance: 5.6,
     cinematicTime: 0,
+    telemetryFrame: 0,
     lastTargetX: 0,
     lastTargetY: 0,
     lastTargetZ: 0,
@@ -199,6 +202,9 @@ export function AfterlightCameraRig({
   useLayoutEffect(() => {
     cameraRef.current = camera;
     runtimeRef.current ??= createRuntime();
+    return () => {
+      delete document.documentElement.dataset.mirageCamera;
+    };
   }, [camera]);
 
   useLayoutEffect(() => {
@@ -327,6 +333,13 @@ export function AfterlightCameraRig({
       TARGET_TELEPORT_DISTANCE_SQUARED;
     const snapPosition =
       !runtime.initialized || collisionContracted || targetTeleported;
+    if (!snapPosition) {
+      translateAfterlightCameraFrameWithTarget(
+        runtime.current,
+        targetDx,
+        targetDz,
+      );
+    }
     if (!runtime.initialized) {
       runtime.current.lookAt.x = runtime.desired.lookAt.x;
       runtime.current.lookAt.y = runtime.desired.lookAt.y;
@@ -386,6 +399,23 @@ export function AfterlightCameraRig({
     if (orientationRef) {
       orientationRef.current.yaw = runtime.controls.yaw;
       orientationRef.current.pitch = runtime.controls.pitch;
+    }
+    runtime.telemetryFrame += 1;
+    if (runtime.telemetryFrame % 15 === 0) {
+      document.documentElement.dataset.mirageCamera = JSON.stringify({
+        frame: runtime.telemetryFrame,
+        position: [
+          activeCamera.position.x,
+          activeCamera.position.y,
+          activeCamera.position.z,
+        ],
+        lookAt: [
+          runtime.current.lookAt.x,
+          runtime.current.lookAt.y,
+          runtime.current.lookAt.z,
+        ],
+        target: [targetX, targetY, targetZ],
+      });
     }
     runtime.lastTargetX = targetX;
     runtime.lastTargetY = targetY;
