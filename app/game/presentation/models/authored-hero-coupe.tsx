@@ -90,6 +90,10 @@ export interface AuthoredCoupeIdleMotion {
   readonly roll: number;
 }
 
+export interface AuthoredCoupeBodyMotion extends AuthoredCoupeIdleMotion {
+  readonly pitch: number;
+}
+
 export function sampleAuthoredCoupeIdleMotion(
   time: number,
   wheelSpin: number,
@@ -102,6 +106,36 @@ export function sampleAuthoredCoupeIdleMotion(
   return {
     height: Math.sin(safeTime * 8.2) * 0.006 * strength,
     roll: Math.sin(safeTime * 4.1 + 0.7) * 0.0016 * strength,
+  };
+}
+
+export function sampleAuthoredCoupeBodyMotion(
+  time: number,
+  wheelSpin: number,
+  lateralLoad: number,
+  longitudinalLoad: number,
+  disabled: boolean,
+): AuthoredCoupeBodyMotion {
+  if (disabled) return { height: 0, pitch: 0, roll: 0 };
+  const idle = sampleAuthoredCoupeIdleMotion(time, wheelSpin, false);
+  const safeTime = Number.isFinite(time) ? Math.max(0, time) : 0;
+  const safeSpin = Number.isFinite(wheelSpin) ? Math.abs(wheelSpin) : 0;
+  const speedStrength = MathUtils.clamp(safeSpin / 8, 0, 1);
+  const lateral = MathUtils.clamp(
+    Number.isFinite(lateralLoad) ? lateralLoad : 0,
+    -1,
+    1,
+  );
+  const longitudinal = MathUtils.clamp(
+    Number.isFinite(longitudinalLoad) ? longitudinalLoad : 0,
+    -1,
+    1,
+  );
+  return {
+    height:
+      idle.height + Math.sin(safeTime * 17.5 + 0.4) * 0.0022 * speedStrength,
+    pitch: -longitudinal * 0.024,
+    roll: idle.roll - lateral * 0.052,
   };
 }
 
@@ -499,6 +533,8 @@ function AuthoredCoupeModel({
   quality = "desktop",
   role,
   emergencyLights = true,
+  lateralLoad = 0,
+  longitudinalLoad = 0,
   sirenPhase = 0,
   steering = 0,
   wheelSpin = 0,
@@ -536,6 +572,8 @@ function AuthoredCoupeModel({
   const accumulatedSpin = useRef(0);
   const idleTime = useRef(0);
   const presentationRoot = useRef<Group>(null);
+  const presentedLateralLoad = useRef(0);
+  const presentedLongitudinalLoad = useRef(0);
   const normalizedDamage = MathUtils.clamp(
     Number.isFinite(damage) ? damage : 0,
     0,
@@ -588,6 +626,23 @@ function AuthoredCoupeModel({
       wheelSpin,
       safeDt,
     );
+    const motionDisabled = disabled || role !== "hero";
+    presentedLateralLoad.current = MathUtils.damp(
+      presentedLateralLoad.current,
+      motionDisabled || !Number.isFinite(lateralLoad)
+        ? 0
+        : MathUtils.clamp(lateralLoad, -1, 1),
+      7.5,
+      safeDt,
+    );
+    presentedLongitudinalLoad.current = MathUtils.damp(
+      presentedLongitudinalLoad.current,
+      motionDisabled || !Number.isFinite(longitudinalLoad)
+        ? 0
+        : MathUtils.clamp(longitudinalLoad, -1, 1),
+      9,
+      safeDt,
+    );
     const steer = MathUtils.clamp(steering, -1, 1) * 0.42;
     steeringQuaternion.setFromAxisAngle(STEERING_AXIS, steer);
     spinQuaternion.setFromAxisAngle(SPIN_AXIS, accumulatedSpin.current);
@@ -605,13 +660,16 @@ function AuthoredCoupeModel({
       }
     }
     if (presentationRoot.current) {
-      const idle = sampleAuthoredCoupeIdleMotion(
+      const motion = sampleAuthoredCoupeBodyMotion(
         idleTime.current,
         wheelSpin,
-        disabled || role !== "hero",
+        presentedLateralLoad.current,
+        presentedLongitudinalLoad.current,
+        motionDisabled,
       );
-      presentationRoot.current.position.y = MODEL_GROUND_OFFSET + idle.height;
-      presentationRoot.current.rotation.z = idle.roll;
+      presentationRoot.current.position.y = MODEL_GROUND_OFFSET + motion.height;
+      presentationRoot.current.rotation.x = motion.pitch;
+      presentationRoot.current.rotation.z = motion.roll;
     }
   });
 

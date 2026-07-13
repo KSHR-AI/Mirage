@@ -25,6 +25,7 @@ import {
   resolveAfterlightCameraProfile,
   resolveAfterlightTargetYaw,
   resolveCameraCollisionBoom,
+  resolveVehicleCameraRoll,
   sampleAfterlightCameraShake,
   solveAfterlightCameraFrame,
   stepAfterlightCameraControls,
@@ -186,6 +187,7 @@ export function AfterlightCameraRig({
   paused = false,
   reducedMotion = false,
   speed = 0,
+  steering = 0,
   targetPose,
 }: AfterlightCameraRigProps) {
   const camera = useThree((state) => state.camera);
@@ -258,7 +260,10 @@ export function AfterlightCameraRig({
     request.lookAhead = runtime.profile.lookAhead;
     request.shoulder = runtime.profile.shoulder;
     request.fov = runtime.profile.fov;
-    request.roll = 0;
+    request.roll =
+      mode === "vehicle"
+        ? resolveVehicleCameraRoll(steering, speed, reducedMotion)
+        : 0;
     solveAfterlightCameraFrame(runtime.desired, request);
 
     collectCameraCollisionRoots(scene, runtime.collisionRoots);

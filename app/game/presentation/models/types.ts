@@ -39,6 +39,10 @@ export interface VehicleModelProps extends ModelGroupProps {
   readonly steering?: number;
   /** Wheel rotation in radians, supplied by the presentation adapter. */
   readonly wheelSpin?: number;
+  /** Normalized signed cornering load used for chassis presentation. */
+  readonly lateralLoad?: number;
+  /** Normalized signed acceleration or braking load. */
+  readonly longitudinalLoad?: number;
   /** Normalized visual damage in the range 0 to 1. */
   readonly damage?: number;
   readonly disabled?: boolean;

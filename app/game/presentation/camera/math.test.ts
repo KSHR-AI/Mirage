@@ -11,6 +11,7 @@ import {
   resolveAfterlightCameraProfile,
   resolveAfterlightTargetYaw,
   resolveCameraCollisionBoom,
+  resolveVehicleCameraRoll,
   sampleAfterlightCameraShake,
   shortestCameraAngleDelta,
   solveAfterlightCameraFrame,
@@ -179,6 +180,16 @@ describe("Afterlight camera profiles", () => {
     expect(portrait.distance).toBeGreaterThan(landscape.distance + 5);
     expect(portrait.fov).toBeGreaterThan(landscape.fov);
     expect(regular.distance).toBe(regularDistance);
+  });
+});
+
+describe("vehicle camera load", () => {
+  it("banks with cornering speed and stays level for accessibility", () => {
+    expect(resolveVehicleCameraRoll(1, 0, false)).toBe(0);
+    expect(resolveVehicleCameraRoll(1, 18, false)).toBeCloseTo(-0.032);
+    expect(resolveVehicleCameraRoll(-1, 18, false)).toBeCloseTo(0.032);
+    expect(resolveVehicleCameraRoll(1, 100, true)).toBe(0);
+    expect(resolveVehicleCameraRoll(Number.NaN, Number.NaN, false)).toBe(0);
   });
 });
 

@@ -63,6 +63,7 @@ import {
   AFTERLIGHT_CHARACTER_CENTER_TO_FEET,
   sampleAfterlightCharacterGround,
 } from "../game/world/afterlight-character-world";
+import { decomposeVehicleMotion } from "../game/vehicles";
 
 export interface AfterlightSceneProps {
   readonly state: GameState;
@@ -357,14 +358,21 @@ function DynamicHeroVehicle({
   vehicle,
   quality,
   brakeLights,
+  braking,
   steering,
+  throttle,
 }: {
   readonly vehicle: VehicleState;
   readonly quality: ModelQuality;
   readonly brakeLights: boolean;
+  readonly braking: boolean;
   readonly steering: number;
+  readonly throttle: number;
 }) {
   const speed = planarSpeed(vehicle.velocity);
+  const signedForwardSpeed = decomposeVehicleMotion(vehicle).forwardSpeed;
+  const corneringLoad =
+    steering * THREE.MathUtils.clamp(Math.abs(speed) / 14, 0, 1);
   return (
     <HeroCoupeModel
       brakeLights={brakeLights}
@@ -372,11 +380,13 @@ function DynamicHeroVehicle({
       disabled={vehicle.life !== "active"}
       entityId={vehicle.id}
       headlights
+      lateralLoad={corneringLoad}
+      longitudinalLoad={braking ? -1 : throttle}
       position={mutablePosition(vehicle.pose.position)}
       quality={quality}
       rotation={[0, vehicle.pose.rotationY, 0]}
       steering={steering}
-      wheelSpin={speed * 0.55}
+      wheelSpin={signedForwardSpeed * 0.55}
     />
   );
 }
@@ -684,8 +694,10 @@ export const AfterlightScene = memo(function AfterlightScene({
         <>
           <DynamicHeroVehicle
             brakeLights={driving && input.brake}
+            braking={driving && input.brake}
             quality={visualQuality}
             steering={driving ? input.steer : 0}
+            throttle={driving ? input.throttle : 0}
             vehicle={hero}
           />
           {!driving ? <VehicleCameraCollisionProxy vehicle={hero} /> : null}
@@ -728,6 +740,7 @@ export const AfterlightScene = memo(function AfterlightScene({
         paused={paused}
         reducedMotion={reducedMotion}
         speed={speed}
+        steering={driving ? input.steer : 0}
         targetPose={cameraTargetPose}
       />
 

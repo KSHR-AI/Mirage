@@ -37,6 +37,8 @@ export interface AfterlightCameraRigProps {
   readonly controlledOrientation?: AfterlightCameraOrientation;
   /** Planar target speed in meters per second. */
   readonly speed?: number;
+  /** Normalized steering input used for vehicle camera load response. */
+  readonly steering?: number;
   readonly aim?: boolean;
   /** Horizontal and vertical look signal. See `lookMode`. */
   readonly look?: Vec2;

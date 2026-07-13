@@ -7,6 +7,7 @@ import {
   advanceAuthoredWheelSpin,
   getAuthoredHeroCoupeMaterialTreatment,
   getAuthoredTrafficCoupePalette,
+  sampleAuthoredCoupeBodyMotion,
   sampleAuthoredCoupeIdleMotion,
 } from "./authored-hero-coupe";
 
@@ -18,6 +19,7 @@ describe("authored hero coupe", () => {
     expect(first).toBe(second);
     expect(first).toBeGreaterThanOrEqual(0);
     expect(first).toBeLessThan(Math.PI * 2);
+    expect(advanceAuthoredWheelSpin(1, -2, 1 / 60)).toBeLessThan(1);
   });
 
   it("clamps suspended-frame time and rejects non-finite signals", () => {
@@ -35,6 +37,17 @@ describe("authored hero coupe", () => {
     expect(Math.abs(idle.roll)).toBeLessThanOrEqual(0.0016);
     expect(moving).toEqual({ height: 0, roll: 0 });
     expect(disabled).toEqual({ height: 0, roll: 0 });
+  });
+
+  it("converts vehicle loads into bounded chassis pitch, roll, and heave", () => {
+    const loaded = sampleAuthoredCoupeBodyMotion(0.5, 9, 1, -1, false);
+    const neutral = sampleAuthoredCoupeBodyMotion(0.5, 9, 0, 0, false);
+    const disabled = sampleAuthoredCoupeBodyMotion(0.5, 9, 1, -1, true);
+
+    expect(loaded.roll).toBeLessThan(neutral.roll - 0.05);
+    expect(loaded.pitch).toBeGreaterThan(0.02);
+    expect(Math.abs(loaded.height)).toBeLessThanOrEqual(0.0022);
+    expect(disabled).toEqual({ height: 0, pitch: 0, roll: 0 });
   });
 
   it("keeps the optimized asset's chassis and wheel pivot contract explicit", () => {

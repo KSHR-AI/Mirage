@@ -78,6 +78,7 @@ import {
   type PerformanceReport,
 } from "../game/performance";
 import {
+  resolveVehicleCameraRoll,
   shouldFinishOpeningCinematic,
   type AfterlightCameraImpulse,
 } from "../game/presentation/camera";
@@ -1519,6 +1520,17 @@ export function AfterlightGame() {
     : 0;
   const velocity = driving ? hero?.velocity : player?.velocity;
   const speedKph = Math.hypot(velocity?.[0] ?? 0, velocity?.[2] ?? 0) * 3.6;
+  const lateralLoad = driving
+    ? view.input.steer * Math.min(1, speedKph / (14 * 3.6))
+    : 0;
+  const longitudinalLoad = driving
+    ? view.input.brake
+      ? -1
+      : view.input.throttle
+    : 0;
+  const cameraRollTarget = driving
+    ? resolveVehicleCameraRoll(view.input.steer, speedKph / 3.6, reducedMotion)
+    : 0;
   const optionalObjectives = definition.phases
     .flatMap((candidate) => candidate.objectives)
     .filter((objective) => objective.optional);
@@ -1553,9 +1565,12 @@ export function AfterlightGame() {
       data-boost={view.input.sprint ? "true" : "false"}
       data-brake={view.input.brake ? "true" : "false"}
       data-camera-yaw={view.cameraYaw.toFixed(4)}
+      data-camera-roll-target={cameraRollTarget.toFixed(4)}
       data-camera-pitch={view.cameraPitch.toFixed(4)}
       data-look-x={view.input.look[0].toFixed(3)}
       data-look-y={view.input.look[1].toFixed(3)}
+      data-lateral-load={lateralLoad.toFixed(3)}
+      data-longitudinal-load={longitudinalLoad.toFixed(3)}
       data-mode={driving ? "car" : "foot"}
       data-magazine={weapon?.magazine ?? 0}
       data-phase={phase.id}

@@ -21,6 +21,7 @@ export {
   resolveAfterlightCameraProfile,
   resolveAfterlightTargetYaw,
   resolveCameraCollisionBoom,
+  resolveVehicleCameraRoll,
   sampleAfterlightCameraShake,
   shortestCameraAngleDelta,
   solveAfterlightCameraFrame,

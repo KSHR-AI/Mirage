@@ -117,10 +117,13 @@ async function telemetry(shell) {
     "brake",
     "camera-yaw",
     "camera-pitch",
+    "camera-roll-target",
     "dropped-seconds",
     "frame-ms",
     "look-x",
     "look-y",
+    "lateral-load",
+    "longitudinal-load",
     "mode",
     "magazine",
     "phase",
@@ -253,6 +256,9 @@ async function waitForDriveSample(
   while (Date.now() < deadline) {
     const sample = await attributeSnapshot(shell, [
       "boost",
+      "camera-roll-target",
+      "lateral-load",
+      "longitudinal-load",
       "phase",
       "player-x",
       "player-z",
@@ -903,6 +909,22 @@ async function desktopScenario(browser, baseURL, outDir, headed) {
     );
     addCheck(
       scenario,
+      "vehicle-chassis-load",
+      Math.abs(Number(reverseSample["lateral-load"])) > 0.2,
+      Number(reverseSample["lateral-load"]),
+      "absolute load > 0.2",
+    );
+    addCheck(
+      scenario,
+      "vehicle-camera-bank",
+      Math.abs(Number(reverseSample["camera-roll-target"])) > 0.005,
+      Number(reverseSample["camera-roll-target"]),
+      "absolute bank > 0.005 radians",
+    );
+    await capture(scenario, page, outDir, "car-cornering");
+    await inspectCanvas(scenario, page, outDir, "car-cornering");
+    addCheck(
+      scenario,
       "vehicle-turn-rate",
       reverseTurnRate > 0.03 && reverseTurnRate < 1.3,
       { angle: reverseTurn, rate: reverseTurnRate, ticks: reverseTicks },
@@ -928,6 +950,7 @@ async function desktopScenario(browser, baseURL, outDir, headed) {
     );
     const reverseBrakeSample = await attributeSnapshot(shell, [
       "brake",
+      "longitudinal-load",
       "speed",
       "vehicle-health",
     ]);
@@ -948,6 +971,15 @@ async function desktopScenario(browser, baseURL, outDir, headed) {
       },
       "speed falls by more than 45%",
     );
+    addCheck(
+      scenario,
+      "vehicle-brake-load",
+      Number(reverseBrakeSample["longitudinal-load"]) <= -0.99,
+      Number(reverseBrakeSample["longitudinal-load"]),
+      "<= -0.99",
+    );
+    await capture(scenario, page, outDir, "car-braking");
+    await inspectCanvas(scenario, page, outDir, "car-braking");
     await waitForAttribute(page, shell, "speed", (value) => Number(value) < 1);
     await page.keyboard.up("Space");
 

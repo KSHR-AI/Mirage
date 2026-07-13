@@ -251,6 +251,18 @@ export function applyOpeningCameraAspect(
   return out;
 }
 
+export function resolveVehicleCameraRoll(
+  steering: number,
+  speed: number,
+  reducedMotion: boolean,
+) {
+  if (reducedMotion) return 0;
+  const steer = clamp(finiteOr(steering, 0), -1, 1);
+  const speedRatio = clamp(Math.abs(finiteOr(speed, 0)) / 18, 0, 1);
+  if (steer === 0 || speedRatio === 0) return 0;
+  return -steer * speedRatio * 0.032;
+}
+
 export function resolveCameraCollisionBoom(
   desiredDistance: number,
   collisionDistance: number | null | undefined,
