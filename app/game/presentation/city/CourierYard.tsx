@@ -379,6 +379,38 @@ export function CourierYard({
       </mesh>
       <InstancedPrimitives
         castShadow={shadows}
+        emissive="#172b2f"
+        emissiveIntensity={0.2}
+        instances={detailPlan.depotRoofline}
+        metalness={0.42}
+        receiveShadow
+        roughness={0.5}
+      />
+      <InstancedPrimitives
+        castShadow={shadows}
+        instances={detailPlan.depotRelief}
+        metalness={0.24}
+        receiveShadow
+        roughness={0.68}
+      />
+      <InstancedPrimitives
+        depthWrite={false}
+        emissive="#183337"
+        emissiveIntensity={0.34}
+        instances={detailPlan.depotGlazing}
+        metalness={0.12}
+        opacity={0.76}
+        roughness={0.22}
+        transparent
+      />
+      <InstancedPrimitives
+        depthWrite={false}
+        instances={detailPlan.depotLightPanels}
+        material="basic"
+        toneMapped={false}
+      />
+      <InstancedPrimitives
+        castShadow={shadows}
         instances={CONTAINERS}
         map={shadows ? textures.container.map : undefined}
         metalness={0.82}
@@ -525,11 +557,14 @@ export function CourierYard({
       />
       <InstancedPrimitives
         castShadow={shadows}
+        emissive="#13272b"
+        emissiveIntensity={0.36}
         instances={detailPlan.perimeterStructure}
         metalness={0.56}
         receiveShadow
         roughness={0.42}
       />
+      <YardGantryTruss shadows={shadows} />
       <InstancedPrimitives
         castShadow={shadows}
         instances={detailPlan.perimeterDetails}
@@ -545,22 +580,57 @@ export function CourierYard({
       <YardGantrySignage />
       <YardSecurityLighting enabled={shadows} />
       <YardWear />
-      {DEPOT_DOOR_CENTERS.map((x) => (
-        <group key={`courier-depot-light-${x}`}>
-          <mesh position={[x, 4.96, 37.5]}>
-            <boxGeometry args={[1.2, 0.1, 0.18]} />
-            <meshStandardMaterial
-              color="#f6e7b8"
-              emissive="#ffd17a"
-              emissiveIntensity={2.4}
-              metalness={0.18}
-              roughness={0.28}
-              toneMapped={false}
-            />
-          </mesh>
-        </group>
-      ))}
     </group>
+  );
+}
+
+function YardGantryTruss({ shadows }: { readonly shadows: boolean }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const transform = useMemo(() => new THREE.Object3D(), []);
+  const braces = useMemo(
+    () =>
+      [
+        [60, 63.2, 5.64, 6.68],
+        [63.2, 66.4, 6.68, 5.64],
+        [73.6, 76.8, 5.64, 6.68],
+        [76.8, 80, 6.68, 5.64],
+      ] as const,
+    [],
+  );
+
+  useLayoutEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    braces.forEach(([startX, endX, startY, endY], index) => {
+      const dx = endX - startX;
+      const dy = endY - startY;
+      transform.position.set((startX + endX) / 2, (startY + endY) / 2, 48.72);
+      transform.rotation.set(0, 0, Math.atan2(dy, dx));
+      transform.scale.set(Math.hypot(dx, dy), 0.12, 0.2);
+      transform.updateMatrix();
+      mesh.setMatrixAt(index, transform.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingBox();
+    mesh.computeBoundingSphere();
+  }, [braces, transform]);
+
+  return (
+    <instancedMesh
+      args={[undefined, undefined, braces.length]}
+      castShadow={shadows}
+      ref={meshRef}
+      receiveShadow
+    >
+      <boxGeometry />
+      <meshStandardMaterial
+        color="#657577"
+        emissive="#183034"
+        emissiveIntensity={0.42}
+        metalness={0.48}
+        roughness={0.42}
+      />
+    </instancedMesh>
   );
 }
 
@@ -572,7 +642,7 @@ function YardWetPatches({
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const transform = useMemo(() => new THREE.Object3D(), []);
   const color = useMemo(() => new THREE.Color(), []);
-  const geometry = useMemo(createYardWetPatchGeometry, []);
+  const geometry = useMemo(() => createYardWetPatchGeometry(), []);
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useLayoutEffect(() => {

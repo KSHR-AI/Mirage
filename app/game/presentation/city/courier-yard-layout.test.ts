@@ -16,6 +16,10 @@ describe("createCourierYardDetailPlan", () => {
     ).toBe(true);
     expect(first.interior.length).toBeGreaterThanOrEqual(6);
     expect(first.barrels).toHaveLength(3);
+    expect(first.depotRoofline.length).toBeGreaterThanOrEqual(8);
+    expect(first.depotGlazing).toHaveLength(5);
+    expect(first.depotLightPanels).toHaveLength(5);
+    expect(first.depotRelief.length).toBeGreaterThanOrEqual(12);
     expect(first.palletBoards.length).toBeGreaterThan(15);
     expect(first.drainSlats.length).toBeGreaterThan(30);
     expect(first.perimeterStructure.length).toBeGreaterThanOrEqual(8);
@@ -33,6 +37,8 @@ describe("createCourierYardDetailPlan", () => {
     const solids = [
       ...plan.barrels,
       ...plan.crateBodies,
+      ...plan.depotRelief,
+      ...plan.depotRoofline,
       ...plan.dockStructure,
       ...plan.interior,
       ...plan.palletBoards,
@@ -66,6 +72,12 @@ describe("createCourierYardDetailPlan", () => {
     expect(mobile.barrels).toHaveLength(1);
     expect(mobile.crateBodies).toHaveLength(1);
     expect(desktop.crateBodies).toHaveLength(5);
+    expect(mobile.depotGlazing).toEqual(desktop.depotGlazing);
+    expect(mobile.depotLightPanels).toEqual(desktop.depotLightPanels);
+    expect(mobile.depotRelief).toEqual(desktop.depotRelief);
+    expect(mobile.depotRoofline.length).toBeLessThan(
+      desktop.depotRoofline.length,
+    );
     expect(mobile.tireMarks).toHaveLength(0);
     expect(mobile.drainSlats).toHaveLength(0);
     expect(mobile.perimeterStructure).toEqual(desktop.perimeterStructure);
