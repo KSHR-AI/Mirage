@@ -2857,6 +2857,412 @@
   }
 }
 
+/* Sparse open-world HUD */
+.statusRail {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(20px, env(safe-area-inset-right));
+  display: flex;
+  min-height: 40px;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.statusRail .topStatus {
+  align-items: flex-start;
+}
+
+.statusRail .cash {
+  min-width: 86px;
+  padding: 2px 7px 0 0;
+}
+
+.statusRail .cash strong {
+  color: #a8f28a;
+  font-size: 18px;
+  font-weight: 750;
+  text-shadow: 0 2px 5px #000;
+}
+
+.statusRail .wanted {
+  display: flex;
+  width: auto;
+  height: 22px;
+  grid-template-columns: none;
+  align-items: center;
+  justify-self: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 2px 4px 0 0;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.25);
+  backdrop-filter: none;
+  transition: opacity 180ms ease;
+}
+
+.statusRail .wanted[data-active="false"] {
+  opacity: 0;
+}
+
+.statusRail .wanted[data-active="true"] {
+  border: 0;
+  background: transparent;
+  color: var(--hud-white);
+}
+
+.wantedStars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.wantedStars svg[data-lit="true"] {
+  color: var(--hud-white);
+  filter: drop-shadow(0 1px 3px #000);
+}
+
+.locationSplash {
+  position: absolute;
+  right: max(28px, env(safe-area-inset-right));
+  bottom: max(184px, calc(env(safe-area-inset-bottom) + 164px));
+  display: grid;
+  justify-items: end;
+  color: var(--hud-white);
+  text-align: right;
+  animation: hud-location-spawn 5.4s ease-out both;
+}
+
+.locationSplash span,
+.locationSplash h2 {
+  margin: 0;
+}
+
+.locationSplash span {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.locationSplash h2 {
+  margin-top: 3px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.objectivePrompt {
+  position: absolute;
+  bottom: max(30px, calc(env(safe-area-inset-bottom) + 18px));
+  left: 50%;
+  display: flex;
+  max-width: min(520px, calc(100vw - 430px));
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
+  color: var(--hud-white);
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.objectivePrompt strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.objectivePrompt span {
+  flex: 0 0 auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+.notifications {
+  top: max(72px, calc(env(safe-area-inset-top) + 54px));
+  width: min(280px, calc(100vw - 40px));
+}
+
+.notification {
+  border-right-width: 2px;
+  padding: 7px 10px 7px 22px;
+  animation: hud-notification-life 5.2s ease both;
+}
+
+.notification strong {
+  font-size: 9px;
+}
+
+.notification span {
+  font-size: 8px;
+}
+
+.simpleLowerHud {
+  position: absolute;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: max(20px, env(safe-area-inset-left));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  transition: bottom 180ms ease;
+}
+
+.hudWithTouch .simpleLowerHud {
+  bottom: max(186px, calc(env(safe-area-inset-bottom) + 174px));
+}
+
+.radarCluster {
+  display: grid;
+  width: 174px;
+  gap: 5px;
+}
+
+.radarCluster .minimap {
+  width: 174px;
+  height: 124px;
+  border-radius: 2px;
+  transform: none;
+}
+
+.radarCluster .minimap::after {
+  border-width: 3px;
+  border-radius: 1px;
+}
+
+.radarCluster .vitals {
+  width: 174px;
+  gap: 3px;
+  padding: 0;
+}
+
+.radarCluster .meterGroup {
+  gap: 0;
+}
+
+.radarCluster .meterLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.radarCluster .meterTrack {
+  height: 6px;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.actionReadouts {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.actionReadouts .driveReadout {
+  padding-bottom: 5px;
+}
+
+.actionReadouts .speedReadout strong {
+  font-size: 36px;
+}
+
+.actionReadouts .weapon {
+  width: 112px;
+  border-right: 0;
+  border-radius: 2px;
+  background: rgba(5, 12, 14, 0.56);
+  padding: 8px 9px;
+}
+
+@keyframes hud-location-spawn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  12%,
+  72% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes hud-notification-life {
+  0% {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+
+  8%,
+  74% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  100% {
+    visibility: hidden;
+    opacity: 0;
+    transform: translateX(4px);
+  }
+}
+
+@media (max-width: 760px) {
+  .statusRail {
+    top: max(10px, env(safe-area-inset-top));
+    right: max(10px, env(safe-area-inset-right));
+  }
+
+  .statusRail .cash {
+    min-width: 52px;
+  }
+
+  .statusRail .cash strong {
+    max-width: 7ch;
+    font-size: 12px;
+  }
+
+  .statusRail .wanted {
+    width: auto;
+    height: 20px;
+    padding: 1px 2px 0 0;
+  }
+
+  .wantedStars {
+    gap: 1px;
+  }
+
+  .wantedStars svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .locationSplash {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(128px, calc(env(safe-area-inset-bottom) + 116px));
+  }
+
+  .locationSplash span {
+    font-size: 8px;
+  }
+
+  .locationSplash h2 {
+    font-size: 26px;
+  }
+
+  .objectivePrompt {
+    right: 94px;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    left: 112px;
+    max-width: none;
+    font-size: 10px;
+    transform: none;
+  }
+
+  .objectivePrompt strong {
+    font-size: 10px;
+  }
+
+  .objectivePrompt span {
+    font-size: 8px;
+  }
+
+  .hudWithTouch .objectivePrompt {
+    top: max(58px, calc(env(safe-area-inset-top) + 48px));
+    right: 70px;
+    bottom: auto;
+    left: 70px;
+  }
+
+  .notifications,
+  .hudRoot:not(.hudWithTouch) .notifications {
+    top: max(54px, calc(env(safe-area-inset-top) + 44px));
+    right: max(10px, env(safe-area-inset-right));
+    bottom: auto;
+    width: min(220px, calc(100vw - 20px));
+  }
+
+  .hudWithTouch .notifications {
+    display: none;
+  }
+
+  .simpleLowerHud {
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: max(10px, env(safe-area-inset-left));
+  }
+
+  .hudWithTouch .simpleLowerHud {
+    bottom: max(112px, calc(env(safe-area-inset-bottom) + 102px));
+  }
+
+  .radarCluster {
+    width: 92px;
+    gap: 3px;
+  }
+
+  .radarCluster .minimap {
+    width: 92px;
+    height: 72px;
+  }
+
+  .radarCluster .vitals {
+    width: 92px;
+  }
+
+  .radarCluster .meterTrack {
+    height: 4px;
+  }
+
+  .actionReadouts {
+    gap: 6px;
+  }
+
+  .actionReadouts .speedReadout strong {
+    font-size: 23px;
+  }
+
+  .actionReadouts .speedReadout span {
+    font-size: 6px;
+  }
+
+  .actionReadouts .weapon {
+    width: 70px;
+    padding: 6px;
+  }
+
+  .actionReadouts .weaponName span,
+  .actionReadouts .weapon > small {
+    display: none;
+  }
+
+  .actionReadouts .ammoCount strong {
+    font-size: 19px;
+  }
+
+  .actionReadouts .ammoCount span {
+    font-size: 7px;
+  }
+}
+
+@media (max-height: 680px) and (orientation: landscape) {
+  .locationSplash {
+    bottom: max(118px, calc(env(safe-area-inset-bottom) + 106px));
+  }
+
+  .radarCluster .minimap {
+    height: 82px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hudRoot *,
   .hudRoot *::before,

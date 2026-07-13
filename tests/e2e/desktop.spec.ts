@@ -87,6 +87,11 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
   await inputSurface.click({ force: true, position: { x: 640, y: 360 } });
   await expect(shell).toHaveAttribute("data-pointer-locked", "true");
   await expect(page.getByRole("heading", { name: "Boost" })).toBeVisible();
+  await expect(page.getByText("Steal the car.", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Drive through SoMa.", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "MIRAGE" })).toHaveCount(0);
   await expect
     .poll(async () => Number(await shell.getAttribute("data-tick")), {
       timeout: 120_000,
@@ -211,8 +216,9 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
 
   await page.keyboard.press("e");
   await expect(shell).toHaveAttribute("data-mode", "car");
-  await expect(page.getByText("M/01 COUPE", { exact: true })).toBeVisible();
-  await expect(page.getByText("1/3 required", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("progressbar", { name: /M\/01 COUPE/ }),
+  ).toBeVisible();
 
   await page.keyboard.down("w");
   await expect

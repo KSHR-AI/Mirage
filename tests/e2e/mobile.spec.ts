@@ -39,7 +39,7 @@ test("exposes a complete playable touch control set", async ({ page }) => {
 
   const layout = await page.evaluate(() => {
     const hud = document.querySelector('[aria-label="Afterlight mission HUD"]');
-    const mission = hud?.querySelector('section[aria-live="polite"]');
+    const mission = hud?.querySelector('[class*="objectivePrompt"]');
     const lower = hud?.querySelector("footer");
     const controls = document.querySelector(
       '[aria-label="Touch game controls"]',
@@ -77,34 +77,24 @@ test("exposes a complete playable touch control set", async ({ page }) => {
             candidate.bottom > other.top,
         ),
     ).length;
-    const visibleObjectives = [...mission.querySelectorAll("li")].filter(
-      (element) => {
-        const bounds = element.getBoundingClientRect();
-        return (
-          getComputedStyle(element).display !== "none" && bounds.height > 0
-        );
-      },
-    ).length;
-
     return {
       controlsHeight: controlsRect.height,
       lowerHeight: lowerRect.height,
       lowerTouchGap: controlsRect.top - lowerRect.bottom,
       missionHeight: missionRect.height,
+      missionText: mission.textContent,
       missionWidthRatio: missionRect.width / innerWidth,
       overlapCount,
       sceneBandRatio: (lowerRect.top - missionRect.bottom) / innerHeight,
       targetRects,
-      visibleObjectives,
     };
   });
 
-  expect(layout.missionHeight).toBeLessThanOrEqual(132);
-  expect(layout.missionWidthRatio).toBeLessThanOrEqual(0.8);
+  expect(layout.missionHeight).toBeLessThanOrEqual(44);
+  expect(layout.missionText).toContain("Steal the car.");
+  expect(layout.missionWidthRatio).toBeLessThanOrEqual(0.65);
   expect(layout.sceneBandRatio).toBeGreaterThanOrEqual(0.4);
-  expect(layout.visibleObjectives).toBeGreaterThanOrEqual(1);
-  expect(layout.visibleObjectives).toBeLessThanOrEqual(2);
-  expect(layout.lowerHeight).toBeLessThanOrEqual(70);
+  expect(layout.lowerHeight).toBeLessThanOrEqual(96);
   expect(layout.controlsHeight).toBeLessThanOrEqual(104);
   expect(layout.lowerTouchGap).toBeGreaterThanOrEqual(8);
   expect(layout.overlapCount).toBe(0);

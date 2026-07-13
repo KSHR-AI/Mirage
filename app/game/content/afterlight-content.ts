@@ -148,22 +148,10 @@ export const AFTERLIGHT_PHASE_CONTENT = {
       "Fog is lifting. Take the prototype coupe before the yard wakes.",
     ),
     activeObjectives: [
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.stealCoupe,
-        "Take the prototype coupe.",
-      ),
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.learnDriving,
-        "Open it up through SoMa.",
-      ),
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.cleanBoost,
-        "Shake the first response clean.",
-      ),
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.reachMission,
-        "Reach the Mission intercept.",
-      ),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.stealCoupe, "Steal the car."),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.learnDriving, "Drive through SoMa."),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.cleanBoost, "Lose the cops."),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.reachMission, "Go to the meet."),
     ],
     successSting: line(
       "afterlight:phase:boost:success",
@@ -187,17 +175,14 @@ export const AFTERLIGHT_PHASE_CONTENT = {
       "The courier carries the only vault credential. Fold the route, then collect.",
     ),
     activeObjectives: [
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.disableCourier,
-        "Knock the courier off its line.",
-      ),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.disableCourier, "Stop the courier."),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.defeatKeyholderGuards,
-        "Drop the courier's two escorts.",
+        "Take out the guards.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.takeVaultCredential,
-        "Recover the vault credential.",
+        "Collect the keycard.",
       ),
     ],
     successSting: line(
@@ -222,22 +207,10 @@ export const AFTERLIGHT_PHASE_CONTENT = {
       "Afterlight sleeps below the tide line. Open the vault and leave with the core.",
     ),
     activeObjectives: [
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.openVault,
-        "Open the Afterlight vault.",
-      ),
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.takeBearerBonds,
-        "Lift the unmarked bonds.",
-      ),
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.takeAfterlightCore,
-        "Take the Afterlight core.",
-      ),
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.clearVault,
-        "Clear the vault with the core.",
-      ),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.openVault, "Open the vault."),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.takeBearerBonds, "Take the bonds."),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.takeAfterlightCore, "Steal the core."),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.clearVault, "Leave the vault."),
     ],
     successSting: line(
       "afterlight:phase:vault:success",
@@ -263,16 +236,13 @@ export const AFTERLIGHT_PHASE_CONTENT = {
     activeObjectives: [
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.primeBlackout,
-        "Prime the substation overload.",
+        "Overload the substation.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.disableBackup,
-        "Disable two response vehicles.",
+        "Destroy the backup vehicles.",
       ),
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.holdBlackout,
-        "Hold the grid through the blackout.",
-      ),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.holdBlackout, "Hold your position."),
     ],
     successSting: line(
       "afterlight:phase:blackout:success",
@@ -298,15 +268,15 @@ export const AFTERLIGHT_PHASE_CONTENT = {
     activeObjectives: [
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.startAfterlightRun,
-        "Launch the Afterlight run.",
+        "Get to the bridge.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.breakInterceptors,
-        "Break two interceptors.",
+        "Lose the interceptors.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.escapeAfterlightRun,
-        "Cross the bridge and break sight.",
+        "Escape across the bridge.",
       ),
     ],
     successSting: line(
@@ -331,17 +301,11 @@ export const AFTERLIGHT_PHASE_CONTENT = {
       "Bring the core inside. No headlights, no loose ends.",
     ),
     activeObjectives: [
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.reachDebrief,
-        "Reach the Marin safehouse.",
-      ),
-      objective(
-        AFTERLIGHT_OBJECTIVE_IDS.keepBearerBonds,
-        "Keep the bonds off the books.",
-      ),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.reachDebrief, "Go to the safehouse."),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.keepBearerBonds, "Keep the bonds."),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.deliverAfterlightCore,
-        "Deliver the Afterlight core.",
+        "Deliver the core.",
       ),
     ],
     successSting: line(

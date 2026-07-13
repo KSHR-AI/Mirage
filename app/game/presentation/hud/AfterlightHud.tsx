@@ -2,13 +2,12 @@
 
 import {
   CarFront,
-  Check,
   Crosshair,
   HeartPulse,
   MapPin,
   Navigation,
   Pause,
-  ShieldAlert,
+  Star,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -20,7 +19,6 @@ import {
   formatObjectiveProgress,
   formatSpeed,
   mapPointToPercent,
-  summarizeObjectives,
 } from "./format";
 import styles from "./Hud.module.css";
 import type { AfterlightHudProps, HudMinimap, HudNotification } from "./types";
@@ -76,13 +74,15 @@ function WantedIndicator({ level }: { readonly level: 0 | 1 | 2 | 3 }) {
       className={styles.wanted}
       data-active={level > 0}
     >
-      <ShieldAlert aria-hidden="true" size={16} strokeWidth={2.25} />
-      <span className={styles.wantedLabel}>
-        {level > 0 ? "RESPONSE" : "CLEAR"}
-      </span>
-      <span aria-hidden="true" className={styles.wantedBars}>
+      <span aria-hidden="true" className={styles.wantedStars}>
         {[1, 2, 3].map((step) => (
-          <i data-lit={step <= level} key={step} />
+          <Star
+            data-lit={step <= level}
+            fill={step <= level ? "currentColor" : "none"}
+            key={step}
+            size={17}
+            strokeWidth={2.2}
+          />
         ))}
       </span>
     </div>
@@ -179,7 +179,7 @@ function NotificationStack({
       aria-live="polite"
       className={styles.notifications}
     >
-      {notifications.slice(-3).map((notification) => (
+      {notifications.slice(-1).map((notification) => (
         <div
           className={styles.notification}
           data-tone={notification.tone ?? "neutral"}
@@ -211,11 +211,14 @@ export function AfterlightHud({
   onToggleMute,
   className,
 }: AfterlightHudProps) {
-  const objectiveSummary = summarizeObjectives(mission.objectives);
-  const chapterProgress = clampPercent(
-    mission.chapterIndex + 1,
-    mission.chapterCount,
-  );
+  const activeObjective =
+    mission.objectives.find(
+      (objective) => objective.active && !objective.completed,
+    ) ??
+    mission.objectives.find(
+      (objective) => !objective.optional && !objective.completed,
+    ) ??
+    mission.objectives.find((objective) => !objective.completed);
   const reloadProgress = clampPercent(weapon.reloadProgress ?? 0, 1);
   const rootClassName = [
     styles.hudRoot,
@@ -227,19 +230,12 @@ export function AfterlightHud({
 
   return (
     <div aria-label="Afterlight mission HUD" className={rootClassName}>
-      <header className={styles.topRail}>
-        <div className={styles.brandLockup}>
-          <strong>MIRAGE</strong>
-          <span>Afterlight / Live</span>
-        </div>
-
-        <WantedIndicator level={wantedLevel} />
-
+      <header className={styles.statusRail}>
         <div className={styles.topStatus}>
           <div className={styles.cash}>
-            <span>TAKE</span>
             <strong>{formatCash(cash)}</strong>
           </div>
+          <WantedIndicator level={wantedLevel} />
           {onToggleMute ? (
             <button
               aria-label={muted ? "Unmute game audio" : "Mute game audio"}
@@ -265,141 +261,99 @@ export function AfterlightHud({
         </div>
       </header>
 
-      <section aria-live="polite" className={styles.missionPanel}>
-        <div className={styles.missionEyebrow}>
-          <span>
-            CH{" "}
-            {Math.min(mission.chapterCount, mission.chapterIndex + 1)
-              .toString()
-              .padStart(2, "0")}
-            /{mission.chapterCount.toString().padStart(2, "0")}
-          </span>
-          <span>{mission.location}</span>
-        </div>
-        <p className={styles.missionTitle}>{mission.title}</p>
+      <section
+        aria-live="polite"
+        className={styles.locationSplash}
+        key={`${mission.chapterIndex}:${mission.location}`}
+      >
+        <span>{mission.location}</span>
         <h2>{mission.chapter}</h2>
-        <div
-          aria-label={`Chapter progress: ${Math.round(chapterProgress)} percent`}
-          className={styles.chapterTrack}
-          role="progressbar"
-        >
-          <span
-            style={{ "--chapter-value": `${chapterProgress}%` } as HudStyle}
-          />
-        </div>
-        <ol className={styles.objectiveList}>
-          {mission.objectives.map((objective) => {
-            const progress = objective.progress;
-            return (
-              <li
-                data-active={Boolean(objective.active)}
-                data-complete={objective.completed}
-                key={objective.id}
-              >
-                <span className={styles.objectiveMark}>
-                  {objective.completed ? (
-                    <Check size={12} strokeWidth={3} />
-                  ) : null}
-                </span>
-                <span className={styles.objectiveCopy}>
-                  <span>{objective.label}</span>
-                  {objective.optional ? <small>OPTIONAL</small> : null}
-                </span>
-                {progress ? (
-                  <strong>{formatObjectiveProgress(progress)}</strong>
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
-        <div className={styles.objectiveSummary}>
-          <span>
-            {objectiveSummary.requiredCompleted}/
-            {objectiveSummary.requiredTotal} required
-          </span>
-          {objectiveSummary.optionalTotal > 0 ? (
-            <span>
-              {objectiveSummary.optionalCompleted}/
-              {objectiveSummary.optionalTotal} optional
-            </span>
-          ) : null}
-        </div>
       </section>
+
+      {activeObjective ? (
+        <section aria-live="polite" className={styles.objectivePrompt}>
+          <strong>{activeObjective.label}</strong>
+          {activeObjective.progress ? (
+            <span>{formatObjectiveProgress(activeObjective.progress)}</span>
+          ) : null}
+        </section>
+      ) : null}
 
       <NotificationStack notifications={notifications} />
 
-      <footer className={styles.lowerHud}>
-        <MiniMap location={location} map={minimap} />
-
-        <div className={styles.vitals}>
-          <Meter
-            icon={<HeartPulse aria-hidden="true" size={13} />}
-            label="Health"
-            maximum={maxHealth}
-            tone="health"
-            value={health}
-          />
-          {vehicle ? (
+      <footer className={styles.simpleLowerHud}>
+        <div className={styles.radarCluster}>
+          <MiniMap location={location} map={minimap} />
+          <div className={styles.vitals}>
             <Meter
-              icon={<CarFront aria-hidden="true" size={13} />}
-              label={vehicle.name ?? "Vehicle"}
-              maximum={vehicle.maxIntegrity ?? 100}
-              tone="vehicle"
-              value={vehicle.integrity}
+              icon={<HeartPulse aria-hidden="true" size={13} />}
+              label="Health"
+              maximum={maxHealth}
+              tone="health"
+              value={health}
             />
+            {vehicle ? (
+              <Meter
+                icon={<CarFront aria-hidden="true" size={13} />}
+                label={vehicle.name ?? "Vehicle"}
+                maximum={vehicle.maxIntegrity ?? 100}
+                tone="vehicle"
+                value={vehicle.integrity}
+              />
+            ) : null}
+          </div>
+        </div>
+
+        <div className={styles.actionReadouts}>
+          {vehicle ? (
+            <div className={styles.driveReadout}>
+              <div className={styles.speedReadout}>
+                <strong>{formatSpeed(speedKph)}</strong>
+                <span>KM/H</span>
+              </div>
+            </div>
           ) : null}
-        </div>
 
-        <div className={styles.driveReadout}>
-          <div className={styles.locationReadout}>
-            <MapPin aria-hidden="true" size={13} />
-            <span>{location}</span>
-          </div>
-          <div className={styles.speedReadout}>
-            <strong>{formatSpeed(speedKph)}</strong>
-            <span>KM/H</span>
-          </div>
-        </div>
-
-        <section
-          aria-label={`${weapon.name ?? "Signal-9"} ammunition`}
-          className={styles.weapon}
-        >
-          <div className={styles.weaponName}>
-            <Crosshair aria-hidden="true" size={14} />
-            <span>{weapon.name ?? "SIGNAL-9"}</span>
-          </div>
-          <div className={styles.ammoCount}>
-            <strong>
-              {Math.max(0, weapon.magazine).toString().padStart(2, "0")}
-            </strong>
-            <span>
-              / {Math.max(0, weapon.reserve).toString().padStart(3, "0")}
-            </span>
-          </div>
-          <div
-            aria-label={
-              weapon.reloading
-                ? `Reloading: ${Math.round(reloadProgress)} percent`
-                : "Weapon ready"
-            }
-            className={styles.ammoTrack}
-            data-reloading={Boolean(weapon.reloading)}
+          <section
+            aria-label={`${weapon.name ?? "Signal-9"} ammunition`}
+            className={styles.weapon}
           >
-            <span
-              style={
-                {
-                  "--ammo-value": `${
-                    weapon.reloading
-                      ? reloadProgress
-                      : clampPercent(weapon.magazine, weapon.magazineSize)
-                  }%`,
-                } as HudStyle
+            <div className={styles.weaponName}>
+              <Crosshair aria-hidden="true" size={14} />
+              <span>{weapon.name ?? "SIGNAL-9"}</span>
+            </div>
+            <div className={styles.ammoCount}>
+              <strong>
+                {Math.max(0, weapon.magazine).toString().padStart(2, "0")}
+              </strong>
+              <span>
+                / {Math.max(0, weapon.reserve).toString().padStart(3, "0")}
+              </span>
+            </div>
+            <div
+              aria-label={
+                weapon.reloading
+                  ? `Reloading: ${Math.round(reloadProgress)} percent`
+                  : "Weapon ready"
               }
-            />
-          </div>
-          {weapon.reloading ? <small>RELOADING</small> : null}
-        </section>
+              className={styles.ammoTrack}
+              data-reloading={Boolean(weapon.reloading)}
+            >
+              <span
+                style={
+                  {
+                    "--ammo-value": `${
+                      weapon.reloading
+                        ? reloadProgress
+                        : clampPercent(weapon.magazine, weapon.magazineSize)
+                    }%`,
+                  } as HudStyle
+                }
+              />
+            </div>
+            {weapon.reloading ? <small>RELOADING</small> : null}
+          </section>
+        </div>
       </footer>
     </div>
   );

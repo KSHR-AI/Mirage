@@ -1262,6 +1262,24 @@ async function narrowScenario(browser, baseURL, outDir, headed) {
       { yaw, yawBefore },
       "yaw changes",
     );
+    const sparseHud = await page.evaluate(() => ({
+      brandCount: document.querySelectorAll('[class*="brandLockup"]').length,
+      missionPanelCount: document.querySelectorAll('[class*="missionPanel"]')
+        .length,
+      objectivePromptCount: document.querySelectorAll(
+        '[class*="objectivePrompt"]',
+      ).length,
+    }));
+    addCheck(
+      scenario,
+      "sparse-open-world-hud",
+      sparseHud.brandCount === 0 &&
+        sparseHud.missionPanelCount === 0 &&
+        sparseHud.objectivePromptCount === 1,
+      sparseHud,
+      "one objective prompt and no brand or mission dashboard",
+    );
+    await capture(scenario, page, outDir, "spawn");
 
     const x = await numberAttribute(shell, "data-player-x");
     const z = await numberAttribute(shell, "data-player-z");
@@ -1664,9 +1682,8 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
           width: bounds.width,
         };
       };
-      const topRail = hud.querySelector("header");
-      const topRegions = topRail ? [...topRail.children].map(rect) : [];
-      const mission = hud.querySelector('section[aria-live="polite"]');
+      const topStatus = hud.querySelector('[class*="topStatus"]');
+      const mission = hud.querySelector('[class*="objectivePrompt"]');
       const lower = hud.querySelector("footer");
       const touchControls = document.querySelector(
         '[aria-label="Touch game controls"]',
@@ -1676,22 +1693,10 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
             .map(rect)
             .filter(Boolean)
         : [];
-      const visibleObjectives = mission
-        ? [...mission.querySelectorAll("li")].filter((element) => {
-            if (!(element instanceof HTMLElement)) return false;
-            const bounds = element.getBoundingClientRect();
-            return (
-              getComputedStyle(element).display !== "none" && bounds.height > 0
-            );
-          }).length
-        : 0;
-      const optionalBadge = [...hud.querySelectorAll("small")].find(
-        (element) => element.textContent?.trim() === "OPTIONAL",
-      );
-      const optionalCopy = optionalBadge?.parentElement;
-      const optionalLabel = optionalCopy?.querySelector("span");
+      const objectiveLabel = mission?.querySelector("strong");
       const missionRect = rect(mission);
       const lowerRect = rect(lower);
+      const topStatusRect = rect(topStatus);
       const touchRect = rect(touchControls);
 
       return {
@@ -1703,27 +1708,26 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
           missionRect && lowerRect
             ? (lowerRect.top - missionRect.bottom) / innerHeight
             : -1,
-        objective: optionalLabel
+        objective: objectiveLabel
           ? {
-              clientHeight: optionalLabel.clientHeight,
-              clientWidth: optionalLabel.clientWidth,
-              scrollHeight: optionalLabel.scrollHeight,
-              scrollWidth: optionalLabel.scrollWidth,
-              text: optionalLabel.textContent?.trim(),
+              clientHeight: objectiveLabel.clientHeight,
+              clientWidth: objectiveLabel.clientWidth,
+              scrollHeight: objectiveLabel.scrollHeight,
+              scrollWidth: objectiveLabel.scrollWidth,
+              text: objectiveLabel.textContent?.trim(),
             }
           : undefined,
-        topRegions,
+        topStatus: topStatusRect,
         touchButtons,
         touchControls: touchRect,
         verticalGap:
           missionRect && lowerRect ? lowerRect.top - missionRect.bottom : -1,
-        visibleObjectives,
         viewport: { height: innerHeight, width: innerWidth },
       };
     });
 
     const horizontalRects = [
-      ...layout.topRegions,
+      layout.topStatus,
       layout.mission,
       layout.lower,
       layout.touchControls,
@@ -1740,15 +1744,14 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
       "HUD regions remain inside the 320px viewport",
     );
 
-    const topGaps = layout.topRegions
-      .slice(0, -1)
-      .map((region, index) => layout.topRegions[index + 1].left - region.right);
     addCheck(
       scenario,
-      "compact-top-rail-spacing",
-      layout.topRegions.length === 3 && topGaps.every((gap) => gap >= 2),
-      topGaps,
-      "three top-rail regions separated by at least 2px",
+      "compact-status-cluster",
+      Boolean(layout.topStatus) &&
+        layout.topStatus.width <= layout.viewport.width * 0.72 &&
+        layout.topStatus.right >= layout.viewport.width - 20,
+      layout.topStatus,
+      "status controls stay compact and right-aligned",
     );
 
     addCheck(
@@ -1758,7 +1761,7 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
         layout.objective.scrollWidth <= layout.objective.clientWidth + 1 &&
         layout.objective.scrollHeight <= layout.objective.clientHeight + 1,
       layout.objective,
-      "optional objective renders without hidden text",
+      "active objective renders without hidden text",
     );
 
     addCheck(
@@ -1776,14 +1779,13 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
         layout.mission.height <= 132 &&
         layout.mission.width <= layout.viewport.width * 0.8 &&
         layout.sceneBandRatio >= 0.4 &&
-        layout.visibleObjectives >= 1 &&
-        layout.visibleObjectives <= 2,
+        Boolean(layout.objective),
       {
         mission: layout.mission,
         sceneBandRatio: layout.sceneBandRatio,
-        visibleObjectives: layout.visibleObjectives,
+        objective: layout.objective,
       },
-      "mission panel stays compact and preserves >= 40% clear scene height",
+      "single objective stays compact and preserves >= 40% clear scene height",
     );
 
     const touchOverlaps = layout.touchButtons.flatMap((candidate, index) =>
@@ -1806,7 +1808,7 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
         ) &&
         touchOverlaps.length === 0 &&
         layout.touchControls?.height <= 104 &&
-        layout.lower?.height <= 70 &&
+        layout.lower?.height <= 96 &&
         layout.lowerTouchGap >= 8,
       {
         lowerHeight: layout.lower?.height,
@@ -1818,7 +1820,7 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
         })),
         touchHeight: layout.touchControls?.height,
       },
-      "eight non-overlapping 44px targets below a <= 70px instrument rail",
+      "eight non-overlapping 44px targets below a <= 96px instrument rail",
     );
 
     const touchLabels = [
