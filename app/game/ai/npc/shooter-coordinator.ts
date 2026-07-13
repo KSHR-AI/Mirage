@@ -115,5 +115,3 @@ export class ShooterCoordinator {
     );
   }
 }
-
-export { ShooterCoordinator as SimultaneousShooterCoordinator };

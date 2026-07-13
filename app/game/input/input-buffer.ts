@@ -42,7 +42,7 @@ export type RemappableKeyboardAction = Extract<
 
 export type KeyboardLayout = Readonly<Record<RemappableKeyboardAction, string>>;
 
-export const REMAPPABLE_KEYBOARD_ACTIONS = Object.freeze([
+const REMAPPABLE_KEYBOARD_ACTIONS = Object.freeze([
   "move-forward",
   "move-back",
   "move-left",

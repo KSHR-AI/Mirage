@@ -2,7 +2,7 @@ import type { Vec3 } from "../../core/contracts";
 
 export const NPC_EPSILON = 1e-6;
 
-export function addVec3(first: Vec3, second: Vec3): Vec3 {
+function addVec3(first: Vec3, second: Vec3): Vec3 {
   return [first[0] + second[0], first[1] + second[1], first[2] + second[2]];
 }
 
@@ -10,7 +10,7 @@ export function subtractVec3(first: Vec3, second: Vec3): Vec3 {
   return [first[0] - second[0], first[1] - second[1], first[2] - second[2]];
 }
 
-export function scaleVec3(vector: Vec3, scalar: number): Vec3 {
+function scaleVec3(vector: Vec3, scalar: number): Vec3 {
   return [vector[0] * scalar, vector[1] * scalar, vector[2] * scalar];
 }
 

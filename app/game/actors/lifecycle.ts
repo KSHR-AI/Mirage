@@ -7,7 +7,7 @@ import type {
   Tick,
 } from "../core/contracts";
 
-export const ACTOR_MAX_HEALTH: Readonly<Record<ActorKind, number>> = {
+const ACTOR_MAX_HEALTH: Readonly<Record<ActorKind, number>> = {
   player: 100,
   civilian: 60,
   guard: 90,

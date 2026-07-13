@@ -6,7 +6,7 @@ import type {
   VehicleState,
 } from "../core/contracts";
 
-export const COURIER_DISABLE_HEALTH = 40;
+const COURIER_DISABLE_HEALTH = 40;
 export const COURIER_DISABLE_IMPULSE = 32;
 
 export interface CollisionDamageConfig {
@@ -18,20 +18,19 @@ export interface CollisionDamageConfig {
   readonly disableHealth: Readonly<Record<VehicleKind, number>>;
 }
 
-export const DEFAULT_COLLISION_DAMAGE_CONFIG: CollisionDamageConfig =
-  Object.freeze({
-    minimumDamageImpulse: 4,
-    damagePerImpulse: 1.5,
-    maximumDamage: 50,
-    courierDisableHealth: COURIER_DISABLE_HEALTH,
-    courierDisableImpulse: COURIER_DISABLE_IMPULSE,
-    disableHealth: Object.freeze({
-      hero: 0,
-      traffic: 0,
-      courier: COURIER_DISABLE_HEALTH,
-      police: 0,
-    }),
-  });
+const DEFAULT_COLLISION_DAMAGE_CONFIG: CollisionDamageConfig = Object.freeze({
+  minimumDamageImpulse: 4,
+  damagePerImpulse: 1.5,
+  maximumDamage: 50,
+  courierDisableHealth: COURIER_DISABLE_HEALTH,
+  courierDisableImpulse: COURIER_DISABLE_IMPULSE,
+  disableHealth: Object.freeze({
+    hero: 0,
+    traffic: 0,
+    courier: COURIER_DISABLE_HEALTH,
+    police: 0,
+  }),
+});
 
 export interface VehicleCollision {
   readonly impulse: number;
@@ -125,5 +124,3 @@ export function applyVehicleCollisionImpulse(
     events,
   };
 }
-
-export const applyCollisionImpulseDamage = applyVehicleCollisionImpulse;

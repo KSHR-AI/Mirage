@@ -66,7 +66,7 @@ function ToggleRow({
   );
 }
 
-export function AfterlightSettings({
+function AfterlightSettings({
   value,
   onMutedChange,
   onReducedMotionChange,

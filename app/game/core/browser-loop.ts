@@ -114,7 +114,7 @@ export class FixedStepClock {
   }
 }
 
-export function createAnimationFrameScheduler(): FrameScheduler {
+function createAnimationFrameScheduler(): FrameScheduler {
   return {
     request(callback) {
       return window.requestAnimationFrame(callback);

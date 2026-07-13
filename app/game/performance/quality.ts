@@ -45,49 +45,48 @@ export interface PerformanceReport {
   readonly droppedSimulationSeconds: number;
 }
 
-export const QUALITY_SETTINGS: Readonly<
-  Record<GameQualityTier, GameQualitySettings>
-> = Object.freeze({
-  low: Object.freeze({
-    tier: "low",
-    dpr: Object.freeze([0.65, 0.85] as const),
-    antialias: false,
-    shadows: false,
-    shadowMapSize: 512,
-    trafficCount: 6,
-    civilianCount: 6,
-    policeUnitCap: 2,
-    buildingDetail: 0.55,
-    particles: 28,
-    postEffects: false,
-  }),
-  medium: Object.freeze({
-    tier: "medium",
-    dpr: Object.freeze([0.8, 1] as const),
-    antialias: true,
-    shadows: true,
-    shadowMapSize: 1024,
-    trafficCount: 9,
-    civilianCount: 10,
-    policeUnitCap: 3,
-    buildingDetail: 0.78,
-    particles: 58,
-    postEffects: false,
-  }),
-  high: Object.freeze({
-    tier: "high",
-    dpr: Object.freeze([1, 1.1] as const),
-    antialias: true,
-    shadows: true,
-    shadowMapSize: 1024,
-    trafficCount: 12,
-    civilianCount: 16,
-    policeUnitCap: 3,
-    buildingDetail: 1,
-    particles: 92,
-    postEffects: true,
-  }),
-});
+const QUALITY_SETTINGS: Readonly<Record<GameQualityTier, GameQualitySettings>> =
+  Object.freeze({
+    low: Object.freeze({
+      tier: "low",
+      dpr: Object.freeze([0.65, 0.85] as const),
+      antialias: false,
+      shadows: false,
+      shadowMapSize: 512,
+      trafficCount: 6,
+      civilianCount: 6,
+      policeUnitCap: 2,
+      buildingDetail: 0.55,
+      particles: 28,
+      postEffects: false,
+    }),
+    medium: Object.freeze({
+      tier: "medium",
+      dpr: Object.freeze([0.8, 1] as const),
+      antialias: true,
+      shadows: true,
+      shadowMapSize: 1024,
+      trafficCount: 9,
+      civilianCount: 10,
+      policeUnitCap: 3,
+      buildingDetail: 0.78,
+      particles: 58,
+      postEffects: false,
+    }),
+    high: Object.freeze({
+      tier: "high",
+      dpr: Object.freeze([1, 1.1] as const),
+      antialias: true,
+      shadows: true,
+      shadowMapSize: 1024,
+      trafficCount: 12,
+      civilianCount: 16,
+      policeUnitCap: 3,
+      buildingDetail: 1,
+      particles: 92,
+      postEffects: true,
+    }),
+  });
 
 const TIER_ORDER: readonly GameQualityTier[] = ["low", "medium", "high"];
 const EMERGENCY_DEGRADE_SAMPLES = 12;

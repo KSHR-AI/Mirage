@@ -233,14 +233,6 @@ export class RngStreams {
   }
 }
 
-export { RngStreams as SeededRngStreams };
-
-export function createSeededRng(seed: RngSeed): SeededRng {
+export function createRng(seed: RngSeed): SeededRng {
   return new SeededRng(seed);
-}
-
-export const createRng = createSeededRng;
-
-export function createRngStreams(seed: RngSeed): RngStreams {
-  return new RngStreams(seed);
 }

@@ -19,7 +19,6 @@ import {
 } from "../missions/afterlight-contracts";
 import { activeAfterlightPoliceCount } from "../missions/afterlight-operations";
 import {
-  createMissionReducerState,
   reduceMissionState,
   restoreMissionState,
   type MissionReducerState,
@@ -51,7 +50,7 @@ import {
   createAfterlightCharacterWorld,
   createAfterlightVehicleObstacles,
 } from "../world/afterlight-character-world";
-import { DEFAULT_ROAD_GRAPH, findRouteBetween } from "../world/road-graph";
+import { BAY_CITY_ROAD_GRAPH, findRouteBetween } from "../world/road-graph";
 import {
   HostileAiSystem,
   type HostileActorFrame,
@@ -80,7 +79,6 @@ import type {
   GameEvent,
   GameState,
   InputFrame,
-  MissionDefinition,
   PoliceMode,
   Vec3,
   VehicleState,
@@ -807,7 +805,6 @@ export class AfterlightStepController {
         events,
         context.tick,
         player,
-        hero,
         driving,
       );
     }
@@ -941,7 +938,6 @@ export class AfterlightStepController {
     events: GameEvent[],
     tick: number,
     player: ActorState,
-    hero: VehicleState,
     driving: boolean,
   ): void {
     if (phaseId === AFTERLIGHT_PHASE_IDS.keyholder && !driving) {
@@ -1098,7 +1094,7 @@ export class AfterlightStepController {
         COURIER_ROUTE_DESTINATIONS[routeId] ??
         DEFAULT_COURIER_ROUTE_DESTINATION;
       const route = findRouteBetween(
-        DEFAULT_ROAD_GRAPH,
+        BAY_CITY_ROAD_GRAPH,
         courier.pose.position,
         destination,
         {
@@ -1108,7 +1104,7 @@ export class AfterlightStepController {
         },
       );
       if (!route) return;
-      const created = createTrafficAgent(DEFAULT_ROAD_GRAPH, {
+      const created = createTrafficAgent(BAY_CITY_ROAD_GRAPH, {
         id: courier.id,
         routeId,
         route,
@@ -1128,13 +1124,13 @@ export class AfterlightStepController {
     const agent = { ...this.courierAgent, vehicle: courier };
     const agents = new Map([[courier.id, agent]]);
     this.courierReservations = resolveIntersectionReservations(
-      DEFAULT_ROAD_GRAPH,
+      BAY_CITY_ROAD_GRAPH,
       agents,
       this.courierReservations,
       tick,
     );
     const stepped = stepTrafficAgent(
-      DEFAULT_ROAD_GRAPH,
+      BAY_CITY_ROAD_GRAPH,
       agent,
       agents,
       this.courierReservations,
@@ -1613,11 +1609,4 @@ export function restoreAfterlightCheckpointState(state: GameState): GameState {
     mission: { ...state.mission, startedAtTick: 0 },
   });
   return restored.state;
-}
-
-export function missionReducerForState(
-  definition: MissionDefinition,
-  state: GameState,
-): MissionReducerState {
-  return createMissionReducerState(definition, state);
 }

@@ -92,7 +92,7 @@ export function vfxEventDuration(event: AfterlightVfxEvent): number {
     : DEFAULT_DURATIONS[event.kind];
 }
 
-export function vfxEventQuota(
+function vfxEventQuota(
   kind: AfterlightVfxEventKind,
   pool: VfxParticlePool,
   intensity = 1,

@@ -497,4 +497,3 @@ export function createAfterlightJob(seed: number): AfterlightJobDefinition {
 }
 
 export const AFTERLIGHT_JOB = createAfterlightJob(AFTERLIGHT_DEFAULT_SEED);
-export const AFTERLIGHT_JOB_DEFINITION: MissionDefinition = AFTERLIGHT_JOB;

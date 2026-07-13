@@ -5,12 +5,12 @@ import type {
   Vec3,
 } from "../../core/contracts";
 
-export const HEAT_THRESHOLDS = [0, 20, 45, 70] as const;
-export const HEAT_HYSTERESIS = 5;
+const HEAT_THRESHOLDS = [0, 20, 45, 70] as const;
+const HEAT_HYSTERESIS = 5;
 export const LOST_SIGHT_TICKS = 10 * 60;
 export const SEARCH_DURATION_TICKS = 15 * 60;
 
-export const CRIME_HEAT: Readonly<Record<CrimeKind, number>> = {
+const CRIME_HEAT: Readonly<Record<CrimeKind, number>> = {
   "vehicle-theft": 22,
   assault: 18,
   gunfire: 15,
@@ -42,7 +42,7 @@ export function heatFloorValue(level: 0 | 1 | 2 | 3) {
   return HEAT_THRESHOLDS[level];
 }
 
-export function wantedLevelForHeat(
+function wantedLevelForHeat(
   value: number,
   current: 0 | 1 | 2 | 3,
 ): 0 | 1 | 2 | 3 {

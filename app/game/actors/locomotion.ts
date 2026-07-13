@@ -113,5 +113,3 @@ export function stepGroundedLocomotion(
     },
   };
 }
-
-export const resolveLocomotionIntent = stepGroundedLocomotion;

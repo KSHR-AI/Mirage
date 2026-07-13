@@ -57,7 +57,7 @@ export interface HostileAiConfig {
   readonly collisionMask?: number;
 }
 
-export const DEFAULT_HOSTILE_AI_CONFIG: HostileAiConfig = Object.freeze({
+const DEFAULT_HOSTILE_AI_CONFIG: HostileAiConfig = Object.freeze({
   perceptionChecksPerTick: 8,
   targetChecksPerObserver: 4,
   visionRange: 70,
@@ -1039,5 +1039,3 @@ export class HostileAiSystem {
     this.#lastIntents = Object.freeze([]);
   }
 }
-
-export { HostileAiSystem as HostileSquadAi };

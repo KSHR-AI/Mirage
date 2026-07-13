@@ -159,9 +159,7 @@ function isContractRecords(
   );
 }
 
-export function isAfterlightProfileV1(
-  value: unknown,
-): value is AfterlightProfileV1 {
+function isAfterlightProfileV1(value: unknown): value is AfterlightProfileV1 {
   if (!value || typeof value !== "object") return false;
   const profile = value as Partial<AfterlightProfileV1>;
   return (

@@ -35,7 +35,7 @@ interface CameraProfilePreset {
   readonly rotationLambda: number;
 }
 
-export const AFTERLIGHT_CAMERA_PROFILES: Readonly<
+const AFTERLIGHT_CAMERA_PROFILES: Readonly<
   Record<AfterlightCameraMode | "aim", CameraProfilePreset>
 > = Object.freeze({
   "on-foot": Object.freeze({

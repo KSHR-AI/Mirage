@@ -2,8 +2,8 @@ import type { Pose } from "../core/contracts";
 
 export const PLAYTEST_INSPECTION_EVENT = "mirage:inspection-pose";
 
-export const PLAYTEST_INSPECTION_POSES: Readonly<Record<string, Pose>> =
-  Object.freeze({
+const PLAYTEST_INSPECTION_POSES: Readonly<Record<string, Pose>> = Object.freeze(
+  {
     "hero-close": Object.freeze({
       position: Object.freeze([64, 1.15, 56] as const),
       rotationY: Math.PI,
@@ -64,7 +64,8 @@ export const PLAYTEST_INSPECTION_POSES: Readonly<Record<string, Pose>> =
       position: Object.freeze([-8, 1.3, 0] as const),
       rotationY: Math.PI / 2,
     }),
-  });
+  },
+);
 
 export function resolvePlaytestInspectionPose(
   search: string,

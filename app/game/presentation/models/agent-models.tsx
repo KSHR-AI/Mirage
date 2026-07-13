@@ -18,7 +18,7 @@ import type {
   ModelQuality,
 } from "./types";
 
-export interface GenericAgentModelProps extends AgentModelProps {
+interface GenericAgentModelProps extends AgentModelProps {
   readonly role: AgentVisualRole;
 }
 
@@ -705,10 +705,6 @@ function AgentRig({
       </group>
     </group>
   );
-}
-
-export function AgentModel(props: GenericAgentModelProps) {
-  return <AgentRig {...props} armed={props.role !== "civilian"} />;
 }
 
 export function PlayerAgentModel(props: AgentModelProps) {

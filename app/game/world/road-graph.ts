@@ -150,11 +150,11 @@ export interface RoadGraphValidation {
   readonly edgeCount: number;
 }
 
-export const ROAD_GRAPH_LANE_OFFSET = 2.5;
-export const ROAD_GRAPH_INTERSECTION_OFFSET = 4.5;
-export const ROAD_GRAPH_SIDEWALK_OFFSET = 6.5;
-export const ROAD_GRAPH_BRIDGE_SIDEWALK_OFFSET = 7;
-export const DEFAULT_MAX_ROUTE_VISITS = 2_048;
+const ROAD_GRAPH_LANE_OFFSET = 2.5;
+const ROAD_GRAPH_INTERSECTION_OFFSET = 4.5;
+const ROAD_GRAPH_SIDEWALK_OFFSET = 6.5;
+const ROAD_GRAPH_BRIDGE_SIDEWALK_OFFSET = 7;
+const DEFAULT_MAX_ROUTE_VISITS = 2_048;
 
 export const ROAD_GRAPH_SPEED_LIMITS = Object.freeze({
   city: 14,
@@ -862,8 +862,6 @@ export function createRoadGraph(
   return assertValidRoadGraph(builder.finish(roadLines, bridgeCenterZs));
 }
 
-export const buildRoadGraph = createRoadGraph;
-
 function reachableNodeIds(
   graph: RoadGraph,
   mode: RoadTravelMode,
@@ -1039,7 +1037,7 @@ export function validateRoadGraph(graph: RoadGraph): RoadGraphValidation {
   });
 }
 
-export function assertValidRoadGraph<T extends RoadGraph>(graph: T): T {
+function assertValidRoadGraph<T extends RoadGraph>(graph: T): T {
   const validation = validateRoadGraph(graph);
   if (!validation.valid) {
     throw new Error(`Invalid road graph:\n${validation.errors.join("\n")}`);
@@ -1062,7 +1060,7 @@ function positionXZ(position: RoadGraphPosition) {
   return [x, z] as const;
 }
 
-export function findNearestNode(
+function findNearestNode(
   graph: RoadGraph,
   position: RoadGraphPosition,
   options: NearestNodeOptions = {},
@@ -1132,8 +1130,6 @@ export function findNearestSidewalkNode(
     kind: "sidewalk",
   }) as SidewalkRoadNode | null;
 }
-
-export const nearestNode = findNearestNode;
 
 export function getOutgoingEdges(graph: RoadGraph, node: RoadNodeReference) {
   return graph.outgoing.get(nodeId(node)) ?? [];
@@ -1313,17 +1309,6 @@ export function findSeededRoute(
   return findRoute(graph, start, goal, { ...options, seed });
 }
 
-export function findPath(
-  graph: RoadGraph,
-  start: RoadNodeReference,
-  goal: RoadNodeReference,
-  options: RouteSearchOptions = {},
-) {
-  return findRoute(graph, start, goal, options)?.nodeIds ?? null;
-}
-
-export const aStarRoute = findRoute;
-
 export function findRouteBetween(
   graph: RoadGraph,
   start: RoadGraphPosition,
@@ -1342,4 +1327,3 @@ export function findRouteBetween(
 }
 
 export const BAY_CITY_ROAD_GRAPH = createRoadGraph();
-export const DEFAULT_ROAD_GRAPH = BAY_CITY_ROAD_GRAPH;

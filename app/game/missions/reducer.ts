@@ -264,8 +264,6 @@ export function evaluateObjectiveTrigger(
   }
 }
 
-export const evaluateTrigger = evaluateObjectiveTrigger;
-
 function assertMissionDefinition(definition: MissionDefinition): void {
   const objectiveIds = new Set<string>();
   for (const phase of definition.phases) {
@@ -389,7 +387,7 @@ function reduction(
   });
 }
 
-export function failMission(state: GameState): GameState {
+function failMission(state: GameState): GameState {
   if (state.mission.completed || state.mission.failed) return state;
   return {
     ...state,
@@ -424,8 +422,6 @@ export function restoreMissionState(
     }),
   });
 }
-
-export const restoreMission = restoreMissionState;
 
 export function reduceMissionState(
   definition: MissionDefinition,
@@ -613,5 +609,3 @@ export function reduceMissionState(
 
   return reduction(nextState, nextReducerState, emittedEvents);
 }
-
-export const reduceMission = reduceMissionState;

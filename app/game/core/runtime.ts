@@ -344,7 +344,7 @@ function canonicalStringify(value: unknown, seen: WeakSet<object>): string {
   }
 }
 
-export function stableStringify(value: unknown): string {
+function stableStringify(value: unknown): string {
   return canonicalStringify(value, new WeakSet());
 }
 
@@ -556,11 +556,6 @@ export class DeterministicGameRuntime implements GameRuntime {
     return hashGameState(this.currentState);
   }
 }
-
-export {
-  DeterministicGameRuntime as FixedGameRuntime,
-  DeterministicGameRuntime as FixedStepGameRuntime,
-};
 
 export function createGameRuntime(
   initialState: GameState,

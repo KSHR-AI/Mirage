@@ -1,11 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  BLOCK_CENTERS,
-  BRIDGE_END,
-  CITY_MAX,
-  CITY_MIN,
-  ROAD_LINES,
-} from "../../../components/bay-city-data";
 import { WORLD_LAYOUT } from "../../world/world-layout";
 import {
   CITY_BLOCK_CENTERS,
@@ -25,15 +18,10 @@ afterEach(() => {
 });
 
 describe("createBayCityLayout", () => {
-  it("derives presentation and legacy exports from the world layout contract", () => {
+  it("derives presentation geometry from the world layout contract", () => {
     expect(CITY_ROAD_LINES).toBe(WORLD_LAYOUT.roadLines);
     expect(CITY_BLOCK_CENTERS).toBe(WORLD_LAYOUT.blockCenters);
     expect(CITY_EXTENTS).toBe(WORLD_LAYOUT.extents);
-    expect(ROAD_LINES).toBe(WORLD_LAYOUT.roadLines);
-    expect(BLOCK_CENTERS).toBe(WORLD_LAYOUT.blockCenters);
-    expect(CITY_MIN).toBe(WORLD_LAYOUT.extents.landMin);
-    expect(CITY_MAX).toBe(WORLD_LAYOUT.extents.landMax);
-    expect(BRIDGE_END).toBe(WORLD_LAYOUT.extents.bridgeEndZ);
 
     expect(CITY_BLOCK_CENTERS).toEqual(
       CITY_ROAD_LINES.slice(0, -1).map(

@@ -157,14 +157,3 @@ export const InstancedPrimitives = memo(function InstancedPrimitives({
     </instancedMesh>
   );
 });
-
-export function deriveInstances(
-  instances: readonly BoxInstance[],
-  suffix: string,
-  map: (instance: BoxInstance) => Omit<BoxInstance, "id">,
-): BoxInstance[] {
-  return instances.map((instance) => ({
-    id: `${instance.id}-${suffix}`,
-    ...map(instance),
-  }));
-}

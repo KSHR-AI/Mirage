@@ -23,7 +23,7 @@ function finiteOrZero(value: number): number {
   return Number.isFinite(value) ? value : 0;
 }
 
-export function clamp(value: number, minimum: number, maximum: number): number {
+function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, finiteOrZero(value)));
 }
 

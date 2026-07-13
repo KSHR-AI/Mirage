@@ -285,7 +285,7 @@ export function createInitialAfterlightActors(
   return actors;
 }
 
-export function createInitialAfterlightVehicles(
+function createInitialAfterlightVehicles(
   encounter: AfterlightEncounterVariant = selectAfterlightEncounter(
     AFTERLIGHT_DEFAULT_SEED,
   ),

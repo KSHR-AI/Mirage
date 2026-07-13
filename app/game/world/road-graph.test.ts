@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  BLOCK_CENTERS,
-  BRIDGE_END,
-  ROAD_LINES,
-} from "../../components/bay-city-data";
-import {
   CITY_ROAD_LINES,
   createBayCityLayout,
 } from "../presentation/city/city-layout";
@@ -28,6 +23,10 @@ import {
   type RoadGraph,
   type RoadGraphEdge,
 } from "./road-graph";
+
+const ROAD_LINES = WORLD_LAYOUT.roadLines;
+const BLOCK_CENTERS = WORLD_LAYOUT.blockCenters;
+const BRIDGE_END = WORLD_LAYOUT.extents.bridgeEndZ;
 
 function edgeTo(edges: readonly RoadGraphEdge[], nodeId: string) {
   return edges.find((edge) => edge.to === nodeId);

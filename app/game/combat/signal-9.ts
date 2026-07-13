@@ -268,5 +268,3 @@ export function stepSignal9(
     ? { state: next, events, shot, damage }
     : { state: next, events, shot };
 }
-
-export const stepSignal9Weapon = stepSignal9;

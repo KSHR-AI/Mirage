@@ -67,7 +67,7 @@ export function isSaveGameV1(value: unknown): value is SaveGameV1 {
   return isNumber(save.player.health) && isPose(save.player.pose);
 }
 
-export function migrateSaveGame(value: unknown): SaveGameV1 | null {
+function migrateSaveGame(value: unknown): SaveGameV1 | null {
   return isSaveGameV1(value) ? value : null;
 }
 

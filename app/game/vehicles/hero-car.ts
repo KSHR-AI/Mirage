@@ -280,8 +280,6 @@ export function stepHeroCar(
   };
 }
 
-export const stepHeroVehicle = stepHeroCar;
-
 export function evaluateSafeExit(
   vehicle: VehicleState,
   request: SafeExitRequest,
@@ -336,12 +334,3 @@ export function evaluateSafeExit(
     ],
   };
 }
-
-export function canSafelyExitVehicle(
-  vehicle: VehicleState,
-  request: SafeExitRequest,
-) {
-  return evaluateSafeExit(vehicle, request).safe;
-}
-
-export const getSafeVehicleExit = evaluateSafeExit;

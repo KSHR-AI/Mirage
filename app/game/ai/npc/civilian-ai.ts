@@ -37,7 +37,7 @@ export interface CivilianAiConfig {
   readonly collisionMask?: number;
 }
 
-export const DEFAULT_CIVILIAN_AI_CONFIG: CivilianAiConfig = Object.freeze({
+const DEFAULT_CIVILIAN_AI_CONFIG: CivilianAiConfig = Object.freeze({
   capacity: 128,
   perceptionChecksPerTick: 12,
   walkSpeed: 1.7,
@@ -557,5 +557,3 @@ export class CivilianAiSystem {
     this.#lastIntents = Object.freeze([]);
   }
 }
-
-export { CivilianAiSystem as CivilianPool };

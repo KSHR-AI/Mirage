@@ -40,7 +40,7 @@ export class DeterministicCuePool {
   private readonly recentTokens: RecentToken[] = [];
   private readonly voices: VoiceReservation[];
 
-  constructor(private readonly size: number) {
+  constructor(size: number) {
     if (!Number.isInteger(size) || size < 1) {
       throw new RangeError("Cue pool size must be a positive integer");
     }

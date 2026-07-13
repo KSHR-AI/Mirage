@@ -32,7 +32,7 @@ export interface VehicleModelDimensions {
   readonly cabinZ: number;
 }
 
-export interface RoadVehicleModelProps extends VehicleModelProps {
+interface RoadVehicleModelProps extends VehicleModelProps {
   readonly kind: VehicleVisualKind;
   readonly emergencyLights?: boolean;
   readonly sirenPhase?: number;
@@ -954,7 +954,7 @@ function DamageTreatment({
   );
 }
 
-export function RoadVehicleModel({
+function RoadVehicleModel({
   brakeLights = false,
   damage = 0,
   disabled = false,
@@ -1342,10 +1342,4 @@ export function PoliceInterceptorModel({
       kind="police-interceptor"
     />
   );
-}
-
-export function vehicleModelDimensions(
-  kind: VehicleVisualKind,
-): Readonly<VehicleModelDimensions> {
-  return VEHICLE_DIMENSIONS[kind];
 }

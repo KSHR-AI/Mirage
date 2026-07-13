@@ -212,7 +212,7 @@ function resolveConfig(overrides: Partial<TrafficConfig> | undefined) {
   return { ...DEFAULT_TRAFFIC_CONFIG, ...overrides };
 }
 
-export function trafficPopulationBudget(
+function trafficPopulationBudget(
   populationClass: TrafficPopulationClass,
   overrides?: Partial<TrafficPopulationBudget>,
 ): TrafficPopulationBudget {
@@ -450,7 +450,7 @@ function vehicleAtRouteSample(
   };
 }
 
-export function recoverStuckTrafficAgent(
+function recoverStuckTrafficAgent(
   graph: RoadGraph,
   agent: TrafficAgentState,
   seed: RngSeed,
@@ -881,5 +881,3 @@ export function trafficVehicleStates(state: TrafficPopulationState) {
       .map(([id, agent]) => [id, agent.vehicle] as const),
   ) as ReadonlyMap<EntityId, VehicleState>;
 }
-
-export const stepTraffic = stepTrafficPopulation;

@@ -39,7 +39,7 @@ export interface PursuitPlan {
   readonly roadblock?: RoadblockPlan;
 }
 
-export function desiredPoliceUnits(level: 0 | 1 | 2 | 3, mobile: boolean) {
+function desiredPoliceUnits(level: 0 | 1 | 2 | 3, mobile: boolean) {
   return (mobile ? [0, 1, 2, 4] : [0, 1, 3, 6])[level] as number;
 }
 

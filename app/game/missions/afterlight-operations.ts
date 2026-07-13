@@ -57,10 +57,6 @@ export function afterlightOperation(
   );
 }
 
-export function afterlightOperationForSeed(seed: number): AfterlightOperation {
-  return afterlightOperation(selectAfterlightEncounter(seed).id);
-}
-
 export function afterlightSeedForOperation(
   id: AfterlightOperationId,
   completedRuns = 0,

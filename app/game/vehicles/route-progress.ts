@@ -158,5 +158,3 @@ export function sampleTrafficRoute(
     speedLimit: edge.speedLimit,
   };
 }
-
-export const advanceRouteProgress = advanceTrafficRoute;
