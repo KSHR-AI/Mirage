@@ -5,7 +5,9 @@ import {
   AUTHORED_AGENT_CLIP_CANDIDATES,
   AUTHORED_AGENT_MODEL_URLS,
   dampAuthoredAgentDirection,
+  getAuthoredAgentCrossFadeSeconds,
   getAuthoredAgentMaterialTreatment,
+  getAuthoredAgentTransitionPhase,
   getAuthoredRunnerLoadoutTreatment,
   inspectAuthoredRunnerLoadout,
   getAuthoredAgentTimeScale,
@@ -148,6 +150,29 @@ describe("authored agent model helpers", () => {
         scheduled: true,
       }),
     ).toBe(true);
+  });
+
+  it("preserves normalized stride phase across locomotion transitions", () => {
+    expect(getAuthoredAgentTransitionPhase("walk", "run", 0.75, 1.5, 0.1)).toBe(
+      0.5,
+    );
+    expect(getAuthoredAgentTransitionPhase("run", "walk", 2.5, 2, 0.1)).toBe(
+      0.25,
+    );
+    expect(
+      getAuthoredAgentTransitionPhase("idle", "walk", 0.8, 1, 0.35),
+    ).toBeCloseTo(0.35);
+    expect(
+      getAuthoredAgentTransitionPhase("walk", "run", 0.8, 0, 0.35),
+    ).toBeCloseTo(0.35);
+  });
+
+  it("uses responsive blends for gait changes and reactions", () => {
+    expect(getAuthoredAgentCrossFadeSeconds("walk", "run")).toBe(0.12);
+    expect(getAuthoredAgentCrossFadeSeconds("idle", "walk")).toBe(0.14);
+    expect(getAuthoredAgentCrossFadeSeconds("run", "idle")).toBe(0.2);
+    expect(getAuthoredAgentCrossFadeSeconds("aim", "fire")).toBe(0.08);
+    expect(getAuthoredAgentCrossFadeSeconds("idle", "cower")).toBe(0.18);
   });
 
   it("smooths wrapped facing changes and bounds authored turn lean", () => {

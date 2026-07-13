@@ -39,6 +39,7 @@ import {
 import {
   createAmbientCivilianDefinitions,
   createAmbientVehicleDefinitions,
+  sampleAmbientCivilianMotion,
 } from "../game/presentation/city/ambient-life";
 import { AfterlightMissionSetpieces } from "../game/presentation/mission";
 import { withAfterlightCourierPosition } from "../game/presentation/mission/plan";
@@ -246,30 +247,84 @@ function AmbientCivilians({
     () => createAmbientCivilianDefinitions(count),
     [count],
   );
+  const initialWalking = useMemo(
+    () =>
+      definitions.map(
+        (definition) => sampleAmbientCivilianMotion(definition, 0).walking,
+      ),
+    [definitions],
+  );
   const groups = useRef<Array<THREE.Group | null>>([]);
+  const walkingRef = useRef<readonly boolean[]>(initialWalking);
+  const [walkingStates, setWalkingStates] = useState(initialWalking);
   const visualQuality = quality === "high" ? "desktop" : "mobile";
+  const probeElapsedRef = useRef(0);
+  const observedBehaviorRef = useRef({ mixed: false });
 
-  useFrame(({ clock }) => {
-    const elapsed = clock.elapsedTime;
-    definitions.forEach((civilian, index) => {
+  useFrame(({ clock }, delta) => {
+    const inspect =
+      process.env.NODE_ENV === "development" &&
+      typeof document !== "undefined" &&
+      new URLSearchParams(window.location.search).has("inspect");
+    if (inspect) probeElapsedRef.current += delta;
+    const shouldProbe = inspect && probeElapsedRef.current >= 0.25;
+    let idle = 0;
+    let walking = 0;
+    let nextWalking: boolean[] | null =
+      walkingRef.current.length === definitions.length
+        ? null
+        : [...initialWalking];
+
+    definitions.forEach((definition, index) => {
+      const motion = sampleAmbientCivilianMotion(definition, clock.elapsedTime);
       const group = groups.current[index];
-      if (!group) return;
-      const z =
-        ((((civilian.startZ +
-          elapsed * civilian.speed * civilian.direction +
-          96) %
-          192) +
-          192) %
-          192) -
-        96;
-      group.position.set(civilian.x, 0.32, z);
-      group.rotation.y = civilian.direction > 0 ? 0 : Math.PI;
-      const dx = group.position.x - targetPosition[0];
-      const dz = group.position.z - targetPosition[2];
-      group.visible =
-        dx * dx + dz * dz > AMBIENT_CIVILIAN_CAMERA_CLEARANCE_SQUARED;
+      if (group) {
+        const z =
+          ((((definition.startZ +
+            motion.travelSeconds * definition.speed * definition.direction +
+            96) %
+            192) +
+            192) %
+            192) -
+          96;
+        group.position.set(definition.x, 0.32, z);
+        group.rotation.y = definition.direction > 0 ? 0 : Math.PI;
+        const dx = group.position.x - targetPosition[0];
+        const dz = group.position.z - targetPosition[2];
+        group.visible =
+          dx * dx + dz * dz > AMBIENT_CIVILIAN_CAMERA_CLEARANCE_SQUARED;
+      }
+
+      if (walkingRef.current[index] !== motion.walking) {
+        nextWalking ??= [...walkingRef.current];
+        nextWalking[index] = motion.walking;
+      }
+      if (shouldProbe) {
+        if (motion.walking) walking += 1;
+        else idle += 1;
+      }
+    });
+
+    if (nextWalking) {
+      walkingRef.current = nextWalking;
+      setWalkingStates(nextWalking);
+    }
+    if (!shouldProbe) return;
+    probeElapsedRef.current = 0;
+    observedBehaviorRef.current.mixed ||= idle > 0 && walking > 0;
+    document.documentElement.dataset.mirageAmbientCivilians = JSON.stringify({
+      idle,
+      observedMixed: observedBehaviorRef.current.mixed,
+      walking,
     });
   });
+
+  useEffect(
+    () => () => {
+      delete document.documentElement.dataset.mirageAmbientCivilians;
+    },
+    [],
+  );
 
   return (
     <group name="ambient-civilians">
@@ -281,14 +336,41 @@ function AmbientCivilians({
           }}
         >
           <CivilianModel
-            animation="walk"
+            animation={walkingStates[index] === false ? "idle" : "walk"}
             direction={0}
             entityId={civilian.id}
             quality={visualQuality}
-            speed={civilian.speed}
+            speed={walkingStates[index] === false ? 0 : civilian.speed}
           />
         </group>
       ))}
+    </group>
+  );
+}
+
+function AmbientLifeInspectionGroup({
+  quality,
+}: {
+  readonly quality: ModelQuality;
+}) {
+  return (
+    <group name="ambient-life-inspection">
+      <CivilianModel
+        animation="idle"
+        direction={Math.PI / 2}
+        entityId="ambient-inspection-idle"
+        position={[-4.5, 0.32, 17.1]}
+        quality={quality}
+        speed={0}
+      />
+      <CivilianModel
+        animation="walk"
+        direction={Math.PI / 2}
+        entityId="ambient-inspection-walk"
+        position={[-4.5, 0.32, 19]}
+        quality={quality}
+        speed={1}
+      />
     </group>
   );
 }
@@ -431,6 +513,8 @@ export const AfterlightScene = memo(function AfterlightScene({
   const inspectionAim =
     process.env.NODE_ENV === "development" &&
     isPlaytestAimInspection(`?inspect=${inspectionKey ?? ""}`, true);
+  const ambientLifeInspection =
+    process.env.NODE_ENV === "development" && inspectionKey === "ambient-life";
 
   useEffect(() => {
     const enabled = process.env.NODE_ENV === "development";
@@ -630,10 +714,14 @@ export const AfterlightScene = memo(function AfterlightScene({
             quality={quality}
             targetPosition={targetPose.position}
           />
-          <AmbientCivilians
-            quality={quality}
-            targetPosition={targetPose.position}
-          />
+          {ambientLifeInspection ? (
+            <AmbientLifeInspectionGroup quality={visualQuality} />
+          ) : (
+            <AmbientCivilians
+              quality={quality}
+              targetPosition={targetPose.position}
+            />
+          )}
         </>
       ) : null}
       {process.env.NODE_ENV === "development" &&

@@ -19,6 +19,8 @@ const VALID_SCENARIOS = new Set([
   "mobile",
   "opening",
   "route",
+  "route-desktop",
+  "route-mobile",
 ]);
 
 function parseArguments(argv) {
@@ -46,7 +48,7 @@ function parseArguments(argv) {
 }
 
 function usage() {
-  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, compact, desktop, narrow, mobile, opening, or route\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
+  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, compact, desktop, narrow, mobile, opening, route, route-desktop, or route-mobile\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
 }
 
 function timestamp() {
@@ -348,17 +350,27 @@ async function inspectCanvas(scenario, page, outDir, name) {
     };
   });
   if (!bounds) throw new Error("Afterlight canvas has no visible bounds");
-  const png = await capturePagePng(page, bounds);
+  let bestCapture = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await waitForStablePaint(page);
+    const candidatePng = await capturePagePng(page, bounds);
+    const candidateStats = renderedPixelStats(candidatePng);
+    if (!bestCapture || candidateStats.litRatio > bestCapture.stats.litRatio) {
+      bestCapture = { png: candidatePng, stats: candidateStats };
+    }
+    if (attempt < 2) await page.waitForTimeout(34);
+  }
+  if (!bestCapture) throw new Error("Afterlight canvas capture failed");
+  const { png, stats } = bestCapture;
   await writeFile(path.join(outDir, fileName), png);
-  const stats = renderedPixelStats(png);
   scenario.screenshots.push(fileName);
   scenario.canvas = stats;
   addCheck(
     scenario,
     `${checkPrefix}canvas-lit`,
-    stats.litRatio > 0.12,
+    stats.litRatio > 0.35,
     stats.litRatio,
-    "> 0.12",
+    "> 0.35",
   );
   addCheck(
     scenario,
@@ -462,6 +474,24 @@ async function routeInspectionScenario(
       inspectionPose,
       "route-block",
     );
+    await page.waitForFunction(() => {
+      const raw = document.documentElement.dataset.mirageAmbientCivilians;
+      if (!raw) return false;
+      const population = JSON.parse(raw);
+      return population.observedMixed === true;
+    });
+    const ambientPopulation = await page.evaluate(() =>
+      JSON.parse(
+        document.documentElement.dataset.mirageAmbientCivilians ?? "null",
+      ),
+    );
+    addCheck(
+      scenario,
+      "ambient-civilian-behavior-mix",
+      ambientPopulation?.observedMixed === true,
+      ambientPopulation,
+      "observed walking and idle civilians together",
+    );
 
     if (mobile) {
       const labels = [
@@ -496,6 +526,7 @@ async function routeInspectionScenario(
       : [
           { capture: "hero-loadout", key: "hero-close" },
           { capture: "hero-aim", key: "hero-aim" },
+          { capture: "ambient-life", key: "ambient-life" },
           { capture: "sidewalk", key: "route-block-side" },
           { capture: "facade", key: "route-facade" },
           { capture: "corner", key: "signature-corner" },
@@ -1722,7 +1753,7 @@ async function main() {
   }
   const target = new URL(options.url);
   if (
-    options.scenario === "route" &&
+    options.scenario.startsWith("route") &&
     !["127.0.0.1", "localhost"].includes(target.hostname)
   ) {
     throw new Error("The route inspection scenario is development-only");
@@ -1778,7 +1809,7 @@ async function main() {
         ),
       );
     }
-    if (options.scenario === "route") {
+    if (["route", "route-desktop"].includes(options.scenario)) {
       scenarios.push(
         await routeInspectionScenario(
           browser,
@@ -1788,6 +1819,8 @@ async function main() {
           false,
         ),
       );
+    }
+    if (["route", "route-mobile"].includes(options.scenario)) {
       scenarios.push(
         await routeInspectionScenario(
           browser,

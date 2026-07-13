@@ -121,7 +121,7 @@ export const AUTHORED_AGENT_CLIP_CANDIDATES: Readonly<
   down: Object.freeze(["Death"]),
 });
 
-const CROSS_FADE_SECONDS = 0.18;
+const DEFAULT_CROSS_FADE_SECONDS = 0.18;
 const MODEL_FOOT_LIFT = 0.0026;
 const WALK_CYCLE_DISTANCE = 1.76;
 const RUN_CYCLE_DISTANCE = 2.08;
@@ -136,6 +136,10 @@ const ANIMATION_PROBE_INTERVAL = 0.25;
 const ONE_SHOT_STATES: ReadonlySet<AgentAnimationState> = new Set([
   "fire",
   "down",
+]);
+const LOCOMOTION_STATES: ReadonlySet<AgentAnimationState> = new Set([
+  "walk",
+  "run",
 ]);
 
 function shadedColor(color: string, intensity: number): string {
@@ -346,6 +350,45 @@ export function shouldRestartAuthoredAgentAction({
     !previousAnimationMatches ||
     !scheduled ||
     (animation === "fire" && muzzleFlash && !previousMuzzleFlash)
+  );
+}
+
+export function getAuthoredAgentCrossFadeSeconds(
+  previous: AgentAnimationState | undefined,
+  next: AgentAnimationState,
+): number {
+  if (next === "fire" || next === "down") return 0.08;
+  if (
+    LOCOMOTION_STATES.has(previous ?? "idle") &&
+    LOCOMOTION_STATES.has(next)
+  ) {
+    return 0.12;
+  }
+  if (LOCOMOTION_STATES.has(next)) return 0.14;
+  if (LOCOMOTION_STATES.has(previous ?? "idle")) return 0.2;
+  return DEFAULT_CROSS_FADE_SECONDS;
+}
+
+export function getAuthoredAgentTransitionPhase(
+  previousAnimation: AgentAnimationState | undefined,
+  nextAnimation: AgentAnimationState,
+  previousTime: number | undefined,
+  previousDuration: number | undefined,
+  fallbackPhase: number,
+): number {
+  const fallback = MathUtils.euclideanModulo(finiteOr(fallbackPhase, 0), 1);
+  if (
+    !previousAnimation ||
+    !LOCOMOTION_STATES.has(previousAnimation) ||
+    !LOCOMOTION_STATES.has(nextAnimation)
+  ) {
+    return fallback;
+  }
+
+  const duration = finiteOr(previousDuration, 0);
+  if (duration <= 0) return fallback;
+  return (
+    MathUtils.euclideanModulo(finiteOr(previousTime, 0), duration) / duration
   );
 }
 
@@ -729,11 +772,22 @@ export function AuthoredAgentModel({
   useEffect(() => {
     const previous = activeActionRef.current;
     if (!activeClip) {
-      previous?.action.fadeOut(CROSS_FADE_SECONDS);
+      previous?.action.fadeOut(DEFAULT_CROSS_FADE_SECONDS);
       activeActionRef.current = null;
       return;
     }
     const activeAction = mixer.clipAction(activeClip, clonedScene);
+    const crossFadeSeconds = getAuthoredAgentCrossFadeSeconds(
+      previous?.animation,
+      resolvedAnimation,
+    );
+    const transitionPhase = getAuthoredAgentTransitionPhase(
+      previous?.animation,
+      resolvedAnimation,
+      previous?.action.time,
+      previous?.action.getClip().duration,
+      variation.animationPhase,
+    );
 
     const shouldRestart = shouldRestartAuthoredAgentAction({
       animation: resolvedAnimation,
@@ -759,19 +813,19 @@ export function AuthoredAgentModel({
       activeAction.setEffectiveTimeScale(timeScale);
       activeAction.setEffectiveWeight(1);
       if (!oneShot && activeClip.duration > 0) {
-        activeAction.time = variation.animationPhase * activeClip.duration;
+        activeAction.time = transitionPhase * activeClip.duration;
       }
       activeAction.play();
 
       if (previous && previous.action !== activeAction) {
         if (previous.action.getMixer() === activeAction.getMixer()) {
-          activeAction.crossFadeFrom(previous.action, CROSS_FADE_SECONDS, true);
+          activeAction.crossFadeFrom(previous.action, crossFadeSeconds, false);
         } else {
-          previous.action.fadeOut(CROSS_FADE_SECONDS);
-          activeAction.fadeIn(CROSS_FADE_SECONDS);
+          previous.action.fadeOut(crossFadeSeconds);
+          activeAction.fadeIn(crossFadeSeconds);
         }
       } else {
-        activeAction.fadeIn(CROSS_FADE_SECONDS);
+        activeAction.fadeIn(crossFadeSeconds);
       }
     }
 
