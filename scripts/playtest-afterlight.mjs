@@ -410,6 +410,20 @@ async function startGame(page, scenario, outDir, pathname = "/") {
   return shell;
 }
 
+async function primeDeploymentAccess(page, baseURL) {
+  const accessURL = process.env.PLAYTEST_ACCESS_URL;
+  if (!accessURL) return;
+  if (new URL(accessURL).origin !== new URL(baseURL).origin) {
+    throw new Error(
+      "PLAYTEST_ACCESS_URL must match the playtest target origin",
+    );
+  }
+  await page.goto(accessURL, {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
+}
+
 async function routeInspectionScenario(
   browser,
   baseURL,
@@ -435,6 +449,7 @@ async function routeInspectionScenario(
       : { viewport: { height: 720, width: 1280 } }),
   });
   const page = await context.newPage();
+  await primeDeploymentAccess(page, baseURL);
   const errors = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(`console: ${message.text()}`);
@@ -644,6 +659,7 @@ async function openingCinematicScenario(
       : { viewport: { height: 720, width: 1280 } }),
   });
   const page = await context.newPage();
+  await primeDeploymentAccess(page, baseURL);
   const errors = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(`console: ${message.text()}`);
@@ -775,6 +791,7 @@ async function desktopScenario(browser, baseURL, outDir, headed) {
     viewport: { height: 720, width: 1280 },
   });
   const page = await context.newPage();
+  await primeDeploymentAccess(page, baseURL);
   const errors = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(`console: ${message.text()}`);
@@ -1125,6 +1142,7 @@ async function narrowScenario(browser, baseURL, outDir, headed) {
     viewport: { height: 825, width: 722 },
   });
   const page = await context.newPage();
+  await primeDeploymentAccess(page, baseURL);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.addInitScript(() => {
@@ -1252,6 +1270,7 @@ async function mobileScenario(browser, baseURL, outDir, headed) {
     viewport: { height: 844, width: 390 },
   });
   const page = await context.newPage();
+  await primeDeploymentAccess(page, baseURL);
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.addInitScript(() => {
@@ -1484,6 +1503,7 @@ async function compactMobileScenario(browser, baseURL, outDir, headed) {
     viewport: { height: 693, width: 320 },
   });
   const page = await context.newPage();
+  await primeDeploymentAccess(page, baseURL);
   const errors = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(`console: ${message.text()}`);
