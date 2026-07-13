@@ -41,6 +41,12 @@ describe("resolvePlaytestInspectionPose", () => {
       position: [-4.5, 1.25, 18],
       rotationY: Math.PI / 2,
     });
+    expect(resolvePlaytestInspectionPose("?inspect=street-life", true)).toEqual(
+      {
+        position: [0, 1.3, 2],
+        rotationY: 0,
+      },
+    );
     expect(
       resolvePlaytestInspectionPose("?inspect=route-facade", true),
     ).toEqual({

@@ -41,6 +41,10 @@ import {
   createAmbientVehicleDefinitions,
   sampleAmbientCivilianMotion,
 } from "../game/presentation/city/ambient-life";
+import {
+  createSocialCivilianDefinitions,
+  sampleSocialCivilianMotion,
+} from "../game/presentation/city/social-life";
 import { AfterlightMissionSetpieces } from "../game/presentation/mission";
 import { withAfterlightCourierPosition } from "../game/presentation/mission/plan";
 import {
@@ -102,6 +106,7 @@ const POLICE_IDS = [
 const BLACKOUT_MARKER = "afterlight:blackout:active";
 const AMBIENT_TRAFFIC_CAMERA_CLEARANCE_SQUARED = 12 * 12;
 const AMBIENT_CIVILIAN_CAMERA_CLEARANCE_SQUARED = 14 * 14;
+const SOCIAL_CIVILIAN_CAMERA_CLEARANCE_SQUARED = 6 * 6;
 
 const AfterlightPostEffects = lazy(() =>
   import("../game/presentation/postfx").then((module) => ({
@@ -375,6 +380,116 @@ function AmbientLifeInspectionGroup({
   );
 }
 
+function AmbientSocialLife({
+  inspection,
+  quality,
+  targetPosition,
+}: {
+  readonly inspection: boolean;
+  readonly quality: GameQualityTier;
+  readonly targetPosition: readonly [number, number, number];
+}) {
+  const socialQuality = inspection || quality !== "low" ? "desktop" : "mobile";
+  const definitions = useMemo(
+    () => createSocialCivilianDefinitions(socialQuality),
+    [socialQuality],
+  );
+  const initialWalking = useMemo(
+    () =>
+      definitions.map(
+        (definition) => sampleSocialCivilianMotion(definition, 0).walking,
+      ),
+    [definitions],
+  );
+  const groups = useRef<Array<THREE.Group | null>>([]);
+  const walkingRef = useRef<readonly boolean[]>(initialWalking);
+  const [walkingStates, setWalkingStates] = useState(initialWalking);
+  const visualQuality = modelQuality(quality);
+  const probeElapsedRef = useRef(0);
+  const observedRef = useRef({ crossing: false, waiting: false });
+
+  useFrame(({ clock }, delta) => {
+    let crossing = 0;
+    let waiting = 0;
+    let conversations = 0;
+    let nextWalking: boolean[] | null = null;
+
+    definitions.forEach((definition, index) => {
+      const motion = sampleSocialCivilianMotion(definition, clock.elapsedTime);
+      const group = groups.current[index];
+      if (group) {
+        group.position.set(...motion.position);
+        group.rotation.y = motion.heading;
+        const dx = group.position.x - targetPosition[0];
+        const dz = group.position.z - targetPosition[2];
+        group.visible =
+          inspection ||
+          dx * dx + dz * dz > SOCIAL_CIVILIAN_CAMERA_CLEARANCE_SQUARED;
+      }
+
+      if (walkingRef.current[index] !== motion.walking) {
+        nextWalking ??= [...walkingRef.current];
+        nextWalking[index] = motion.walking;
+      }
+      if (motion.behavior === "conversation") conversations += 1;
+      if (motion.behavior === "crossing" && motion.walking) crossing += 1;
+      if (
+        motion.behavior === "waiting" ||
+        (motion.behavior === "crossing" && !motion.walking)
+      ) {
+        waiting += 1;
+      }
+    });
+
+    if (nextWalking) {
+      walkingRef.current = nextWalking;
+      setWalkingStates(nextWalking);
+    }
+
+    if (process.env.NODE_ENV !== "development") return;
+    probeElapsedRef.current += delta;
+    if (probeElapsedRef.current < 0.25) return;
+    probeElapsedRef.current = 0;
+    observedRef.current.crossing ||= crossing > 0;
+    observedRef.current.waiting ||= waiting > 0;
+    document.documentElement.dataset.mirageSocialLife = JSON.stringify({
+      conversations,
+      crossing,
+      observedCrossing: observedRef.current.crossing,
+      observedWaiting: observedRef.current.waiting,
+      waiting,
+    });
+  });
+
+  useEffect(
+    () => () => {
+      delete document.documentElement.dataset.mirageSocialLife;
+    },
+    [],
+  );
+
+  return (
+    <group name="ambient-social-life">
+      {definitions.map((civilian, index) => (
+        <group
+          key={civilian.id}
+          ref={(group) => {
+            groups.current[index] = group;
+          }}
+        >
+          <CivilianModel
+            animation={walkingStates[index] === true ? "walk" : "idle"}
+            direction={0}
+            entityId={civilian.id}
+            quality={visualQuality}
+            speed={walkingStates[index] === true ? civilian.speed : 0}
+          />
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function VehicleInspectionFleet() {
   return (
     <group name="vehicle-inspection-fleet">
@@ -515,6 +630,8 @@ export const AfterlightScene = memo(function AfterlightScene({
     isPlaytestAimInspection(`?inspect=${inspectionKey ?? ""}`, true);
   const ambientLifeInspection =
     process.env.NODE_ENV === "development" && inspectionKey === "ambient-life";
+  const socialLifeInspection =
+    process.env.NODE_ENV === "development" && inspectionKey === "street-life";
 
   useEffect(() => {
     const enabled = process.env.NODE_ENV === "development";
@@ -716,12 +833,19 @@ export const AfterlightScene = memo(function AfterlightScene({
           />
           {ambientLifeInspection ? (
             <AmbientLifeInspectionGroup quality={visualQuality} />
-          ) : (
+          ) : !socialLifeInspection ? (
             <AmbientCivilians
               quality={quality}
               targetPosition={targetPose.position}
             />
-          )}
+          ) : null}
+          {!ambientLifeInspection ? (
+            <AmbientSocialLife
+              inspection={socialLifeInspection}
+              quality={quality}
+              targetPosition={targetPose.position}
+            />
+          ) : null}
         </>
       ) : null}
       {process.env.NODE_ENV === "development" &&

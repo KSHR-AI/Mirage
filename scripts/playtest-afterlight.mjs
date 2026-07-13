@@ -21,6 +21,7 @@ const VALID_SCENARIOS = new Set([
   "route",
   "route-desktop",
   "route-mobile",
+  "street-life",
 ]);
 
 function parseArguments(argv) {
@@ -48,7 +49,7 @@ function parseArguments(argv) {
 }
 
 function usage() {
-  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, compact, desktop, narrow, mobile, opening, route, route-desktop, or route-mobile\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
+  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, compact, desktop, narrow, mobile, opening, route, route-desktop, route-mobile, or street-life\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
 }
 
 function timestamp() {
@@ -430,6 +431,7 @@ async function routeInspectionScenario(
   outDir,
   headed,
   mobile,
+  inspectionOnly = null,
 ) {
   const scenario = {
     checks: [],
@@ -507,6 +509,28 @@ async function routeInspectionScenario(
       ambientPopulation,
       "observed walking and idle civilians together",
     );
+    await page.waitForFunction(() => {
+      const raw = document.documentElement.dataset.mirageSocialLife;
+      if (!raw) return false;
+      const population = JSON.parse(raw);
+      return (
+        population.conversations >= 2 &&
+        population.observedCrossing === true &&
+        population.observedWaiting === true
+      );
+    });
+    const socialPopulation = await page.evaluate(() =>
+      JSON.parse(document.documentElement.dataset.mirageSocialLife ?? "null"),
+    );
+    addCheck(
+      scenario,
+      "social-street-behavior-mix",
+      socialPopulation?.conversations >= 2 &&
+        socialPopulation?.observedCrossing === true &&
+        socialPopulation?.observedWaiting === true,
+      socialPopulation,
+      "conversation, crossing, and curb-wait behavior observed",
+    );
 
     if (mobile) {
       const labels = [
@@ -533,22 +557,25 @@ async function routeInspectionScenario(
     }
 
     await capture(scenario, page, outDir, "corridor");
-    const inspections = mobile
-      ? [
-          { capture: "hero-loadout", key: "hero-close" },
-          { capture: "yard", key: "yard-opening" },
-        ]
-      : [
-          { capture: "hero-loadout", key: "hero-close" },
-          { capture: "hero-aim", key: "hero-aim" },
-          { capture: "ambient-life", key: "ambient-life" },
-          { capture: "sidewalk", key: "route-block-side" },
-          { capture: "facade", key: "route-facade" },
-          { capture: "corner", key: "signature-corner" },
-          { capture: "yard", key: "yard-opening" },
-          { capture: "vehicles", key: "vehicle-fleet" },
-          { capture: "vehicles-side", key: "vehicle-fleet-side" },
-        ];
+    const inspections = inspectionOnly
+      ? [{ capture: inspectionOnly, key: inspectionOnly }]
+      : mobile
+        ? [
+            { capture: "hero-loadout", key: "hero-close" },
+            { capture: "yard", key: "yard-opening" },
+          ]
+        : [
+            { capture: "hero-loadout", key: "hero-close" },
+            { capture: "hero-aim", key: "hero-aim" },
+            { capture: "ambient-life", key: "ambient-life" },
+            { capture: "street-life", key: "street-life" },
+            { capture: "sidewalk", key: "route-block-side" },
+            { capture: "facade", key: "route-facade" },
+            { capture: "corner", key: "signature-corner" },
+            { capture: "yard", key: "yard-opening" },
+            { capture: "vehicles", key: "vehicle-fleet" },
+            { capture: "vehicles-side", key: "vehicle-fleet-side" },
+          ];
     for (const inspection of inspections) {
       await page.evaluate(
         ({ eventName, key }) =>
@@ -1773,7 +1800,8 @@ async function main() {
   }
   const target = new URL(options.url);
   if (
-    options.scenario.startsWith("route") &&
+    (options.scenario.startsWith("route") ||
+      options.scenario === "street-life") &&
     !["127.0.0.1", "localhost"].includes(target.hostname)
   ) {
     throw new Error("The route inspection scenario is development-only");
@@ -1848,6 +1876,18 @@ async function main() {
           outDir,
           options.headed,
           true,
+        ),
+      );
+    }
+    if (options.scenario === "street-life") {
+      scenarios.push(
+        await routeInspectionScenario(
+          browser,
+          options.url,
+          outDir,
+          options.headed,
+          false,
+          "street-life",
         ),
       );
     }
