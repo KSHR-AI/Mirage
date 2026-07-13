@@ -92,8 +92,8 @@ export function stepGroundedLocomotion(
   const normalizedZ = localZ * inverseMagnitude;
   const sine = Math.sin(observation.cameraYaw);
   const cosine = Math.cos(observation.cameraYaw);
-  const worldX = normalizedX * cosine + normalizedZ * sine;
-  const worldZ = normalizedZ * cosine - normalizedX * sine;
+  const worldX = normalizedZ * sine - normalizedX * cosine;
+  const worldZ = normalizedZ * cosine + normalizedX * sine;
   const speed = sprinting
     ? LOCOMOTION_TUNING.sprintSpeed
     : LOCOMOTION_TUNING.walkSpeed;

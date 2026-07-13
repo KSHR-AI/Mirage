@@ -326,4 +326,26 @@ test("keeps mouse-look and camera-relative movement in a narrow desktop window",
     travelX * Math.cos(cameraYaw) - travelZ * Math.sin(cameraYaw);
   expect(forwardTravel).toBeGreaterThan(3);
   expect(Math.abs(lateralTravel)).toBeLessThan(0.5);
+
+  const strafeStartX = Number(await shell.getAttribute("data-player-x"));
+  const strafeStartZ = Number(await shell.getAttribute("data-player-z"));
+  const strafeStartTick = Number(await shell.getAttribute("data-tick"));
+  await page.keyboard.down("d");
+  await expect
+    .poll(async () => Number(await shell.getAttribute("data-tick")), {
+      timeout: 20_000,
+    })
+    .toBeGreaterThanOrEqual(strafeStartTick + 45);
+  await page.keyboard.up("d");
+
+  const strafeX =
+    Number(await shell.getAttribute("data-player-x")) - strafeStartX;
+  const strafeZ =
+    Number(await shell.getAttribute("data-player-z")) - strafeStartZ;
+  const screenRightTravel =
+    -strafeX * Math.cos(cameraYaw) + strafeZ * Math.sin(cameraYaw);
+  const strafeForwardTravel =
+    strafeX * Math.sin(cameraYaw) + strafeZ * Math.cos(cameraYaw);
+  expect(screenRightTravel).toBeGreaterThan(2);
+  expect(Math.abs(strafeForwardTravel)).toBeLessThan(0.5);
 });

@@ -41,6 +41,21 @@ describe("grounded third-person locomotion", () => {
     expect(result.intent.facingRotationY).toBeCloseTo(Math.PI / 2);
   });
 
+  it("maps positive lateral input to the camera's screen-right", () => {
+    const cameraYaw = 0.73;
+    const result = stepGroundedLocomotion(
+      INITIAL_LOCOMOTION_STATE,
+      { ...EMPTY_INPUT_FRAME, move: [1, 0] },
+      { grounded: true, cameraYaw },
+    );
+    const screenRight = [-Math.cos(cameraYaw), Math.sin(cameraYaw)] as const;
+    const cameraForward = [Math.sin(cameraYaw), Math.cos(cameraYaw)] as const;
+    const [moveX, , moveZ] = result.intent.moveDirection;
+
+    expect(moveX * screenRight[0] + moveZ * screenRight[1]).toBeCloseTo(1);
+    expect(moveX * cameraForward[0] + moveZ * cameraForward[1]).toBeCloseTo(0);
+  });
+
   it("normalizes diagonal movement and clamps analog magnitude", () => {
     const result = stepGroundedLocomotion(
       INITIAL_LOCOMOTION_STATE,
@@ -77,7 +92,7 @@ describe("grounded third-person locomotion", () => {
 
     expect(result.intent.moveMagnitude).toBe(0.5);
     expect(result.intent.horizontalVelocity).toEqual([
-      LOCOMOTION_TUNING.walkSpeed * 0.5,
+      -LOCOMOTION_TUNING.walkSpeed * 0.5,
       0,
       0,
     ]);

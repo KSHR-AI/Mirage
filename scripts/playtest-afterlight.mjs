@@ -1280,6 +1280,24 @@ async function narrowScenario(browser, baseURL, outDir, headed) {
       { forward, lateral },
       "forward > 3 and |lateral| < 0.5",
     );
+
+    const strafeX = await numberAttribute(shell, "data-player-x");
+    const strafeZ = await numberAttribute(shell, "data-player-z");
+    const strafeTick = await numberAttribute(shell, "data-tick");
+    await page.keyboard.down("d");
+    await waitForTick(page, shell, strafeTick + 45);
+    await page.keyboard.up("d");
+    const strafeDx = (await numberAttribute(shell, "data-player-x")) - strafeX;
+    const strafeDz = (await numberAttribute(shell, "data-player-z")) - strafeZ;
+    const screenRight = -strafeDx * Math.cos(yaw) + strafeDz * Math.sin(yaw);
+    const strafeForward = strafeDx * Math.sin(yaw) + strafeDz * Math.cos(yaw);
+    addCheck(
+      scenario,
+      "screen-right-strafe",
+      screenRight > 2 && Math.abs(strafeForward) < 0.5,
+      { screenRight, strafeForward },
+      "D moves > 2 meters screen-right with < 0.5 meters forward drift",
+    );
     scenario.telemetry = await telemetry(shell);
     scenario.graphics = await graphicsInfo(page);
     const frameMs = Number(scenario.telemetry["frame-ms"]);
