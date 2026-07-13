@@ -51,6 +51,7 @@ export const AFTERLIGHT_ITEMS = {
   vaultCredential: "afterlight-vault-credential",
   afterlightCore: "afterlight-core",
   bearerBonds: "afterlight-bearer-bonds",
+  keyholderSecured: "afterlight-keyholder-secured",
 } as const;
 
 export const AFTERLIGHT_TAGS = {
@@ -220,9 +221,8 @@ function createPhases(
           id: AFTERLIGHT_OBJECTIVE_IDS.defeatKeyholderGuards,
           label: "Defeat the courier's two guards.",
           trigger: {
-            type: "event",
-            event: "actor-downed",
-            count: 2,
+            type: "inventory",
+            itemId: AFTERLIGHT_ITEMS.keyholderSecured,
           },
           reward: 1500,
         },
@@ -358,7 +358,7 @@ function createPhases(
                 event: "setpiece-triggered",
                 tag: AFTERLIGHT_TAGS.blackoutTriggered,
               },
-              { type: "elapsed", ticks: 180 },
+              { type: "elapsed", ticks: 120 },
             ],
           },
           reward: 2000,
@@ -402,25 +402,13 @@ function createPhases(
         },
         {
           id: AFTERLIGHT_OBJECTIVE_IDS.escapeAfterlightRun,
-          label: "Cross the bridge and break line of sight.",
+          label: "Cross the bridge before the cordon closes.",
           trigger: {
-            type: "all",
-            children: [
-              {
-                type: "volume",
-                center: [0, 1.1, -218],
-                radius: 12,
-                actor: "hero",
-                dwellTicks: 60,
-              },
-              {
-                type: "any",
-                children: [
-                  { type: "heat-mode", mode: "search" },
-                  { type: "heat-mode", mode: "return" },
-                ],
-              },
-            ],
+            type: "volume",
+            center: [0, 1.1, -218],
+            radius: 12,
+            actor: "hero",
+            dwellTicks: 15,
           },
           reward: 4000,
         },

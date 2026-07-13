@@ -4,6 +4,7 @@ import {
   AFTERLIGHT_ITEMS,
   AFTERLIGHT_OBJECTIVE_IDS,
   AFTERLIGHT_PHASE_IDS,
+  AFTERLIGHT_TAGS,
 } from "../missions/afterlight-job";
 import {
   EMPTY_INPUT_FRAME,
@@ -534,6 +535,92 @@ describe("Afterlight step", () => {
     );
   });
 
+  it("recognizes a stopped courier without requiring a collision event", () => {
+    const scenario = new AfterlightScenario();
+    const ids = AFTERLIGHT_ENTITY_IDS;
+    scenario.activateCourierChase();
+    scenario.placeVehicle(ids.heroCoupe, [52, 0.72, 52], 0, {
+      occupiedBy: undefined,
+      velocity: [0, 0, 0],
+    });
+    scenario.placeVehicle(ids.courier, [70, 0.72, 42], Math.PI, {
+      health: 29,
+      life: "disabled",
+      velocity: [0, 0, 0],
+    });
+    scenario.placeActor(ids.player, [70, 1.15, 50], Math.PI);
+
+    const events = scenario.step();
+
+    expect(scenario.state.vehicles.get(ids.courier)?.life).toBe("disabled");
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "interaction",
+        tag: AFTERLIGHT_TAGS.courierDisabled,
+      }),
+    );
+    expect(scenario.state.mission.completedObjectiveIds).toContain(
+      AFTERLIGHT_OBJECTIVE_IDS.disableCourier,
+    );
+  });
+
+  it("advances when the escort is cleared before the courier is disabled", () => {
+    const scenario = new AfterlightScenario();
+    const ids = AFTERLIGHT_ENTITY_IDS;
+    scenario.activateCourierChase();
+
+    for (const id of [ids.keyholderGuardA, ids.keyholderGuardB]) {
+      const guard = scenario.state.actors.get(id);
+      if (!guard) throw new Error(`missing keyholder guard ${id}`);
+      scenario.placeActor(id, guard.pose.position, guard.pose.rotationY, {
+        health: 0,
+        life: "down",
+      });
+    }
+
+    const courier = scenario.state.vehicles.get(ids.courier);
+    if (!courier) throw new Error("missing courier fixture");
+    scenario.placeVehicle(ids.courier, courier.pose.position, Math.PI, {
+      velocity: [0, 0, -14],
+    });
+    scenario.placeVehicle(ids.heroCoupe, courier.pose.position, Math.PI, {
+      occupiedBy: ids.player,
+      velocity: [0, 0, 26],
+    });
+    scenario.placeActor(ids.player, [
+      courier.pose.position[0],
+      1.15,
+      courier.pose.position[2],
+    ]);
+    scenario.step();
+
+    expect(scenario.state.mission.completedObjectiveIds).toContain(
+      AFTERLIGHT_OBJECTIVE_IDS.disableCourier,
+    );
+    expect(
+      scenario.state.inventory.has(AFTERLIGHT_ITEMS.keyholderSecured),
+    ).toBe(true);
+
+    const disabledCourier = scenario.state.vehicles.get(ids.courier);
+    if (!disabledCourier) throw new Error("missing disabled courier");
+    scenario.placeVehicle(ids.heroCoupe, [52, 0.72, 52], 0, {
+      occupiedBy: undefined,
+      velocity: [0, 0, 0],
+    });
+    scenario.placeActor(ids.player, [
+      disabledCourier.pose.position[0] + 2.6,
+      1.15,
+      disabledCourier.pose.position[2] + 0.8,
+    ]);
+    scenario.step();
+    scenario.step();
+
+    expect(scenario.state.inventory.has(AFTERLIGHT_ITEMS.vaultCredential)).toBe(
+      true,
+    );
+    expect(scenario.state.mission.phaseIndex).toBe(2);
+  });
+
   it("fires the Signal-9 through the shared physics query", () => {
     const initial = createInitialAfterlightState();
     const actors = new Map(initial.actors);
@@ -808,7 +895,8 @@ describe("Afterlight step", () => {
     const ids = AFTERLIGHT_ENTITY_IDS;
     scenario.placeActor(ids.player, AFTERLIGHT_LANDMARKS.vaultReader);
     scenario.step({ interactPressed: true });
-    scenario.step({ interactPressed: true });
+    scenario.placeActor(ids.player, AFTERLIGHT_LANDMARKS.vaultCore);
+    scenario.step();
     scenario.placeActor(ids.player, AFTERLIGHT_LANDMARKS.vaultExit);
     scenario.step();
 
@@ -827,13 +915,13 @@ describe("Afterlight step", () => {
     );
     scenario.step({ interactPressed: true });
     scenario.step();
-    scenario.stepMany(180);
+    scenario.stepMany(120);
 
     expect(scenario.state.mission.completed).toBe(true);
     expect(scenario.state.cash).toBe(3_000);
   });
 
-  it("completes Bridge Run after launch, pursuit search, and escape", () => {
+  it("completes Bridge Run as soon as the coupe clears the cordon", () => {
     const scenario = new AfterlightScenario("bridge-run");
     const ids = AFTERLIGHT_ENTITY_IDS;
     for (const id of [ids.policeA, ids.policeB, ids.policeC, ids.policeD]) {
@@ -858,8 +946,7 @@ describe("Afterlight step", () => {
       velocity: [0, 0, 0],
     });
     scenario.placeActor(ids.player, AFTERLIGHT_LANDMARKS.bridgeEscape);
-    scenario.stepMany(650);
-    expect(["search", "return"]).toContain(scenario.state.heat.mode);
+    scenario.stepMany(15);
     expect(scenario.state.mission.completedObjectiveIds).toContain(
       AFTERLIGHT_OBJECTIVE_IDS.escapeAfterlightRun,
     );
@@ -955,7 +1042,8 @@ describe("Afterlight step", () => {
     }
     scenario.placeActor(ids.player, [14, 1.15, -42], 0);
     scenario.step({ interactPressed: true });
-    scenario.step({ interactPressed: true });
+    scenario.placeActor(ids.player, AFTERLIGHT_LANDMARKS.vaultCore, 0);
+    scenario.step();
     expect(scenario.state.inventory.has(AFTERLIGHT_ITEMS.afterlightCore)).toBe(
       true,
     );
@@ -992,7 +1080,7 @@ describe("Afterlight step", () => {
       velocity: [0, 0, 0],
     });
     scenario.placeActor(ids.player, [0, 1.15, -218], 0);
-    scenario.stepMany(650);
+    scenario.stepMany(16);
     expect(scenario.state.mission.phaseIndex).toBe(5);
 
     scenario.placeVehicle(ids.heroCoupe, [0, 0.72, -232], 0, {

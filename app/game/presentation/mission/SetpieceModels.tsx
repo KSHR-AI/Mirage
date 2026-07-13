@@ -11,6 +11,7 @@ import {
   HeroCoupeModel,
   type ModelQuality,
 } from "../models";
+import { InstancedPrimitives } from "../city/InstancedPrimitives";
 import { INTERACTION_COLORS } from "./plan";
 import type {
   BlackoutSetpiecePlan,
@@ -26,6 +27,45 @@ const STEEL = "#263238";
 const DARK_STEEL = "#151d21";
 const CONCRETE = "#596064";
 const GLASS = "#b8e8ec";
+const BOOST_CANOPY_FRAME = Object.freeze([
+  ...[-1, 1].map((side) => ({
+    color: "#536366",
+    id: `boost-canopy-post-${side}`,
+    position: [side * 4.92, 2.32, -3.65] as const,
+    rotationY: 0,
+    scale: [0.28, 5.5, 0.28] as const,
+  })),
+  ...[-3.65, 3.65].map((z) => ({
+    color: "#536366",
+    id: `boost-canopy-cross-${z}`,
+    position: [0, 5.06, z] as const,
+    rotationY: 0,
+    scale: [10.16, 0.26, 0.3] as const,
+  })),
+  ...[-1, 1].map((side) => ({
+    color: "#536366",
+    id: `boost-canopy-rail-${side}`,
+    position: [side * 4.92, 5.06, 0] as const,
+    rotationY: 0,
+    scale: [0.3, 0.26, 7.3] as const,
+  })),
+]);
+const BOOST_YARD_EDGE_DETAILS = Object.freeze([
+  ...[-1, 1].map((side) => ({
+    color: "#4b5556",
+    id: `boost-yard-edge-${side}`,
+    position: [side * 6.72, -0.31, 0] as const,
+    rotationY: 0,
+    scale: [0.34, 0.26, 10.8] as const,
+  })),
+  ...[-1, 1].map((side) => ({
+    color: "#899493",
+    id: `boost-lane-stripe-${side}`,
+    position: [side * 2.82, -0.3, -0.1] as const,
+    rotationY: 0,
+    scale: [0.07, 0.025, 8.45] as const,
+  })),
+]);
 
 function StandardMaterial({
   color,
@@ -103,38 +143,17 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
           />
         </mesh>
 
-        {[-1, 1].map((side) => (
-          <group key={`boost-yard-edge-${side}`}>
-            <mesh position={[side * 6.72, -0.31, 0]}>
-              <boxGeometry args={[0.34, 0.26, 10.8]} />
-              <StandardMaterial
-                color="#4b5556"
-                metalness={0.28}
-                roughness={0.72}
-              />
-            </mesh>
-            <HazardStripe
-              color="#899493"
-              position={[side * 2.82, -0.3, -0.1]}
-              scale={[0.07, 0.025, 8.45]}
-            />
-          </group>
-        ))}
-
-        {[-1, 1].map((side) => (
-          <mesh
-            castShadow={shadows}
-            key={`boost-canopy-post-${side}`}
-            position={[side * 4.92, 2.32, -3.65]}
-          >
-            <boxGeometry args={[0.28, 5.5, 0.28]} />
-            <StandardMaterial
-              color="#5a696b"
-              metalness={0.54}
-              roughness={0.32}
-            />
-          </mesh>
-        ))}
+        <InstancedPrimitives
+          instances={BOOST_YARD_EDGE_DETAILS}
+          metalness={0.22}
+          roughness={0.72}
+        />
+        <InstancedPrimitives
+          castShadow={shadows}
+          instances={BOOST_CANOPY_FRAME}
+          metalness={0.54}
+          roughness={0.32}
+        />
 
         {decorated ? (
           <mesh position={[0, 5.04, 0]}>
@@ -149,32 +168,6 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
             />
           </mesh>
         ) : null}
-
-        {[-3.65, 3.65].map((z) => (
-          <mesh castShadow={shadows} key={z} position={[0, 5.06, z]}>
-            <boxGeometry args={[10.16, 0.26, 0.3]} />
-            <StandardMaterial
-              color="#536366"
-              metalness={0.56}
-              roughness={0.3}
-            />
-          </mesh>
-        ))}
-
-        {[-1, 1].map((side) => (
-          <mesh
-            castShadow={shadows}
-            key={`boost-canopy-rail-${side}`}
-            position={[side * 4.92, 5.06, 0]}
-          >
-            <boxGeometry args={[0.3, 0.26, 7.3]} />
-            <StandardMaterial
-              color="#536366"
-              metalness={0.56}
-              roughness={0.3}
-            />
-          </mesh>
-        ))}
 
         {[-1, 1].map((side) => (
           <group key={`boost-practical-${side}`}>

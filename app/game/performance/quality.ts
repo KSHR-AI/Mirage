@@ -54,7 +54,7 @@ const QUALITY_SETTINGS: Readonly<Record<GameQualityTier, GameQualitySettings>> =
       shadows: false,
       shadowMapSize: 512,
       trafficCount: 6,
-      civilianCount: 6,
+      civilianCount: 4,
       policeUnitCap: 2,
       buildingDetail: 0.55,
       particles: 28,

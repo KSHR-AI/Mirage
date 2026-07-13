@@ -280,7 +280,7 @@ function createCourierPlan(
     cues.push(
       cue(
         "courier-take-credential",
-        "interact",
+        "target",
         "lime",
         offset(courierPosition, 2.6, 0.1, 0.8),
         1.5,
@@ -354,13 +354,7 @@ function createVaultPlan(
     );
   } else if (!hasCore) {
     cues.push(
-      cue(
-        "vault-core",
-        "interact",
-        "lime",
-        offset(AFTERLIGHT_SETPIECE_ANCHORS.vaultReader, 5.8, 0.2, 0),
-        1.35,
-      ),
+      cue("vault-core", "target", "lime", AFTERLIGHT_LANDMARKS.vaultCore, 1.35),
     );
   } else if (!clearVault) {
     cues.push(
@@ -509,11 +503,10 @@ function createPursuitPlan(
     cues.push(
       cue(
         "afterlight-run-launch",
-        "interact",
+        "destination",
         "lime",
         AFTERLIGHT_SETPIECE_ANCHORS.bridgeLaunch,
         3.2,
-        AFTERLIGHT_TAGS.startRun,
       ),
     );
   } else if (!escaped) {
@@ -590,11 +583,10 @@ function createSafehousePlan(
     cues.push(
       cue(
         "safehouse-deliver-core",
-        "interact",
+        "destination",
         "lime",
         AFTERLIGHT_SETPIECE_ANCHORS.safehouse,
         2.2,
-        AFTERLIGHT_TAGS.deliverCore,
       ),
     );
   } else if (!delivered) {

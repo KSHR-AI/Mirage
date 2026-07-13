@@ -50,6 +50,7 @@ describe("quality selection", () => {
     });
     expect(qualitySettings("high").dpr).toEqual([1, 1.1]);
     expect(qualitySettings("low").dpr[1]).toBeLessThanOrEqual(1);
+    expect(qualitySettings("low").civilianCount).toBe(4);
     expect(Object.isFrozen(qualitySettings("medium"))).toBe(true);
   });
 });

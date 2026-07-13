@@ -729,7 +729,6 @@ export class AfterlightStepController {
     }
 
     const startingAfterlightRun =
-      input.interactPressed &&
       phaseId === AFTERLIGHT_PHASE_IDS.run &&
       driving &&
       isNear(hero.pose.position, AFTERLIGHT_LANDMARKS.bridgeLaunch, 9) &&
@@ -870,6 +869,23 @@ export class AfterlightStepController {
       );
     }
 
+    this.handleCourierStopped(
+      phaseId,
+      completed,
+      collections,
+      events,
+      context.tick,
+    );
+    this.handleAutomaticMissionProgress(
+      phaseId,
+      completed,
+      collections,
+      events,
+      context.tick,
+      collections.actors.get(player.id) ?? player,
+      driving,
+    );
+
     player = collections.actors.get(player.id) ?? player;
     hero = collections.vehicles.get(hero.id) ?? hero;
     if (hero.life === "destroyed" && hero.occupiedBy === player.id) {
@@ -940,22 +956,6 @@ export class AfterlightStepController {
     player: ActorState,
     driving: boolean,
   ): void {
-    if (phaseId === AFTERLIGHT_PHASE_IDS.keyholder && !driving) {
-      const courier = collections.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier);
-      if (
-        courier?.life === "disabled" &&
-        isNear(player.pose.position, courier.pose.position) &&
-        alive(collections.actors, KEYHOLDER_GUARDS).length === 0 &&
-        !collections.inventory.has(AFTERLIGHT_ITEMS.vaultCredential)
-      ) {
-        collections.inventory.add(AFTERLIGHT_ITEMS.vaultCredential);
-        events.push(
-          itemEvent(tick, player.id, AFTERLIGHT_ITEMS.vaultCredential),
-        );
-      }
-      return;
-    }
-
     if (
       phaseId === AFTERLIGHT_PHASE_IDS.vault &&
       !driving &&
@@ -969,26 +969,6 @@ export class AfterlightStepController {
           interactionEvent(tick, player.id, AFTERLIGHT_TAGS.openVault),
         );
         return;
-      }
-
-      if (completed.has(AFTERLIGHT_OBJECTIVE_IDS.openVault)) {
-        if (!collections.inventory.has(AFTERLIGHT_ITEMS.bearerBonds)) {
-          collections.inventory.add(AFTERLIGHT_ITEMS.bearerBonds);
-          events.push(itemEvent(tick, player.id, AFTERLIGHT_ITEMS.bearerBonds));
-        }
-        if (!collections.inventory.has(AFTERLIGHT_ITEMS.afterlightCore)) {
-          collections.inventory.add(AFTERLIGHT_ITEMS.afterlightCore);
-          events.push(
-            itemEvent(tick, player.id, AFTERLIGHT_ITEMS.afterlightCore),
-          );
-          const crime = witnessedCrime(
-            tick,
-            "core-theft",
-            player.pose.position,
-            collections.actors,
-          );
-          if (crime) events.push(crime);
-        }
       }
       return;
     }
@@ -1008,10 +988,103 @@ export class AfterlightStepController {
       );
       return;
     }
+  }
+
+  private handleCourierStopped(
+    phaseId: string,
+    completed: ReadonlySet<string>,
+    collections: StepCollections,
+    events: GameEvent[],
+    tick: number,
+  ): void {
+    const alreadyEmitted = events.some(
+      (event) =>
+        event.type === "interaction" &&
+        event.tag === AFTERLIGHT_TAGS.courierDisabled,
+    );
+    const courier = collections.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier);
+    if (
+      phaseId !== AFTERLIGHT_PHASE_IDS.keyholder ||
+      completed.has(AFTERLIGHT_OBJECTIVE_IDS.disableCourier) ||
+      !courier ||
+      courier.life === "active" ||
+      alreadyEmitted
+    ) {
+      return;
+    }
+    events.push(
+      interactionEvent(
+        tick,
+        AFTERLIGHT_ENTITY_IDS.player,
+        AFTERLIGHT_TAGS.courierDisabled,
+        courier.id,
+      ),
+    );
+  }
+
+  private handleAutomaticMissionProgress(
+    phaseId: string,
+    completed: ReadonlySet<string>,
+    collections: StepCollections,
+    events: GameEvent[],
+    tick: number,
+    player: ActorState,
+    driving: boolean,
+  ): void {
+    if (phaseId === AFTERLIGHT_PHASE_IDS.keyholder) {
+      const courier = collections.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier);
+      const keyholderSecured =
+        courier?.life !== "active" &&
+        alive(collections.actors, KEYHOLDER_GUARDS).length === 0;
+      if (!courier || !keyholderSecured) return;
+
+      collections.inventory.add(AFTERLIGHT_ITEMS.keyholderSecured);
+      const credentialPosition: Vec3 = [
+        courier.pose.position[0] + 2.6,
+        courier.pose.position[1] + 0.1,
+        courier.pose.position[2] + 0.8,
+      ];
+      if (
+        !driving &&
+        isNear(player.pose.position, credentialPosition, 3.25) &&
+        !collections.inventory.has(AFTERLIGHT_ITEMS.vaultCredential)
+      ) {
+        collections.inventory.add(AFTERLIGHT_ITEMS.vaultCredential);
+        events.push(
+          itemEvent(tick, player.id, AFTERLIGHT_ITEMS.vaultCredential),
+        );
+      }
+      return;
+    }
+
+    if (
+      phaseId === AFTERLIGHT_PHASE_IDS.vault &&
+      !driving &&
+      completed.has(AFTERLIGHT_OBJECTIVE_IDS.openVault) &&
+      isNear(player.pose.position, AFTERLIGHT_LANDMARKS.vaultCore, 2.6) &&
+      !collections.inventory.has(AFTERLIGHT_ITEMS.afterlightCore)
+    ) {
+      if (!collections.inventory.has(AFTERLIGHT_ITEMS.bearerBonds)) {
+        collections.inventory.add(AFTERLIGHT_ITEMS.bearerBonds);
+        events.push(itemEvent(tick, player.id, AFTERLIGHT_ITEMS.bearerBonds));
+      }
+      collections.inventory.add(AFTERLIGHT_ITEMS.afterlightCore);
+      events.push(itemEvent(tick, player.id, AFTERLIGHT_ITEMS.afterlightCore));
+      const crime = witnessedCrime(
+        tick,
+        "core-theft",
+        player.pose.position,
+        collections.actors,
+      );
+      if (crime) events.push(crime);
+      return;
+    }
 
     if (
       phaseId === AFTERLIGHT_PHASE_IDS.debrief &&
-      isNear(player.pose.position, AFTERLIGHT_LANDMARKS.safehouse, 10) &&
+      !driving &&
+      completed.has(AFTERLIGHT_OBJECTIVE_IDS.reachDebrief) &&
+      isNear(player.pose.position, AFTERLIGHT_LANDMARKS.safehouse, 4) &&
       collections.inventory.has(AFTERLIGHT_ITEMS.afterlightCore) &&
       !completed.has(AFTERLIGHT_OBJECTIVE_IDS.deliverAfterlightCore)
     ) {

@@ -96,11 +96,11 @@ describe("Afterlight HUD objective progress", () => {
 
     expect(objectiveProgress[AFTERLIGHT_OBJECTIVE_IDS.holdBlackout]).toEqual({
       current: 90,
-      total: 180,
+      total: 120,
     });
   });
 
-  it("maps bridge loss-of-sight ticks directly from the snapshot", () => {
+  it("does not show a wait timer for the bridge finish", () => {
     const tracker = new AfterlightHudProgressTracker();
     const objectiveProgress = tracker.sample(
       definition,
@@ -114,10 +114,7 @@ describe("Afterlight HUD objective progress", () => {
 
     expect(
       objectiveProgress[AFTERLIGHT_OBJECTIVE_IDS.escapeAfterlightRun],
-    ).toEqual({
-      current: 599,
-      total: 600,
-    });
+    ).toBeUndefined();
   });
 
   it("accumulates explicit count gates and resets them between phases", () => {

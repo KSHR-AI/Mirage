@@ -124,6 +124,7 @@ export const AFTERLIGHT_LANDMARKS = Object.freeze({
   missionIntercept: [70, 1.15, 42] as Vec3,
   courierRouteStart: [70, 0.72, 42] as Vec3,
   vaultReader: [14, 1.15, -42] as Vec3,
+  vaultCore: [19.8, 1.15, -42] as Vec3,
   vaultExit: [14, 1.15, -30] as Vec3,
   substationControl: [-70, 1.15, -42] as Vec3,
   bridgeLaunch: [0, 0.72, -114] as Vec3,

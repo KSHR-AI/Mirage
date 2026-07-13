@@ -3,10 +3,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { lazy, memo, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import {
-  AFTERLIGHT_ENTITY_IDS,
-  AFTERLIGHT_LANDMARKS,
-} from "../game/core/afterlight-state";
+import { AFTERLIGHT_ENTITY_IDS } from "../game/core/afterlight-state";
 import type {
   ActorState,
   GameState,
@@ -865,7 +862,8 @@ export const AfterlightScene = memo(function AfterlightScene({
               targetPosition={targetPose.position}
             />
           ) : null}
-          {!ambientLifeInspection ? (
+          {!ambientLifeInspection &&
+          (quality !== "low" || socialLifeInspection) ? (
             <AmbientSocialLife
               inspection={socialLifeInspection}
               quality={quality}
@@ -990,13 +988,4 @@ export const AfterlightScene = memo(function AfterlightScene({
       ) : null}
     </>
   );
-});
-
-export const AFTERLIGHT_SCENE_TARGETS = Object.freeze({
-  [AFTERLIGHT_PHASE_IDS.boost]: AFTERLIGHT_LANDMARKS.boostYard,
-  [AFTERLIGHT_PHASE_IDS.keyholder]: AFTERLIGHT_LANDMARKS.courierRouteStart,
-  [AFTERLIGHT_PHASE_IDS.vault]: AFTERLIGHT_LANDMARKS.vaultReader,
-  [AFTERLIGHT_PHASE_IDS.blackout]: AFTERLIGHT_LANDMARKS.substationControl,
-  [AFTERLIGHT_PHASE_IDS.run]: AFTERLIGHT_LANDMARKS.bridgeLaunch,
-  [AFTERLIGHT_PHASE_IDS.debrief]: AFTERLIGHT_LANDMARKS.safehouse,
 });

@@ -60,7 +60,6 @@ import {
   type RemappableKeyboardAction,
 } from "../game/input/input-buffer";
 import { prefersTouchControls } from "../game/input/device-profile";
-import { AFTERLIGHT_PHASE_IDS } from "../game/missions/afterlight-job";
 import {
   AFTERLIGHT_CONTRACTS,
   DEFAULT_AFTERLIGHT_CONTRACT_ID,
@@ -127,6 +126,7 @@ import {
   type HudNotification,
   type HudObjectiveProgressById,
 } from "../game/presentation/hud";
+import { resolveAfterlightMissionTarget } from "../game/presentation/hud/mission-target";
 import type { AfterlightVfxEvent } from "../game/presentation/vfx";
 import {
   ReplaySessionRecorder,
@@ -135,7 +135,7 @@ import {
   type RunScore,
 } from "../game/replay";
 import { sampleAfterlightCharacterGround } from "../game/world/afterlight-character-world";
-import { AfterlightScene, AFTERLIGHT_SCENE_TARGETS } from "./AfterlightScene";
+import { AfterlightScene } from "./AfterlightScene";
 
 interface SessionView {
   readonly state: GameState;
@@ -306,34 +306,6 @@ function createMapRoads(): readonly HudMapRoad[] {
 
 const MAP_ROADS = createMapRoads();
 
-function phaseTarget(
-  state: GameState,
-  definition: AfterlightMissionDefinition,
-): Vec3 {
-  const phase = definition.phases[state.mission.phaseIndex];
-  const completed = new Set(state.mission.completedObjectiveIds);
-  if (phase.id === AFTERLIGHT_PHASE_IDS.boost) {
-    return completed.has("steal-coupe")
-      ? AFTERLIGHT_LANDMARKS.missionIntercept
-      : AFTERLIGHT_LANDMARKS.boostYard;
-  }
-  if (phase.id === AFTERLIGHT_PHASE_IDS.vault) {
-    return completed.has("take-afterlight-core")
-      ? AFTERLIGHT_LANDMARKS.vaultExit
-      : AFTERLIGHT_LANDMARKS.vaultReader;
-  }
-  if (phase.id === AFTERLIGHT_PHASE_IDS.run) {
-    return completed.has("start-afterlight-run")
-      ? AFTERLIGHT_LANDMARKS.bridgeEscape
-      : AFTERLIGHT_LANDMARKS.bridgeLaunch;
-  }
-  return (
-    AFTERLIGHT_SCENE_TARGETS[
-      phase.id as keyof typeof AFTERLIGHT_SCENE_TARGETS
-    ] ?? AFTERLIGHT_LANDMARKS.boostYard
-  );
-}
-
 function activePlayerPosition(state: GameState): Vec3 {
   const player = state.actors.get(state.playerId);
   const hero = state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
@@ -389,6 +361,7 @@ function minimapForState(
   const driving = hero?.occupiedBy === state.playerId;
   const heading = driving ? hero?.pose.rotationY : player?.pose.rotationY;
   const phase = definition.phases[state.mission.phaseIndex];
+  const missionTarget = resolveAfterlightMissionTarget(state, definition);
   const police = POLICE_ENTITY_IDS.slice(
     0,
     activeAfterlightPoliceCount(
@@ -414,9 +387,9 @@ function minimapForState(
     player: worldToMap(position),
     headingDegrees: ((heading ?? 0) * 180) / Math.PI,
     target: {
-      id: "target-" + state.mission.phaseIndex,
-      label: phase.chapter,
-      ...worldToMap(phaseTarget(state, definition)),
+      id: "target-" + missionTarget.objectiveId,
+      label: missionTarget.label,
+      ...worldToMap(missionTarget.position),
     },
     police,
     roads: MAP_ROADS,

@@ -145,13 +145,19 @@ export const AFTERLIGHT_PHASE_CONTENT = {
     location: "soma",
     briefing: line(
       "afterlight:phase:boost:briefing",
-      "Fog is lifting. Take the prototype coupe before the yard wakes.",
+      "Morning traffic is building. Take the prototype coupe before the yard locks down.",
     ),
     activeObjectives: [
       objective(AFTERLIGHT_OBJECTIVE_IDS.stealCoupe, "Steal the car."),
-      objective(AFTERLIGHT_OBJECTIVE_IDS.learnDriving, "Drive through SoMa."),
+      objective(
+        AFTERLIGHT_OBJECTIVE_IDS.learnDriving,
+        "Open it up through SoMa.",
+      ),
       objective(AFTERLIGHT_OBJECTIVE_IDS.cleanBoost, "Lose the cops."),
-      objective(AFTERLIGHT_OBJECTIVE_IDS.reachMission, "Go to the meet."),
+      objective(
+        AFTERLIGHT_OBJECTIVE_IDS.reachMission,
+        "Reach the Mission intercept.",
+      ),
     ],
     successSting: line(
       "afterlight:phase:boost:success",
@@ -175,14 +181,14 @@ export const AFTERLIGHT_PHASE_CONTENT = {
       "The courier carries the only vault credential. Fold the route, then collect.",
     ),
     activeObjectives: [
-      objective(AFTERLIGHT_OBJECTIVE_IDS.disableCourier, "Stop the courier."),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.disableCourier, "Ram the courier."),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.defeatKeyholderGuards,
-        "Take out the guards.",
+        "Clear the escort.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.takeVaultCredential,
-        "Collect the keycard.",
+        "Recover the vault credential.",
       ),
     ],
     successSting: line(
@@ -207,10 +213,19 @@ export const AFTERLIGHT_PHASE_CONTENT = {
       "Afterlight sleeps below the tide line. Open the vault and leave with the core.",
     ),
     activeObjectives: [
-      objective(AFTERLIGHT_OBJECTIVE_IDS.openVault, "Open the vault."),
-      objective(AFTERLIGHT_OBJECTIVE_IDS.takeBearerBonds, "Take the bonds."),
-      objective(AFTERLIGHT_OBJECTIVE_IDS.takeAfterlightCore, "Steal the core."),
-      objective(AFTERLIGHT_OBJECTIVE_IDS.clearVault, "Leave the vault."),
+      objective(AFTERLIGHT_OBJECTIVE_IDS.openVault, "Use the credential."),
+      objective(
+        AFTERLIGHT_OBJECTIVE_IDS.takeBearerBonds,
+        "Take the bearer bonds.",
+      ),
+      objective(
+        AFTERLIGHT_OBJECTIVE_IDS.takeAfterlightCore,
+        "Secure the Afterlight core.",
+      ),
+      objective(
+        AFTERLIGHT_OBJECTIVE_IDS.clearVault,
+        "Get back to street level.",
+      ),
     ],
     successSting: line(
       "afterlight:phase:vault:success",
@@ -236,13 +251,16 @@ export const AFTERLIGHT_PHASE_CONTENT = {
     activeObjectives: [
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.primeBlackout,
-        "Overload the substation.",
+        "Prime the grid overload.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.disableBackup,
-        "Destroy the backup vehicles.",
+        "Disable response vehicles.",
       ),
-      objective(AFTERLIGHT_OBJECTIVE_IDS.holdBlackout, "Hold your position."),
+      objective(
+        AFTERLIGHT_OBJECTIVE_IDS.holdBlackout,
+        "Hold through the surge.",
+      ),
     ],
     successSting: line(
       "afterlight:phase:blackout:success",
@@ -268,20 +286,20 @@ export const AFTERLIGHT_PHASE_CONTENT = {
     activeObjectives: [
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.startAfterlightRun,
-        "Get to the bridge.",
+        "Enter the bridge approach.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.breakInterceptors,
-        "Lose the interceptors.",
+        "Disable the interceptors.",
       ),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.escapeAfterlightRun,
-        "Escape across the bridge.",
+        "Cross the Golden Gate.",
       ),
     ],
     successSting: line(
       "afterlight:phase:afterlight-run:success",
-      "Sirens behind you. Fog ahead.",
+      "Cordon behind you. Marin ahead.",
     ),
     checkpoint: line(
       "afterlight:phase:afterlight-run:checkpoint",
@@ -298,14 +316,17 @@ export const AFTERLIGHT_PHASE_CONTENT = {
     location: "marin-safehouse",
     briefing: line(
       "afterlight:phase:debrief:briefing",
-      "Bring the core inside. No headlights, no loose ends.",
+      "Bring the core inside. Keep the street clean and the handoff quiet.",
     ),
     activeObjectives: [
-      objective(AFTERLIGHT_OBJECTIVE_IDS.reachDebrief, "Go to the safehouse."),
+      objective(
+        AFTERLIGHT_OBJECTIVE_IDS.reachDebrief,
+        "Leave the coupe at the safehouse.",
+      ),
       objective(AFTERLIGHT_OBJECTIVE_IDS.keepBearerBonds, "Keep the bonds."),
       objective(
         AFTERLIGHT_OBJECTIVE_IDS.deliverAfterlightCore,
-        "Deliver the core.",
+        "Bring the core inside.",
       ),
     ],
     successSting: line(
@@ -314,7 +335,7 @@ export const AFTERLIGHT_PHASE_CONTENT = {
     ),
     checkpoint: line(
       "afterlight:phase:debrief:checkpoint",
-      "Job complete. Dawn can have what's left.",
+      "Job complete. The city can have what's left.",
     ),
     failureRetry: line(
       "afterlight:phase:debrief:failure",
@@ -331,11 +352,11 @@ export const AFTERLIGHT_RADIO_CUES = {
     lines: [
       line(
         "afterlight:radio:mission-accepted:01",
-        "The fog is our clock. Move when the yard light turns green.",
+        "Morning traffic is our cover. Move when the yard light turns green.",
       ),
       line(
         "afterlight:radio:mission-accepted:02",
-        "Dawn is late. Take the coupe and make the city earn its sleep.",
+        "Day shift is changing. Take the coupe before the gate rolls shut.",
       ),
     ],
   },
@@ -361,7 +382,7 @@ export const AFTERLIGHT_RADIO_CUES = {
     lines: [
       line(
         "afterlight:radio:vehicle-theft-witnessed:01",
-        "All units, midnight coupe reported stolen in SoMa.",
+        "All units, red prototype coupe reported stolen in SoMa.",
       ),
       line(
         "afterlight:radio:vehicle-theft-witnessed:02",
@@ -455,7 +476,7 @@ export const AFTERLIGHT_RADIO_CUES = {
       ),
       line(
         "afterlight:radio:pursuit-engaged:02",
-        "Dark coupe, pull over now. Do not test the bridge.",
+        "Red coupe, pull over now. Do not test the bridge.",
       ),
     ],
   },
@@ -481,7 +502,7 @@ export const AFTERLIGHT_RADIO_CUES = {
     lines: [
       line(
         "afterlight:radio:pursuit-suspect-lost:01",
-        "Visual lost in the fog. Hold the last known line.",
+        "Visual lost beyond the north span. Hold the last known line.",
       ),
       line(
         "afterlight:radio:pursuit-suspect-lost:02",

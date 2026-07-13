@@ -193,7 +193,7 @@ describe("afterlight mission setpiece plan", () => {
     expect(cleared.credentialVisible).toBe(true);
     expect(cleared.cues[0]).toMatchObject({
       id: "courier-take-credential",
-      kind: "interact",
+      kind: "target",
       tone: "lime",
     });
 
@@ -291,8 +291,8 @@ describe("afterlight mission setpiece plan", () => {
       expect(staging.roadblocks).toEqual([]);
       expect(staging.cues[0]).toMatchObject({
         id: "afterlight-run-launch",
+        kind: "destination",
         tone: "lime",
-        interactionTag: AFTERLIGHT_TAGS.startRun,
       });
 
       const launched = planFor(AFTERLIGHT_PHASE_IDS.run, {
@@ -345,9 +345,8 @@ describe("afterlight mission setpiece plan", () => {
     expect(delivery.bondsRetained).toBe(true);
     expect(delivery.cues[0]).toMatchObject({
       id: "safehouse-deliver-core",
-      kind: "interact",
+      kind: "destination",
       tone: "lime",
-      interactionTag: AFTERLIGHT_TAGS.deliverCore,
     });
 
     const delivered = planFor(AFTERLIGHT_PHASE_IDS.debrief, {
