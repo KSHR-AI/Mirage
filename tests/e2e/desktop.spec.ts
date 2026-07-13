@@ -255,6 +255,7 @@ test("keeps mouse-look and camera-relative movement in a narrow desktop window",
 
   const shell = page.getByTestId("afterlight-game");
   const inputSurface = page.locator(".game-input-surface");
+  await expect(shell).toHaveAttribute("data-opening-cinematic", "true");
   await expect(page.locator('[aria-label="Touch game controls"]')).toHaveCount(
     0,
   );
@@ -284,6 +285,7 @@ test("keeps mouse-look and camera-relative movement in a narrow desktop window",
     pointerId: 77,
     pointerType: "mouse",
   });
+  await expect(shell).toHaveAttribute("data-opening-cinematic", "false");
   await expect
     .poll(async () => Number(await shell.getAttribute("data-camera-yaw")))
     .not.toBe(yawBefore);

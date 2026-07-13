@@ -991,6 +991,14 @@
   background: var(--hud-white);
 }
 
+.primaryAction:disabled {
+  border-color: rgba(216, 255, 98, 0.38);
+  background: rgba(216, 255, 98, 0.18);
+  color: rgba(240, 244, 236, 0.58);
+  box-shadow: none;
+  cursor: wait;
+}
+
 .secondaryAction {
   border: 1px solid var(--hud-line);
   background: rgba(7, 19, 23, 0.64);

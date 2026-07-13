@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  applyOpeningCameraAspect,
   applyControlledCameraOrientation,
   cameraDampingAlpha,
   consumeAfterlightCameraImpulses,
@@ -146,6 +147,38 @@ describe("Afterlight camera profiles", () => {
     expect(intro.distance).toBeGreaterThan(debrief.distance);
     expect(intro.yawOffset).toBeLessThan(0);
     expect(debrief.yawOffset).toBeGreaterThan(0);
+  });
+
+  it("stages the opening between the title vista and shoulder camera", () => {
+    const intro = profile();
+    const opening = profile();
+    const onFoot = profile();
+    resolveAfterlightCameraProfile(intro, "intro", false, 0, false);
+    resolveAfterlightCameraProfile(opening, "opening", false, 0, false);
+    resolveAfterlightCameraProfile(onFoot, "on-foot", false, 0, false);
+
+    expect(opening.distance).toBeLessThan(intro.distance);
+    expect(opening.distance).toBeGreaterThan(onFoot.distance);
+    expect(opening.pivotHeight).toBeLessThan(intro.pivotHeight);
+    expect(opening.yawOffset).toBeLessThan(0);
+  });
+
+  it("widens only the opening frame for portrait viewports", () => {
+    const landscape = profile();
+    const portrait = profile();
+    const regular = profile();
+    resolveAfterlightCameraProfile(landscape, "opening", false, 0, false);
+    resolveAfterlightCameraProfile(portrait, "opening", false, 0, false);
+    resolveAfterlightCameraProfile(regular, "on-foot", false, 0, false);
+    const regularDistance = regular.distance;
+
+    applyOpeningCameraAspect(landscape, "opening", 16 / 9);
+    applyOpeningCameraAspect(portrait, "opening", 390 / 844);
+    applyOpeningCameraAspect(regular, "on-foot", 390 / 844);
+
+    expect(portrait.distance).toBeGreaterThan(landscape.distance + 5);
+    expect(portrait.fov).toBeGreaterThan(landscape.fov);
+    expect(regular.distance).toBe(regularDistance);
   });
 });
 

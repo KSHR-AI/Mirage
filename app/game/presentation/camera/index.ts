@@ -1,5 +1,10 @@
 export { AfterlightCameraRig } from "./AfterlightCameraRig";
 export {
+  AFTERLIGHT_OPENING_CINEMATIC_TICKS,
+  hasOpeningCinematicInput,
+  shouldFinishOpeningCinematic,
+} from "./opening";
+export {
   collectCameraCollisionRoots,
   nearestCameraCollisionDistance,
   probeCameraCollisionDistance,

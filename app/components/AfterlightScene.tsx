@@ -69,6 +69,7 @@ export interface AfterlightSceneProps {
   readonly snapshot: RenderSnapshot;
   readonly input: InputFrame;
   readonly started: boolean;
+  readonly openingCinematic?: boolean;
   readonly paused: boolean;
   readonly reducedMotion: boolean;
   readonly quality: GameQualityTier;
@@ -404,6 +405,7 @@ export const AfterlightScene = memo(function AfterlightScene({
   snapshot,
   input,
   started,
+  openingCinematic = false,
   paused,
   reducedMotion,
   quality,
@@ -551,15 +553,26 @@ export const AfterlightScene = memo(function AfterlightScene({
           position: actorVisualPosition(player.pose.position),
           rotationY: player.pose.rotationY,
         };
-  const cameraTargetPose = inspectionPose ?? targetPose;
+  const openingTargetPose: Pose = {
+    position: [
+      player.pose.position[0] * 0.62 + hero.pose.position[0] * 0.38,
+      actorVisualPosition(player.pose.position)[1],
+      player.pose.position[2] * 0.62 + hero.pose.position[2] * 0.38,
+    ],
+    rotationY: player.pose.rotationY,
+  };
+  const cameraTargetPose =
+    inspectionPose ?? (openingCinematic ? openingTargetPose : targetPose);
   const speed = planarSpeed(driving ? hero.velocity : player.velocity);
   const cameraMode = !started
     ? "intro"
-    : state.mission.completed
-      ? "debrief"
-      : driving
-        ? "vehicle"
-        : "on-foot";
+    : openingCinematic
+      ? "opening"
+      : state.mission.completed
+        ? "debrief"
+        : driving
+          ? "vehicle"
+          : "on-foot";
   const disabledVehicles = snapshot.vehicles
     .filter((vehicle) => vehicle.life !== "active")
     .map((vehicle) => ({

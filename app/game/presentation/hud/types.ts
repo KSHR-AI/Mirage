@@ -107,6 +107,7 @@ export interface MirageIntroOverlayProps {
   readonly visible?: boolean;
   readonly inputMode?: "desktop" | "touch";
   readonly canContinue?: boolean;
+  readonly ready?: boolean;
   readonly onStart: () => void;
   readonly onContinue?: () => void;
 }

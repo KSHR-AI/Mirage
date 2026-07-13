@@ -19,6 +19,7 @@ export {
   type AuthoredPoliceCoupeModelProps,
   type AuthoredTrafficCoupeModelProps,
 } from "./authored-hero-coupe";
+export { OpeningAssetPreload } from "./OpeningAssetPreload";
 export {
   clampPresentationSignal,
   getAgentAppearance,

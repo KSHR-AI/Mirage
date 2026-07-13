@@ -1,6 +1,11 @@
 import type { Pose, Vec2 } from "../../core/contracts";
 
-export type AfterlightCameraMode = "on-foot" | "vehicle" | "intro" | "debrief";
+export type AfterlightCameraMode =
+  | "on-foot"
+  | "vehicle"
+  | "intro"
+  | "opening"
+  | "debrief";
 
 export type AfterlightCameraLookMode = "axis" | "delta";
 

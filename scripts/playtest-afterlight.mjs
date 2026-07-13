@@ -17,6 +17,7 @@ const VALID_SCENARIOS = new Set([
   "desktop",
   "narrow",
   "mobile",
+  "opening",
   "route",
 ]);
 
@@ -45,7 +46,7 @@ function parseArguments(argv) {
 }
 
 function usage() {
-  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, compact, desktop, narrow, mobile, or route\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
+  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, compact, desktop, narrow, mobile, opening, or route\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
 }
 
 function timestamp() {
@@ -567,6 +568,154 @@ async function routeInspectionScenario(
       }
       await capture(scenario, page, outDir, inspection.capture);
       await inspectCanvas(scenario, page, outDir, inspection.capture);
+    }
+    addCheck(scenario, "runtime-errors", errors.length === 0, errors, "none");
+    completeScenario(scenario);
+  } catch (error) {
+    failScenario(scenario, error);
+    await capture(scenario, page, outDir, "failure").catch(() => undefined);
+  } finally {
+    scenario.browserErrors = errors;
+    scenario.durationMs = Date.now() - startedAt;
+    if (!headed) await context.close();
+  }
+  return scenario;
+}
+
+async function openingCinematicScenario(
+  browser,
+  baseURL,
+  outDir,
+  headed,
+  mobile,
+) {
+  const scenario = {
+    checks: [],
+    id: mobile ? "opening-cinematic-mobile" : "opening-cinematic-desktop",
+    screenshots: [],
+  };
+  const startedAt = Date.now();
+  const context = await browser.newContext({
+    baseURL,
+    ...(mobile
+      ? {
+          deviceScaleFactor: 2.75,
+          hasTouch: true,
+          isMobile: true,
+          viewport: { height: 844, width: 390 },
+        }
+      : { viewport: { height: 720, width: 1280 } }),
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => errors.push(`page: ${error.message}`));
+  await page.addInitScript((touchEnabled) => {
+    Object.defineProperty(navigator, "hardwareConcurrency", {
+      configurable: true,
+      value: 4,
+    });
+    Object.defineProperty(navigator, "deviceMemory", {
+      configurable: true,
+      value: 4,
+    });
+    if (!touchEnabled) return;
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      value: 5,
+    });
+    HTMLElement.prototype.setPointerCapture = () => undefined;
+    HTMLElement.prototype.releasePointerCapture = () => undefined;
+  }, mobile);
+
+  try {
+    await page.goto("/", {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    const shell = page.getByTestId("afterlight-game");
+    await page.getByRole("button", { name: "Start the job" }).click();
+    await shell.waitFor({ state: "visible", timeout: 30_000 });
+    await waitForAttribute(
+      page,
+      shell,
+      "opening-assets-ready",
+      (value) => value === "true",
+      30_000,
+    );
+    addCheck(
+      scenario,
+      "opening-assets-ready",
+      true,
+      "true",
+      "true before entry",
+    );
+    await waitForAttribute(
+      page,
+      shell,
+      "opening-cinematic",
+      (value) => value === "true",
+      5_000,
+    );
+    await page.waitForTimeout(220);
+    const openingBeforeInput = await shell.getAttribute(
+      "data-opening-cinematic",
+    );
+    addCheck(
+      scenario,
+      "opening-cinematic-active",
+      openingBeforeInput === "true",
+      openingBeforeInput,
+      "true",
+    );
+    await capture(scenario, page, outDir, "opening");
+    await inspectCanvas(scenario, page, outDir, "opening");
+
+    if (mobile) {
+      const sprint = page.getByRole("button", { name: "Sprint", exact: true });
+      await sprint.dispatchEvent("pointerdown", {
+        bubbles: true,
+        isPrimary: true,
+        pointerId: 41,
+        pointerType: "touch",
+      });
+      await page.waitForTimeout(40);
+      await sprint.dispatchEvent("pointerup", {
+        bubbles: true,
+        isPrimary: true,
+        pointerId: 41,
+        pointerType: "touch",
+      });
+    } else {
+      await page.keyboard.press("w");
+    }
+    await waitForAttribute(
+      page,
+      shell,
+      "opening-cinematic",
+      (value) => value === "false",
+      5_000,
+    );
+    addCheck(
+      scenario,
+      "opening-input-cancel",
+      true,
+      "false",
+      "false after first input",
+    );
+    if (mobile) {
+      const touchControls = await page
+        .locator('[aria-label="Touch game controls"]')
+        .isVisible();
+      addCheck(
+        scenario,
+        "opening-touch-controls",
+        touchControls,
+        touchControls,
+        "visible",
+      );
     }
     addCheck(scenario, "runtime-errors", errors.length === 0, errors, "none");
     completeScenario(scenario);
@@ -1577,6 +1726,26 @@ async function main() {
           options.headed,
         ),
       );
+    if (["all", "opening"].includes(options.scenario)) {
+      scenarios.push(
+        await openingCinematicScenario(
+          browser,
+          options.url,
+          outDir,
+          options.headed,
+          false,
+        ),
+      );
+      scenarios.push(
+        await openingCinematicScenario(
+          browser,
+          options.url,
+          outDir,
+          options.headed,
+          true,
+        ),
+      );
+    }
     if (options.scenario === "route") {
       scenarios.push(
         await routeInspectionScenario(

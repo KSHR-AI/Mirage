@@ -17,6 +17,7 @@ import {
 } from "./collision";
 
 import {
+  applyOpeningCameraAspect,
   applyControlledCameraOrientation,
   consumeAfterlightCameraImpulses,
   dampAfterlightCameraFrame,
@@ -189,6 +190,7 @@ export function AfterlightCameraRig({
 }: AfterlightCameraRigProps) {
   const camera = useThree((state) => state.camera);
   const scene = useThree((state) => state.scene);
+  const aspect = useThree((state) => state.size.width / state.size.height);
   const cameraRef = useRef(camera);
   const runtimeRef = useRef<CameraRigRuntime | null>(null);
 
@@ -216,6 +218,7 @@ export function AfterlightCameraRig({
     const targetYaw = Number.isFinite(targetPose.rotationY)
       ? resolveAfterlightTargetYaw(mode, targetPose.rotationY)
       : runtime.controls.yaw;
+    if (runtime.controls.mode !== mode) runtime.cinematicTime = 0;
     runtime.cinematicTime += dt;
 
     resolveAfterlightCameraProfile(
@@ -225,6 +228,7 @@ export function AfterlightCameraRig({
       speed,
       reducedMotion,
     );
+    applyOpeningCameraAspect(runtime.profile, mode, aspect);
     const controlStep = runtime.controlStep;
     controlStep.mode = mode;
     controlStep.targetYaw = targetYaw;
@@ -268,14 +272,17 @@ export function AfterlightCameraRig({
       runtime.desired.position.y,
       runtime.desired.position.z,
     );
-    const sceneCollisionDistance = probeCameraCollisionDistance(
-      runtime.raycaster,
-      runtime.collisionOrigin,
-      runtime.collisionTarget,
-      runtime.collisionRoots,
-      runtime.collisionDirection,
-      runtime.collisionHits,
-    );
+    const sceneCollisionDistance =
+      mode === "opening"
+        ? null
+        : probeCameraCollisionDistance(
+            runtime.raycaster,
+            runtime.collisionOrigin,
+            runtime.collisionTarget,
+            runtime.collisionRoots,
+            runtime.collisionDirection,
+            runtime.collisionHits,
+          );
     const effectiveCollisionDistance = nearestCameraCollisionDistance(
       collisionDistance,
       sceneCollisionDistance,

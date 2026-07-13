@@ -7,6 +7,7 @@ import {
   advanceAuthoredWheelSpin,
   getAuthoredHeroCoupeMaterialTreatment,
   getAuthoredTrafficCoupePalette,
+  sampleAuthoredCoupeIdleMotion,
 } from "./authored-hero-coupe";
 
 describe("authored hero coupe", () => {
@@ -23,6 +24,17 @@ describe("authored hero coupe", () => {
     expect(advanceAuthoredWheelSpin(1, Number.NaN, 1)).toBe(1);
     expect(advanceAuthoredWheelSpin(0, 10, 10)).toBeCloseTo(4.8);
     expect(AUTHORED_HERO_COUPE_SCALE).toEqual([0.76, 1.08, 1.04]);
+  });
+
+  it("adds restrained engine vibration only to an idling active coupe", () => {
+    const idle = sampleAuthoredCoupeIdleMotion(0.4, 0, false);
+    const moving = sampleAuthoredCoupeIdleMotion(0.4, 1, false);
+    const disabled = sampleAuthoredCoupeIdleMotion(0.4, 0, true);
+
+    expect(Math.abs(idle.height)).toBeLessThanOrEqual(0.006);
+    expect(Math.abs(idle.roll)).toBeLessThanOrEqual(0.0016);
+    expect(moving).toEqual({ height: 0, roll: 0 });
+    expect(disabled).toEqual({ height: 0, roll: 0 });
   });
 
   it("keeps the optimized asset's chassis and wheel pivot contract explicit", () => {

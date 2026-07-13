@@ -77,7 +77,10 @@ import {
   type GameQualityTier,
   type PerformanceReport,
 } from "../game/performance";
-import type { AfterlightCameraImpulse } from "../game/presentation/camera";
+import {
+  shouldFinishOpeningCinematic,
+  type AfterlightCameraImpulse,
+} from "../game/presentation/camera";
 import {
   AfterlightHud,
   AfterlightHudProgressTracker,
@@ -94,6 +97,7 @@ import {
   type HudNotification,
   type HudObjectiveProgressById,
 } from "../game/presentation/hud";
+import { OpeningAssetPreload } from "../game/presentation/models";
 import type { AfterlightVfxEvent } from "../game/presentation/vfx";
 import {
   ReplaySessionRecorder,
@@ -662,6 +666,7 @@ export function AfterlightGame() {
   );
   const sceneReadyRef = useRef(false);
   const performanceWarmupFramesRef = useRef(0);
+  const openingCinematicStartedAtTickRef = useRef(0);
 
   const [view, setView] = useState<SessionView>(() =>
     freshView(initialSession.state, initialSession.runtime),
@@ -683,7 +688,9 @@ export function AfterlightGame() {
   const [continueAvailable, setContinueAvailable] = useState(false);
   const [debriefDismissed, setDebriefDismissed] = useState(false);
   const [runScore, setRunScore] = useState<RunScore | null>(null);
+  const [openingAssetsReady, setOpeningAssetsReady] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
+  const [openingCinematic, setOpeningCinematic] = useState(false);
   const startedRef = useRef(started);
   const pausedRef = useRef(paused);
   const reducedMotionRef = useRef(reducedMotion);
@@ -693,6 +700,19 @@ export function AfterlightGame() {
     performanceWarmupFramesRef.current = PERFORMANCE_WARMUP_FRAMES;
     governorRef.current.reset(qualityRef.current);
     setSceneReady(true);
+  }, []);
+  const markOpeningAssetsReady = useCallback(() => {
+    setOpeningAssetsReady(true);
+  }, []);
+  const finishOpeningCinematic = useCallback(() => {
+    setOpeningCinematic(false);
+  }, []);
+  const startOpeningCinematic = useCallback((tick: number) => {
+    openingCinematicStartedAtTickRef.current = tick;
+    const inspecting = new URLSearchParams(window.location.search).has(
+      "inspect",
+    );
+    setOpeningCinematic(!reducedMotionRef.current && !inspecting);
   }, []);
 
   useEffect(() => {
@@ -808,6 +828,7 @@ export function AfterlightGame() {
     setView(nextView);
     setRunScore(null);
     setDebriefDismissed(false);
+    setOpeningCinematic(false);
     pausedRef.current = false;
     setPaused(false);
     setSessionVersion((version) => version + 1);
@@ -1185,6 +1206,26 @@ export function AfterlightGame() {
   }, [blocked, muted, paused, reducedMotion, started]);
 
   useEffect(() => {
+    if (!openingCinematic) return;
+    if (
+      shouldFinishOpeningCinematic({
+        currentTick: view.state.tick,
+        input: view.input,
+        reducedMotion,
+        startedAtTick: openingCinematicStartedAtTickRef.current,
+      })
+    ) {
+      finishOpeningCinematic();
+    }
+  }, [
+    finishOpeningCinematic,
+    openingCinematic,
+    reducedMotion,
+    view.input,
+    view.state.tick,
+  ]);
+
+  useEffect(() => {
     const adapter = keyboardRef.current;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.code === "Escape") {
@@ -1244,6 +1285,7 @@ export function AfterlightGame() {
     pausedRef.current = false;
     setStarted(true);
     setPaused(false);
+    startOpeningCinematic(viewRef.current.state.tick);
     requestGamePointerLock();
     void audioRef.current.start();
     const accepted = selectAfterlightRadioLine(
@@ -1260,7 +1302,7 @@ export function AfterlightGame() {
       },
     ];
     track("bay_city_started");
-  }, [requestGamePointerLock]);
+  }, [requestGamePointerLock, startOpeningCinematic]);
 
   const continueCheckpoint = useCallback(() => {
     const save = continueSaveRef.current;
@@ -1287,8 +1329,9 @@ export function AfterlightGame() {
     installSession(createInitialAfterlightState(GAME_SEED));
     startedRef.current = true;
     setStarted(true);
+    startOpeningCinematic(0);
     track("bay_city_restarted", "mission");
-  }, [installSession]);
+  }, [installSession, startOpeningCinematic]);
 
   const quitToTitle = useCallback(() => {
     loopRef.current?.stop();
@@ -1297,8 +1340,9 @@ export function AfterlightGame() {
     pausedRef.current = false;
     setStarted(false);
     setPaused(false);
+    finishOpeningCinematic();
     releaseGamePointerLock();
-  }, [releaseGamePointerLock]);
+  }, [finishOpeningCinematic, releaseGamePointerLock]);
 
   const setPause = useCallback(
     (next: boolean) => {
@@ -1316,10 +1360,14 @@ export function AfterlightGame() {
     audioRef.current.setMuted(next);
   }, []);
 
-  const setReducedMotionValue = useCallback((next: boolean) => {
-    reducedMotionRef.current = next;
-    setReducedMotion(next);
-  }, []);
+  const setReducedMotionValue = useCallback(
+    (next: boolean) => {
+      reducedMotionRef.current = next;
+      setReducedMotion(next);
+      if (next) finishOpeningCinematic();
+    },
+    [finishOpeningCinematic],
+  );
 
   const setQualityValue = useCallback((next: GameQualityTier) => {
     qualityRef.current = next;
@@ -1518,6 +1566,8 @@ export function AfterlightGame() {
       data-pointer-locked={pointerLocked ? "true" : "false"}
       data-quality={quality}
       data-scene-ready={sceneReady ? "true" : "false"}
+      data-opening-assets-ready={openingAssetsReady ? "true" : "false"}
+      data-opening-cinematic={openingCinematic ? "true" : "false"}
       data-frame-ms={view.performance.averageFrameMs.toFixed(2)}
       data-slow-frame-ratio={view.performance.slowFrameRatio.toFixed(3)}
       data-dropped-seconds={view.performance.droppedSimulationSeconds.toFixed(
@@ -1566,12 +1616,16 @@ export function AfterlightGame() {
           }
         >
           <Suspense fallback={null}>
+            <OpeningAssetPreload onReady={markOpeningAssetsReady} />
+          </Suspense>
+          <Suspense fallback={null}>
             <AfterlightScene
               cameraImpulses={view.cameraImpulses}
               cameraPitch={view.cameraPitch}
               cameraYaw={view.cameraYaw}
               input={view.input}
               onReady={profileReady ? markSceneReady : undefined}
+              openingCinematic={openingCinematic}
               paused={paused || blocked}
               quality={quality}
               reducedMotion={reducedMotion}
@@ -1638,6 +1692,7 @@ export function AfterlightGame() {
         inputMode={touch ? "touch" : "desktop"}
         onContinue={continueCheckpoint}
         onStart={begin}
+        ready={openingAssetsReady}
         visible={!started}
       />
 

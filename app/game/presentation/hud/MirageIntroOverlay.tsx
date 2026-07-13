@@ -7,6 +7,7 @@ import type { MirageIntroOverlayProps } from "./types";
 export function MirageIntroOverlay({
   visible = true,
   canContinue = false,
+  ready = true,
   onStart,
   onContinue,
 }: MirageIntroOverlayProps) {
@@ -35,11 +36,12 @@ export function MirageIntroOverlay({
         <div className={styles.introActions}>
           <button
             className={styles.primaryAction}
+            disabled={!ready}
             onClick={onStart}
             type="button"
           >
             <Play aria-hidden="true" fill="currentColor" size={18} />
-            Start the job
+            {ready ? "Start the job" : "Preparing city"}
           </button>
           {canContinue && onContinue ? (
             <button

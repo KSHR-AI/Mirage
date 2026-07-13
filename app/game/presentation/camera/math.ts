@@ -90,6 +90,19 @@ export const AFTERLIGHT_CAMERA_PROFILES: Readonly<
     lookLambda: 4.2,
     rotationLambda: 3.4,
   }),
+  opening: Object.freeze({
+    distance: 9.8,
+    pivotHeight: 2,
+    lookHeight: 1.15,
+    lookAhead: -0.6,
+    shoulder: 0,
+    neutralPitch: 0.08,
+    yawOffset: -0.72,
+    fov: 50,
+    positionLambda: 7,
+    lookLambda: 7.5,
+    rotationLambda: 6.4,
+  }),
   debrief: Object.freeze({
     distance: 8.8,
     pivotHeight: 2.7,
@@ -224,6 +237,20 @@ export function resolveAfterlightCameraProfile(
   return out;
 }
 
+export function applyOpeningCameraAspect(
+  out: MutableCameraProfile,
+  mode: AfterlightCameraMode,
+  aspect: number,
+) {
+  if (mode !== "opening") return out;
+  const safeAspect = Math.max(0.2, finiteOr(aspect, 16 / 9));
+  const portraitStrength = clamp((1 - safeAspect) / 0.55, 0, 1);
+  out.distance += portraitStrength * 5.4;
+  out.pivotHeight += portraitStrength * 0.35;
+  out.fov += portraitStrength * 3;
+  return out;
+}
+
 export function resolveCameraCollisionBoom(
   desiredDistance: number,
   collisionDistance: number | null | undefined,
@@ -270,7 +297,8 @@ export function stepAfterlightCameraControls(
   const dt = clamp(finiteOr(step.dt, 0), 0, 0.1);
   const targetYaw = normalizeCameraAngle(step.targetYaw);
   const profile = AFTERLIGHT_CAMERA_PROFILES[step.mode];
-  const scripted = step.mode === "intro" || step.mode === "debrief";
+  const scripted =
+    step.mode === "intro" || step.mode === "opening" || step.mode === "debrief";
 
   if (!state.initialized) {
     state.initialized = true;
@@ -296,9 +324,12 @@ export function stepAfterlightCameraControls(
   }
 
   if (scripted) {
+    const cinematicTime = Math.max(0, finiteOr(step.cinematicTime, 0));
     const drift = step.reducedMotion
       ? 0
-      : Math.sin(Math.max(0, finiteOr(step.cinematicTime, 0)) * 0.13) * 0.055;
+      : step.mode === "opening"
+        ? Math.sin(Math.min(1, cinematicTime / 2.5) * Math.PI * 0.72) * 0.2
+        : Math.sin(cinematicTime * 0.13) * 0.055;
     state.desiredYaw = normalizeCameraAngle(
       targetYaw + profile.yawOffset + drift,
     );

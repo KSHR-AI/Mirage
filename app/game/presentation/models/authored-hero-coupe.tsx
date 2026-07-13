@@ -12,6 +12,7 @@ import {
   Object3D,
   Quaternion,
   Vector3,
+  type Group,
 } from "three";
 
 import type {
@@ -83,6 +84,26 @@ const TRAFFIC_COUPE_PALETTES = Object.freeze([
   Object.freeze({ primary: "#715f7c", secondary: "#252c31" }),
   Object.freeze({ primary: "#b0b0a3", secondary: "#385159" }),
 ] as const);
+
+export interface AuthoredCoupeIdleMotion {
+  readonly height: number;
+  readonly roll: number;
+}
+
+export function sampleAuthoredCoupeIdleMotion(
+  time: number,
+  wheelSpin: number,
+  disabled: boolean,
+): AuthoredCoupeIdleMotion {
+  const safeTime = Number.isFinite(time) ? Math.max(0, time) : 0;
+  const safeSpin = Number.isFinite(wheelSpin) ? Math.abs(wheelSpin) : 0;
+  const strength = disabled ? 0 : MathUtils.clamp(1 - safeSpin / 0.32, 0, 1);
+  if (strength === 0) return { height: 0, roll: 0 };
+  return {
+    height: Math.sin(safeTime * 8.2) * 0.006 * strength,
+    roll: Math.sin(safeTime * 4.1 + 0.7) * 0.0016 * strength,
+  };
+}
 
 function trafficCoupeHash(entityId: VisualId): number {
   const value = String(entityId);
@@ -513,6 +534,8 @@ function AuthoredCoupeModel({
   const steeringQuaternion = useMemo(() => new Quaternion(), []);
   const spinQuaternion = useMemo(() => new Quaternion(), []);
   const accumulatedSpin = useRef(0);
+  const idleTime = useRef(0);
+  const presentationRoot = useRef<Group>(null);
   const normalizedDamage = MathUtils.clamp(
     Number.isFinite(damage) ? damage : 0,
     0,
@@ -555,10 +578,15 @@ function AuthoredCoupeModel({
   );
 
   useFrame((_, dt) => {
+    const safeDt = Math.min(
+      Math.max(Number.isFinite(dt) ? dt : 0, 0),
+      MAX_FRAME_DT,
+    );
+    idleTime.current += safeDt;
     accumulatedSpin.current = advanceAuthoredWheelSpin(
       accumulatedSpin.current,
       wheelSpin,
-      dt,
+      safeDt,
     );
     const steer = MathUtils.clamp(steering, -1, 1) * 0.42;
     steeringQuaternion.setFromAxisAngle(STEERING_AXIS, steer);
@@ -576,11 +604,20 @@ function AuthoredCoupeModel({
           .multiply(spinQuaternion);
       }
     }
+    if (presentationRoot.current) {
+      const idle = sampleAuthoredCoupeIdleMotion(
+        idleTime.current,
+        wheelSpin,
+        disabled || role !== "hero",
+      );
+      presentationRoot.current.position.y = MODEL_GROUND_OFFSET + idle.height;
+      presentationRoot.current.rotation.z = idle.roll;
+    }
   });
 
   return (
     <group {...groupProps}>
-      <group position={[0, MODEL_GROUND_OFFSET, 0]}>
+      <group position={[0, MODEL_GROUND_OFFSET, 0]} ref={presentationRoot}>
         <group
           rotation={[0, Math.PI, 0]}
           scale={[
