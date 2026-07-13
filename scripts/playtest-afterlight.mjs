@@ -26,6 +26,7 @@ const VALID_SCENARIOS = new Set([
   "route",
   "route-desktop",
   "route-mobile",
+  "sf",
   "street-life",
 ]);
 
@@ -54,7 +55,7 @@ function parseArguments(argv) {
 }
 
 function usage() {
-  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, compact, desktop, narrow, mobile, opening, route, route-desktop, route-mobile, or street-life\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
+  return `Mirage autonomous playtest\n\nUsage:\n  pnpm playtest [options]\n\nOptions:\n  --url <url>         Target URL (default: ${DEFAULT_URL})\n  --scenario <name>   all, compact, desktop, narrow, mobile, opening, route, route-desktop, route-mobile, sf, or street-life\n  --out <directory>   Artifact directory\n  --headed            Show Chromium while it plays\n`;
 }
 
 function timestamp() {
@@ -587,25 +588,33 @@ async function routeInspectionScenario(
     }
 
     await capture(scenario, page, outDir, "corridor");
-    const inspections = inspectionOnly
-      ? [{ capture: inspectionOnly, key: inspectionOnly }]
-      : mobile
+    const inspections =
+      inspectionOnly === "sf"
         ? [
-            { capture: "hero-loadout", key: "hero-close" },
-            { capture: "yard", key: "yard-opening" },
+            { capture: "sf-cable-car", key: "sf-cable-car" },
+            { capture: "sf-painted-row", key: "sf-painted-row" },
+            { capture: "sf-bridge", key: "sf-bridge" },
+            { capture: "sf-waterfront", key: "sf-waterfront" },
           ]
-        : [
-            { capture: "hero-loadout", key: "hero-close" },
-            { capture: "hero-aim", key: "hero-aim" },
-            { capture: "ambient-life", key: "ambient-life" },
-            { capture: "street-life", key: "street-life" },
-            { capture: "sidewalk", key: "route-block-side" },
-            { capture: "facade", key: "route-facade" },
-            { capture: "corner", key: "signature-corner" },
-            { capture: "yard", key: "yard-opening" },
-            { capture: "vehicles", key: "vehicle-fleet" },
-            { capture: "vehicles-side", key: "vehicle-fleet-side" },
-          ];
+        : inspectionOnly
+          ? [{ capture: inspectionOnly, key: inspectionOnly }]
+          : mobile
+            ? [
+                { capture: "hero-loadout", key: "hero-close" },
+                { capture: "yard", key: "yard-opening" },
+              ]
+            : [
+                { capture: "hero-loadout", key: "hero-close" },
+                { capture: "hero-aim", key: "hero-aim" },
+                { capture: "ambient-life", key: "ambient-life" },
+                { capture: "street-life", key: "street-life" },
+                { capture: "sidewalk", key: "route-block-side" },
+                { capture: "facade", key: "route-facade" },
+                { capture: "corner", key: "signature-corner" },
+                { capture: "yard", key: "yard-opening" },
+                { capture: "vehicles", key: "vehicle-fleet" },
+                { capture: "vehicles-side", key: "vehicle-fleet-side" },
+              ];
     for (const inspection of inspections) {
       await page.evaluate(
         ({ eventName, key }) =>
@@ -1262,6 +1271,25 @@ async function narrowScenario(browser, baseURL, outDir, headed) {
       { yaw, yawBefore },
       "yaw changes",
     );
+    const environment = {
+      city: await shell.getAttribute("data-city"),
+      timeOfDay: await shell.getAttribute("data-environment"),
+    };
+    addCheck(
+      scenario,
+      "san-francisco-daylight",
+      environment.city === "san-francisco" &&
+        environment.timeOfDay === "sf-daylight",
+      environment,
+      "San Francisco daylight environment",
+    );
+    addCheck(
+      scenario,
+      "daylight-canvas-coverage",
+      (scenario.canvas?.litRatio ?? 0) > 0.82,
+      scenario.canvas?.litRatio,
+      "> 0.82 lit-pixel coverage",
+    );
     const sparseHud = await page.evaluate(() => ({
       brandCount: document.querySelectorAll('[class*="brandLockup"]').length,
       missionPanelCount: document.querySelectorAll('[class*="missionPanel"]')
@@ -1894,7 +1922,8 @@ async function main() {
   const target = new URL(options.url);
   if (
     (options.scenario.startsWith("route") ||
-      options.scenario === "street-life") &&
+      options.scenario === "street-life" ||
+      options.scenario === "sf") &&
     !["127.0.0.1", "localhost"].includes(target.hostname)
   ) {
     throw new Error("The route inspection scenario is development-only");
@@ -1981,6 +2010,18 @@ async function main() {
           options.headed,
           false,
           "street-life",
+        ),
+      );
+    }
+    if (options.scenario === "sf") {
+      scenarios.push(
+        await routeInspectionScenario(
+          browser,
+          options.url,
+          outDir,
+          options.headed,
+          false,
+          "sf",
         ),
       );
     }

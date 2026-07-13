@@ -40,6 +40,22 @@ export const PLAYTEST_INSPECTION_POSES: Readonly<Record<string, Pose>> =
       position: Object.freeze([0, 1.4, 0] as const),
       rotationY: -0.7,
     }),
+    "sf-cable-car": Object.freeze({
+      position: Object.freeze([-21, 1.25, 34] as const),
+      rotationY: -Math.PI / 2,
+    }),
+    "sf-painted-row": Object.freeze({
+      position: Object.freeze([-70, 1.25, 80] as const),
+      rotationY: Math.PI,
+    }),
+    "sf-bridge": Object.freeze({
+      position: Object.freeze([0, 1.25, -164] as const),
+      rotationY: 0,
+    }),
+    "sf-waterfront": Object.freeze({
+      position: Object.freeze([110, 13, 14] as const),
+      rotationY: -Math.PI / 2,
+    }),
     "vehicle-fleet": Object.freeze({
       position: Object.freeze([0, 1.3, 8] as const),
       rotationY: Math.PI,

@@ -1763,6 +1763,7 @@ export function AfterlightGame() {
       data-boost={view.input.sprint ? "true" : "false"}
       data-brake={view.input.brake ? "true" : "false"}
       data-camera-yaw={view.cameraYaw.toFixed(4)}
+      data-city="san-francisco"
       data-camera-roll-target={cameraRollTarget.toFixed(4)}
       data-camera-pitch={view.cameraPitch.toFixed(4)}
       data-look-x={view.input.look[0].toFixed(3)}
@@ -1795,6 +1796,7 @@ export function AfterlightGame() {
       data-dropped-seconds={view.performance.droppedSimulationSeconds.toFixed(
         3,
       )}
+      data-environment="sf-daylight"
       data-speed={speedKph.toFixed(2)}
       data-steer={view.input.steer.toFixed(3)}
       data-throttle={view.input.throttle.toFixed(3)}

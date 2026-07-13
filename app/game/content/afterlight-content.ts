@@ -496,7 +496,7 @@ export const AFTERLIGHT_RADIO_CUES = {
     lines: [
       line(
         "afterlight:radio:mission-safehouse-reached:01",
-        "Door is open. Bring the core in and leave the night outside.",
+        "Door is open. Bring the core in and leave the heat outside.",
       ),
       line(
         "afterlight:radio:mission-safehouse-reached:02",

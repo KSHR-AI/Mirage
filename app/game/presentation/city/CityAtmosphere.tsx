@@ -7,21 +7,21 @@ import { InstancedPrimitives } from "./InstancedPrimitives";
 import { createCityRng } from "./seed";
 import type { BoxInstance, CityQuality } from "./types";
 
-const SUN_OFFSET = [-92, 106, 54] as const;
+const SUN_OFFSET = [-88, 128, 72] as const;
 const SUN_SHADOW_HALF_EXTENT = 26;
 const DESKTOP_SUN_SHADOW_MAP_SIZE = 1024;
 const MOBILE_SUN_SHADOW_MAP_SIZE = 512;
 
-export const CITY_NIGHT_ATMOSPHERE = Object.freeze({
-  ambientIntensity: 0.34,
-  directionalIntensity: 1.42,
-  fogColor: "#0b202a",
-  fogFar: 310,
-  fogNearDesktop: 122,
-  fogNearMobile: 106,
-  hemisphereIntensity: 0.68,
-  skyHorizon: "#17323c",
-  skyTop: "#020711",
+export const CITY_DAY_ATMOSPHERE = Object.freeze({
+  ambientIntensity: 0.72,
+  directionalIntensity: 3.25,
+  fogColor: "#b8d4da",
+  fogFar: 410,
+  fogNearDesktop: 178,
+  fogNearMobile: 148,
+  hemisphereIntensity: 1.28,
+  skyHorizon: "#d9edf0",
+  skyTop: "#4e9fd2",
 });
 
 type CityAtmosphereProps = {
@@ -35,8 +35,8 @@ export const CityAtmosphere = memo(function CityAtmosphere({
   seed,
   shadows,
 }: CityAtmosphereProps) {
-  const stars = useMemo(
-    () => createStars(seed, quality === "desktop" ? 104 : 44),
+  const clouds = useMemo(
+    () => createMarineClouds(seed, quality === "desktop" ? 16 : 12),
     [quality, seed],
   );
   const castSunShadow = shadows;
@@ -47,8 +47,8 @@ export const CityAtmosphere = memo(function CityAtmosphere({
   const shadowTexelSize = (SUN_SHADOW_HALF_EXTENT * 2) / shadowMapSize;
   const sun = useRef<THREE.DirectionalLight>(null);
   const sunTarget = useMemo(() => new THREE.Object3D(), []);
-  const nightSky = useMemo(() => createNightSkyTexture(), []);
-  useEffect(() => () => nightSky.dispose(), [nightSky]);
+  const daySky = useMemo(() => createDaySkyTexture(), []);
+  useEffect(() => () => daySky.dispose(), [daySky]);
 
   useFrame(({ camera }) => {
     if (!castSunShadow || !sun.current) return;
@@ -66,16 +66,16 @@ export const CityAtmosphere = memo(function CityAtmosphere({
   });
 
   return (
-    <group name="marine-afterlight-atmosphere">
-      <color attach="background" args={["#030b12"]} />
+    <group name="sunlit-san-francisco-atmosphere">
+      <color attach="background" args={[CITY_DAY_ATMOSPHERE.skyTop]} />
       <fog
         attach="fog"
         args={[
-          CITY_NIGHT_ATMOSPHERE.fogColor,
+          CITY_DAY_ATMOSPHERE.fogColor,
           quality === "desktop"
-            ? CITY_NIGHT_ATMOSPHERE.fogNearDesktop
-            : CITY_NIGHT_ATMOSPHERE.fogNearMobile,
-          CITY_NIGHT_ATMOSPHERE.fogFar,
+            ? CITY_DAY_ATMOSPHERE.fogNearDesktop
+            : CITY_DAY_ATMOSPHERE.fogNearMobile,
+          CITY_DAY_ATMOSPHERE.fogFar,
         ]}
       />
       <mesh scale={500}>
@@ -89,26 +89,26 @@ export const CityAtmosphere = memo(function CityAtmosphere({
         <meshBasicMaterial
           depthWrite={false}
           fog={false}
-          map={nightSky}
+          map={daySky}
           side={THREE.BackSide}
           toneMapped={false}
         />
       </mesh>
 
       <ambientLight
-        color="#73939f"
-        intensity={CITY_NIGHT_ATMOSPHERE.ambientIntensity}
+        color="#dbe9e7"
+        intensity={CITY_DAY_ATMOSPHERE.ambientIntensity}
       />
       <hemisphereLight
-        color="#87afbd"
-        groundColor="#08151b"
-        intensity={CITY_NIGHT_ATMOSPHERE.hemisphereIntensity}
+        color="#bfe4f5"
+        groundColor="#7b7768"
+        intensity={CITY_DAY_ATMOSPHERE.hemisphereIntensity}
       />
       <primitive object={sunTarget} />
       <directionalLight
         castShadow={castSunShadow}
-        color="#bdd8df"
-        intensity={CITY_NIGHT_ATMOSPHERE.directionalIntensity}
+        color="#fff0ce"
+        intensity={CITY_DAY_ATMOSPHERE.directionalIntensity}
         position={SUN_OFFSET}
         ref={sun}
         shadow-bias={-0.00035}
@@ -124,50 +124,48 @@ export const CityAtmosphere = memo(function CityAtmosphere({
         target={sunTarget}
       />
 
-      <mesh position={[-126, 92, -196]}>
+      <mesh position={[-142, 126, -214]}>
         <sphereGeometry
           args={[
-            8.5,
+            10.5,
             quality === "desktop" ? 20 : 8,
             quality === "desktop" ? 14 : 6,
           ]}
         />
-        <meshBasicMaterial color="#f7e7c3" fog={false} toneMapped={false} />
+        <meshBasicMaterial color="#fff4c7" fog={false} toneMapped={false} />
       </mesh>
-      {quality === "desktop" ? (
-        <>
-          <mesh position={[-126, 92, -194.5]}>
-            <ringGeometry args={[9.2, 13.5, 36]} />
-            <meshBasicMaterial
-              color="#e6b48a"
-              fog={false}
-              opacity={0.13}
-              side={2}
-              toneMapped={false}
-              transparent
-            />
-          </mesh>
-          <InstancedPrimitives
-            depthWrite={false}
-            fog={false}
-            instances={stars}
-            material="basic"
-            shape="sphere"
-            toneMapped={false}
-          />
-        </>
-      ) : null}
+      <mesh position={[-142, 126, -212.5]}>
+        <ringGeometry args={[11.5, 17.5, 36]} />
+        <meshBasicMaterial
+          color="#fff1ba"
+          fog={false}
+          opacity={0.18}
+          side={2}
+          toneMapped={false}
+          transparent
+        />
+      </mesh>
+      <InstancedPrimitives
+        depthWrite={false}
+        fog={false}
+        instances={clouds}
+        material="basic"
+        opacity={0.34}
+        shape="box"
+        toneMapped={false}
+        transparent
+      />
     </group>
   );
 });
 
-function createNightSkyTexture() {
+function createDaySkyTexture() {
   const width = 2;
   const height = 64;
   const data = new Uint8Array(width * height * 4);
-  const bottom = [6, 16, 25] as const;
-  const horizon = [23, 50, 60] as const;
-  const top = [2, 7, 17] as const;
+  const bottom = [222, 239, 240] as const;
+  const horizon = [171, 215, 231] as const;
+  const top = [67, 145, 202] as const;
 
   for (let row = 0; row < height; row += 1) {
     const vertical = row / (height - 1);
@@ -193,22 +191,21 @@ function createNightSkyTexture() {
   return texture;
 }
 
-function createStars(seed: number, count: number): BoxInstance[] {
-  const rng = createCityRng(seed, "stars");
+function createMarineClouds(seed: number, count: number): BoxInstance[] {
+  const rng = createCityRng(seed, "day-clouds");
   return Array.from({ length: count }, (_, index) => {
     const angle = rng.range(0, Math.PI * 2);
-    const radius = rng.range(205, 292);
-    const size = rng.range(0.18, 0.62);
+    const radius = rng.range(175, 265);
     return {
-      color: rng.bool(0.16) ? "#aee9f2" : "#fff2d6",
-      id: `star-${index}`,
+      color: rng.bool(0.24) ? "#d7e7e9" : "#f5f7f4",
+      id: `marine-cloud-${index}`,
       position: [
         Math.cos(angle) * radius,
-        rng.range(62, 172),
+        rng.range(64, 108),
         Math.sin(angle) * radius,
       ],
-      rotationY: 0,
-      scale: [size, size, size],
+      rotationY: rng.range(-0.3, 0.3),
+      scale: [rng.range(16, 32), rng.range(1.8, 4.2), rng.range(7, 15)],
     };
   });
 }

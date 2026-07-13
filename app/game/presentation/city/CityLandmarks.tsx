@@ -1,7 +1,7 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { memo, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { CourierYard } from "./CourierYard";
 import { InstancedPrimitives } from "./InstancedPrimitives";
@@ -11,6 +11,10 @@ import {
   isCityLightPowered,
   type CityPowerState,
 } from "./power";
+import {
+  createSanFranciscoBackdrop,
+  SF_CABLE_CAR_POSITION,
+} from "./san-francisco-details";
 import type {
   BoxInstance,
   CityMissionZoneId,
@@ -52,7 +56,9 @@ export const CityLandmarks = memo(function CityLandmarks({
         quality={quality}
         shadows={shadows}
       />
-      <PaintedRow powerState={powerState} shadows={shadows} />
+      <PaintedRow shadows={shadows} />
+      <CaliforniaCableCar shadows={shadows} />
+      <SanFranciscoStreetSigns />
       <GridSeven powerState={powerState} quality={quality} shadows={shadows} />
       <BreakwaterTerminal
         powerState={powerState}
@@ -462,16 +468,10 @@ function AuroraVault({
   );
 }
 
-function PaintedRow({
-  powerState,
-  shadows,
-}: {
-  powerState: CityPowerState;
-  shadows: boolean;
-}) {
+function PaintedRow({ shadows }: { shadows: boolean }) {
   const houses = useMemo<BoxInstance[]>(
     () =>
-      ["#a85767", "#3e7f83", "#b77f4e", "#71628d", "#55775c"].map(
+      ["#cf7281", "#59a2a2", "#d69a5f", "#8e7aaf", "#72a176"].map(
         (color, index) =>
           cityBox(
             `safehouse-${index}`,
@@ -525,10 +525,6 @@ function PaintedRow({
       ),
     [houses],
   );
-  const poweredFronts = useMemo(
-    () => filterPoweredCityFeatures(fronts, powerState),
-    [fronts, powerState],
-  );
   return (
     <group name="painted-row-safehouse">
       <InstancedPrimitives
@@ -543,11 +539,7 @@ function PaintedRow({
         roughness={0.82}
         shape="cone"
       />
-      <InstancedPrimitives
-        instances={poweredFronts}
-        material="basic"
-        toneMapped={false}
-      />
+      <InstancedPrimitives instances={fronts} material="basic" />
       <InstancedPrimitives instances={doors} roughness={0.68} />
       <mesh position={[-70, 0.36, 75.3]}>
         <boxGeometry args={[19, 0.5, 1.8]} />
@@ -555,6 +547,246 @@ function PaintedRow({
       </mesh>
     </group>
   );
+}
+
+function CaliforniaCableCar({ shadows }: { shadows: boolean }) {
+  const body = useMemo<BoxInstance[]>(
+    () => [
+      cityBox("sf-cable-car-chassis", [0, 0.42, 0], [3.55, 0.42, 7], "#542d27"),
+      cityBox(
+        "sf-cable-car-lower",
+        [0, 1.08, 0],
+        [3.32, 0.95, 6.65],
+        "#a53d35",
+      ),
+      cityBox("sf-cable-car-cabin", [0, 2.12, 0], [3.16, 1.25, 4.3], "#f0d7a7"),
+      cityBox(
+        "sf-cable-car-front",
+        [0, 2.05, -2.72],
+        [3.18, 1.35, 1.1],
+        "#bd4d3e",
+      ),
+      cityBox(
+        "sf-cable-car-rear",
+        [0, 2.05, 2.72],
+        [3.18, 1.35, 1.1],
+        "#bd4d3e",
+      ),
+      cityBox("sf-cable-car-roof", [0, 3.05, 0], [3.72, 0.3, 6.9], "#eee0bb"),
+    ],
+    [],
+  );
+  const frames = useMemo<BoxInstance[]>(
+    () =>
+      [-2.05, -0.68, 0.68, 2.05].flatMap((z, index) => [
+        cityBox(
+          `sf-cable-car-window-west-${index}`,
+          [-1.59, 2.2, z],
+          [0.08, 0.86, 0.96],
+          "#427485",
+        ),
+        cityBox(
+          `sf-cable-car-window-east-${index}`,
+          [1.59, 2.2, z],
+          [0.08, 0.86, 0.96],
+          "#427485",
+        ),
+      ]),
+    [],
+  );
+  const trim = useMemo<BoxInstance[]>(
+    () => [
+      cityBox(
+        "sf-cable-car-belt-west",
+        [-1.67, 1.45, 0],
+        [0.09, 0.16, 6.5],
+        "#f3c96d",
+      ),
+      cityBox(
+        "sf-cable-car-belt-east",
+        [1.67, 1.45, 0],
+        [0.09, 0.16, 6.5],
+        "#f3c96d",
+      ),
+      cityBox(
+        "sf-cable-car-board-front",
+        [0, 2.64, -3.3],
+        [2.22, 0.45, 0.08],
+        "#263637",
+      ),
+      cityBox(
+        "sf-cable-car-board-rear",
+        [0, 2.64, 3.3],
+        [2.22, 0.45, 0.08],
+        "#263637",
+      ),
+    ],
+    [],
+  );
+
+  return (
+    <group
+      name="san-francisco-cable-car"
+      position={SF_CABLE_CAR_POSITION}
+      userData={{ cameraCollision: false }}
+    >
+      <InstancedPrimitives
+        castShadow={shadows}
+        instances={body}
+        metalness={0.08}
+        receiveShadow
+        roughness={0.68}
+      />
+      <InstancedPrimitives
+        depthWrite={false}
+        instances={frames}
+        metalness={0.32}
+        opacity={0.82}
+        roughness={0.18}
+        transparent
+      />
+      <InstancedPrimitives instances={trim} metalness={0.3} roughness={0.44} />
+      {[-1.25, 1.25].flatMap((x) =>
+        [-2.25, 2.25].map((z) => (
+          <mesh key={`${x}-${z}`} position={[x, 0.08, z]}>
+            <cylinderGeometry args={[0.46, 0.46, 0.32, 10]} />
+            <meshStandardMaterial
+              color="#202426"
+              metalness={0.55}
+              roughness={0.5}
+            />
+          </mesh>
+        )),
+      )}
+      <mesh position={[0, 4.55, 0.15]} rotation={[0.14, 0, -0.18]}>
+        <cylinderGeometry args={[0.07, 0.07, 3.1, 6]} />
+        <meshStandardMaterial
+          color="#343f3f"
+          metalness={0.72}
+          roughness={0.35}
+        />
+      </mesh>
+      <mesh position={[0, 3.43, -2.6]}>
+        <sphereGeometry args={[0.25, 10, 8]} />
+        <meshStandardMaterial
+          color="#d9ae4d"
+          metalness={0.78}
+          roughness={0.24}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+const SF_STREET_SIGNS = [
+  {
+    crossStreet: "BRANNAN ST",
+    position: [61.2, 0.3, 61.2] as CityVec3,
+    street: "3RD ST",
+  },
+  {
+    crossStreet: "3RD ST",
+    position: [5.4, 0.3, 5.4] as CityVec3,
+    street: "MARKET ST",
+  },
+  {
+    crossStreet: "POWELL ST",
+    position: [-22.6, 0.3, 33.4] as CityVec3,
+    street: "CALIFORNIA ST",
+  },
+  {
+    crossStreet: "MISSION ST",
+    position: [89.4, 0.3, 5.4] as CityVec3,
+    street: "THE EMBARCADERO",
+  },
+  {
+    crossStreet: "HAYES ST",
+    position: [-78.6, 0.3, 61.4] as CityVec3,
+    street: "STEINER ST",
+  },
+] as const;
+
+function SanFranciscoStreetSigns() {
+  return (
+    <group
+      name="san-francisco-street-signs"
+      userData={{ cameraCollision: false }}
+    >
+      {SF_STREET_SIGNS.map((sign) => (
+        <StreetSign
+          crossStreet={sign.crossStreet}
+          key={sign.street}
+          position={sign.position}
+          street={sign.street}
+        />
+      ))}
+    </group>
+  );
+}
+
+function StreetSign({
+  crossStreet,
+  position,
+  street,
+}: {
+  readonly crossStreet: string;
+  readonly position: CityVec3;
+  readonly street: string;
+}) {
+  const streetTexture = useStreetSignTexture(street);
+  const crossStreetTexture = useStreetSignTexture(crossStreet);
+
+  return (
+    <group position={position}>
+      <mesh position={[0, 2.55, 0]}>
+        <cylinderGeometry args={[0.1, 0.13, 5.1, 8]} />
+        <meshStandardMaterial
+          color="#66716d"
+          metalness={0.55}
+          roughness={0.44}
+        />
+      </mesh>
+      {streetTexture ? (
+        <mesh position={[0, 4.92, 0.04]}>
+          <planeGeometry args={[2.45, 0.52]} />
+          <meshBasicMaterial map={streetTexture} side={THREE.DoubleSide} />
+        </mesh>
+      ) : null}
+      {crossStreetTexture ? (
+        <mesh position={[0.04, 4.58, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[2.45, 0.52]} />
+          <meshBasicMaterial map={crossStreetTexture} side={THREE.DoubleSide} />
+        </mesh>
+      ) : null}
+    </group>
+  );
+}
+
+function useStreetSignTexture(label: string) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 112;
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+    context.fillStyle = "#176b54";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = "#f4f0dc";
+    context.lineWidth = 8;
+    context.strokeRect(7, 7, canvas.width - 14, canvas.height - 14);
+    context.fillStyle = "#ffffff";
+    context.font = `700 ${label.length > 14 ? 47 : 58}px Arial, sans-serif`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(label, canvas.width / 2, canvas.height / 2 + 2);
+    const result = new THREE.CanvasTexture(canvas);
+    result.anisotropy = 8;
+    result.colorSpace = THREE.SRGBColorSpace;
+    result.needsUpdate = true;
+    return result;
+  }, [label]);
+  useEffect(() => () => texture?.dispose(), [texture]);
+  return texture;
 }
 
 function GridSeven({
@@ -709,12 +941,18 @@ function BreakwaterTerminal({
           roughness={0.62}
         />
       </mesh>
-      {poweredTerminalLight ? (
-        <mesh position={[103.02, 15, 14]} rotation={[0, Math.PI / 2, 0]}>
-          <circleGeometry args={[1.35, 24]} />
-          <meshBasicMaterial color="#ffda83" toneMapped={false} />
-        </mesh>
-      ) : null}
+      <mesh position={[103.02, 15, 14]} rotation={[0, Math.PI / 2, 0]}>
+        <circleGeometry args={[1.35, 24]} />
+        <meshStandardMaterial color="#f3ead4" roughness={0.72} />
+      </mesh>
+      <mesh position={[103.08, 15, 14]} rotation={[0.55, 0, 0]}>
+        <boxGeometry args={[0.06, 0.9, 0.06]} />
+        <meshBasicMaterial color="#293536" />
+      </mesh>
+      <mesh position={[103.1, 15, 14]} rotation={[-0.92, 0, 0]}>
+        <boxGeometry args={[0.05, 0.62, 0.05]} />
+        <meshBasicMaterial color="#293536" />
+      </mesh>
       <InstancedPrimitives
         instances={
           quality === "desktop"
@@ -801,6 +1039,10 @@ function CityHills({
   powerState: CityPowerState;
   quality: CityQuality;
 }) {
+  const backdrop = useMemo(
+    () => createSanFranciscoBackdrop(quality),
+    [quality],
+  );
   const poweredAntenna = isCityLightPowered(
     "city-hills-antenna",
     [-118, 34, -78],
@@ -808,14 +1050,24 @@ function CityHills({
   );
   return (
     <group name="city-hills">
-      <mesh position={[-158, -15, -36]} receiveShadow scale={[1.3, 0.5, 1]}>
+      <mesh position={[-162, -20, -25]} receiveShadow scale={[1.45, 0.68, 1.2]}>
         <sphereGeometry args={[70, quality === "desktop" ? 20 : 12, 10]} />
-        <meshStandardMaterial color="#284b46" roughness={1} />
+        <meshStandardMaterial color="#6f8b68" roughness={1} />
       </mesh>
       <mesh position={[205, -19, 12]} receiveShadow scale={[1.35, 0.42, 1]}>
         <sphereGeometry args={[82, quality === "desktop" ? 20 : 12, 10]} />
-        <meshStandardMaterial color="#23433f" roughness={1} />
+        <meshStandardMaterial color="#668564" roughness={1} />
       </mesh>
+      <InstancedPrimitives
+        instances={backdrop.houses}
+        metalness={0.02}
+        roughness={0.84}
+      />
+      <InstancedPrimitives
+        instances={backdrop.roofs}
+        roughness={0.88}
+        shape="cone"
+      />
       <mesh position={[-118, 15, -78]}>
         <cylinderGeometry args={[0.28, 0.5, 36, 6]} />
         <meshStandardMaterial

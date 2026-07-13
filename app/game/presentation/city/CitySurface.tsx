@@ -29,7 +29,7 @@ export const CitySurface = memo(function CitySurface({
       <mesh position={[0, -0.24, 0]} receiveShadow>
         <boxGeometry args={[208, 0.58, 208]} />
         <meshStandardMaterial
-          color="#1e3134"
+          color="#74786d"
           metalness={0.05}
           roughness={0.96}
         />
@@ -58,15 +58,6 @@ export const CitySurface = memo(function CitySurface({
         opacity={0.78}
         transparent
       />
-      <InstancedPrimitives
-        depthWrite={false}
-        instances={layout.puddles}
-        metalness={0.9}
-        opacity={0.68}
-        roughness={0.11}
-        transparent
-      />
-
       <TramRails />
       <WaterfrontEdge />
     </group>
@@ -76,14 +67,14 @@ export const CitySurface = memo(function CitySurface({
 function RoadSurface({ instances }: { instances: readonly BoxInstance[] }) {
   return (
     <InstancedPrimitives
-      clearcoat={0.72}
-      clearcoatRoughness={0.2}
-      color="#89999b"
+      clearcoat={0.18}
+      clearcoatRoughness={0.58}
+      color="#5b6262"
       instances={instances}
       material="physical"
-      metalness={0.16}
+      metalness={0.05}
       receiveShadow
-      roughness={0.64}
+      roughness={0.82}
     />
   );
 }
@@ -100,7 +91,7 @@ function BayWater({
   useFrame(({ clock }) => {
     if (!materialRef.current || reducedMotion) return;
     materialRef.current.emissiveIntensity =
-      0.17 + Math.sin(clock.elapsedTime * 0.32) * 0.035;
+      0.035 + Math.sin(clock.elapsedTime * 0.32) * 0.012;
   });
 
   return (
@@ -110,19 +101,19 @@ function BayWater({
         <meshPhysicalMaterial
           clearcoat={0.72}
           clearcoatRoughness={0.21}
-          color="#0b4050"
-          emissive="#0a3541"
-          emissiveIntensity={0.17}
-          metalness={0.56}
+          color="#2d8ca4"
+          emissive="#1a6276"
+          emissiveIntensity={0.035}
+          metalness={0.34}
           ref={materialRef}
-          roughness={0.25}
+          roughness={0.3}
         />
       </mesh>
       <InstancedPrimitives
         depthWrite={false}
         instances={glints}
         material="basic"
-        opacity={0.34}
+        opacity={0.46}
         toneMapped={false}
         transparent
       />
@@ -220,7 +211,7 @@ function createWaterGlints(seed: number, count: number): BoxInstance[] {
   return Array.from({ length: count }, (_, index) => {
     const north = rng.bool(0.48);
     return {
-      color: rng.bool(0.2) ? "#ffb073" : "#78c9ce",
+      color: rng.bool(0.2) ? "#fff0bd" : "#d8f5f4",
       id: `water-glint-${index}`,
       position: north
         ? [rng.range(-160, 160), -0.38, rng.range(-236, -110)]

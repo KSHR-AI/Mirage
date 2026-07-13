@@ -96,15 +96,15 @@ export const CITY_DETAIL_LIMITS: Record<CityQuality, CityDetailLimits> = {
 };
 
 const FACADE_PALETTES: Record<CityDistrict, readonly string[]> = {
-  afterlight: ["#263842", "#304851", "#4c5557", "#23313d", "#665b58"],
-  breakwater: ["#315965", "#46727a", "#8b8273", "#48525a", "#6c4e4d"],
-  civic: ["#52636a", "#77756f", "#41545d", "#8b796c", "#36545a"],
-  grid: ["#37444b", "#4c5d5c", "#685b4d", "#2d3e43"],
-  industrial: ["#435159", "#6b5c4e", "#35575b", "#71514b", "#596568"],
-  "painted-row": ["#a55361", "#3f7f83", "#bc814e", "#6f6190", "#557960"],
+  afterlight: ["#7895a1", "#8ba2a8", "#b5afa3", "#6f8792", "#aa9083"],
+  breakwater: ["#6f9ba3", "#86aeb0", "#b7aa92", "#7c8988", "#a67970"],
+  civic: ["#91a2a3", "#b3aea3", "#7f969b", "#bc9d85", "#789d9c"],
+  grid: ["#7e8e91", "#8da19b", "#a38f78", "#71878a"],
+  industrial: ["#7e8e91", "#a49078", "#6f9898", "#a97970", "#8f9995"],
+  "painted-row": ["#c66f7f", "#58a1a1", "#d49a61", "#8d79ad", "#74a276"],
 };
 
-const WINDOW_PALETTE = ["#ffd37a", "#ff9f68", "#a9e9ef", "#f3c0ff"] as const;
+const WINDOW_PALETTE = ["#acd7df", "#9ec8d3", "#d1e5e5", "#b8d0d8"] as const;
 const NEON_PALETTE = ["#ff547d", "#5de4dc", "#f6ce5b", "#c48cff"] as const;
 
 type LayoutOptions = {
@@ -261,7 +261,7 @@ function buildArchitecture(seed: number) {
               roofHeight,
               depth * rng.range(0.55, 0.82),
             ],
-            rng.bool(0.5) ? "#25343b" : "#544e4a",
+            rng.bool(0.5) ? "#53666b" : "#746f67",
           ),
         );
 
@@ -271,7 +271,7 @@ function buildArchitecture(seed: number) {
               `${id}-crown`,
               [x, height + 1.2 + roofHeight, z],
               [width * 0.24, rng.range(1.2, 3.4), depth * 0.24],
-              rng.bool() ? "#1f3138" : "#6f665e",
+              rng.bool() ? "#52676d" : "#8a8176",
             ),
           );
         }
@@ -316,13 +316,13 @@ function buildSurfaces(seed: number, quality: CityQuality) {
         `road-v-${line}`,
         [line, 0.08, 0],
         [WORLD_LAYOUT.roadWidth, 0.16, 208],
-        "#17262d",
+        "#4d5659",
       ),
       box(
         `road-h-${line}`,
         [0, 0.085, line],
         [208, 0.17, WORLD_LAYOUT.roadWidth],
-        "#17262d",
+        "#4d5659",
       ),
     );
   }
@@ -330,11 +330,11 @@ function buildSurfaces(seed: number, quality: CityQuality) {
   for (const x of CITY_BLOCK_CENTERS) {
     for (const z of CITY_BLOCK_CENTERS) {
       sidewalks.push(
-        box(`sidewalk-${x}-${z}`, [x, 0.19, z], [18.4, 0.22, 18.4], "#536367"),
+        box(`sidewalk-${x}-${z}`, [x, 0.19, z], [18.4, 0.22, 18.4], "#a4aaa4"),
       );
       if ((Math.abs(x + z) / 28) % 2 === 0) {
         alleys.push(
-          box(`alley-${x}-${z}`, [x, 0.325, z], [2.2, 0.06, 18], "#26343a"),
+          box(`alley-${x}-${z}`, [x, 0.325, z], [2.2, 0.06, 18], "#747d7d"),
         );
       }
     }
@@ -405,7 +405,7 @@ function buildSurfaces(seed: number, quality: CityQuality) {
         vertical
           ? [rng.range(0.7, 1.6), 0.018, rng.range(2.2, 5.8)]
           : [rng.range(2.2, 5.8), 0.018, rng.range(0.7, 1.6)],
-        rng.bool(0.2) ? "#5f7f83" : "#345c68",
+        rng.bool(0.2) ? "#93b8b8" : "#6e9aa4",
       ),
     );
   }
@@ -465,7 +465,7 @@ function buildStreetFeatures(seed: number, quality: CityQuality) {
     const travel = rng.range(-90, 90);
     const vertical = rng.bool();
     trees.push({
-      color: rng.bool(0.25) ? "#50745c" : "#315b50",
+      color: rng.bool(0.25) ? "#659260" : "#477b59",
       id: `tree-${index}`,
       position: vertical
         ? [road + (rng.bool() ? -7.1 : 7.1), 0.31, travel]

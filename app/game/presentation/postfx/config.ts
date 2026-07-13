@@ -29,13 +29,13 @@ const DISABLED_POST_FX: AfterlightPostFxConfig = Object.freeze({
 const HIGH_POST_FX: AfterlightPostFxConfig = Object.freeze({
   enabled: true,
   bloom: Object.freeze({
-    intensity: 0.52,
-    threshold: 1.08,
-    smoothing: 0.24,
+    intensity: 0.18,
+    threshold: 1.28,
+    smoothing: 0.18,
   }),
   vignette: Object.freeze({
-    offset: 0.28,
-    darkness: 0.34,
+    offset: 0.34,
+    darkness: 0.12,
   }),
 });
 

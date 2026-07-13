@@ -63,6 +63,8 @@ test("plays the opening Afterlight loop with keyboard and mouse", async ({
   expect(decodedAudioDurations[1]).toBeGreaterThan(5);
 
   const shell = page.getByTestId("afterlight-game");
+  await expect(shell).toHaveAttribute("data-city", "san-francisco");
+  await expect(shell).toHaveAttribute("data-environment", "sf-daylight");
   const inputSurface = page.locator(".game-input-surface");
   const dispatchPointer = async (
     type: "pointerdown" | "pointerup",

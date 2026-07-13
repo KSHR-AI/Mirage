@@ -949,9 +949,9 @@ export const AfterlightScene = memo(function AfterlightScene({
         events={vfxEvents}
         quality={quality}
         rain={{
-          enabled: true,
+          enabled: false,
           anchor: targetPose.position,
-          intensity: phaseId === AFTERLIGHT_PHASE_IDS.blackout ? 0.82 : 0.46,
+          intensity: 0,
           wind: [0.6, 0, -0.25],
         }}
         reducedMotion={reducedMotion}

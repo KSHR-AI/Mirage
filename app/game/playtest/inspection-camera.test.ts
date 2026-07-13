@@ -60,6 +60,12 @@ describe("resolvePlaytestInspectionPose", () => {
       rotationY: -0.7,
     });
     expect(
+      resolvePlaytestInspectionPose("?inspect=sf-cable-car", true),
+    ).toEqual({
+      position: [-21, 1.25, 34],
+      rotationY: -Math.PI / 2,
+    });
+    expect(
       resolvePlaytestInspectionPose("?inspect=vehicle-fleet", true),
     ).toEqual({
       position: [0, 1.3, 8],
