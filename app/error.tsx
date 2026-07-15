@@ -18,15 +18,12 @@ export default function ErrorScreen({
     <main className="runtime-error" role="alert">
       <div className="runtime-error__brand">
         <strong>MIRAGE</strong>
-        <span>AFTERLIGHT / LINK LOST</span>
+        <span>THE DROP / LINK LOST</span>
       </div>
       <div className="runtime-error__body">
         <p>WORLD 01</p>
         <h1>The city stopped responding.</h1>
-        <span>
-          Retry the renderer. Your latest stored checkpoint remains available
-          from the title screen.
-        </span>
+        <span>Retry the renderer and restart the run.</span>
         <button onClick={reset} type="button">
           <RotateCcw aria-hidden="true" size={18} strokeWidth={2.1} />
           Retry renderer

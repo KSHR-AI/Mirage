@@ -2,10 +2,10 @@ import { expect, type Page } from "@playwright/test";
 import { renderedPixelStats } from "../../scripts/lib/png-stats.mjs";
 
 export async function expectRenderedCanvas(page: Page): Promise<void> {
-  const canvas = page.locator("canvas#afterlight-renderer");
+  const canvas = page.locator("#mirage-renderer canvas");
   await expect(canvas).toBeVisible();
   const bounds = await page.evaluate(() => {
-    const element = document.querySelector("canvas#afterlight-renderer");
+    const element = document.querySelector("#mirage-renderer canvas");
     if (!(element instanceof HTMLCanvasElement)) {
       throw new Error("Rendered canvas is unavailable");
     }

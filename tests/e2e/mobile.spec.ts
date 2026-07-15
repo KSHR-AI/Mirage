@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectRenderedCanvas } from "./canvas";
 
-test("offers a compact, playable touch driving surface", async ({ page }) => {
+test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "maxTouchPoints", {
       configurable: true,
@@ -10,96 +10,110 @@ test("offers a compact, playable touch driving surface", async ({ page }) => {
     HTMLElement.prototype.setPointerCapture = () => undefined;
     HTMLElement.prototype.releasePointerCapture = () => undefined;
   });
+});
+
+test("offers three large, non-overlapping touch controls", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Play" }).click();
+  await page.getByRole("button", { name: "Start run" }).click();
   await expectRenderedCanvas(page);
 
-  const game = page.getByTestId("afterlight-game");
-  await expect(game).toHaveAttribute("data-contract", "hot-ride");
-  await expect(game).toHaveAttribute("data-mode", "car");
-  for (const label of ["Move", "Boost", "Brake"]) {
-    await expect(
-      page.getByRole("button", { name: label, exact: true }),
-    ).toBeVisible();
-  }
-  for (const label of ["Look", "Interact", "Exit vehicle", "Fire", "Aim"]) {
-    await expect(
-      page.getByRole("button", { name: label, exact: true }),
-    ).toHaveCount(0);
-  }
+  const game = page.getByTestId("mirage-game");
+  await expect(game).toHaveAttribute("data-touch", "true");
+  const controls = page.locator('[aria-label="Touch game controls"] button');
+  await expect(controls).toHaveCount(3);
+  expect(
+    await controls.evaluateAll((buttons) =>
+      buttons.map((button) => button.getAttribute("aria-label")),
+    ),
+  ).toEqual(["Steer", "Boost", "Brake"]);
 
-  const layout = await page.evaluate(() => {
-    const controls = document.querySelector(
-      '[aria-label="Touch game controls"]',
-    );
-    const objective = document.querySelector('[class*="objectivePrompt"]');
-    const lowerHud = document.querySelector('[class*="simpleLowerHud"]');
-    if (!(controls instanceof HTMLElement)) throw new Error("controls missing");
-    const targets = [...controls.querySelectorAll("button")].map((button) => {
-      const rect = button.getBoundingClientRect();
-      return {
-        bottom: rect.bottom,
-        height: rect.height,
-        left: rect.left,
-        right: rect.right,
-        top: rect.top,
-        width: rect.width,
-      };
-    });
-    const overlapCount = targets.flatMap((target, index) =>
-      targets
+  const layout = await controls.evaluateAll((buttons) => {
+    const rects = buttons.map((button) => button.getBoundingClientRect());
+    const overlaps = rects.flatMap((rect, index) =>
+      rects
         .slice(index + 1)
         .filter(
           (other) =>
-            target.left < other.right &&
-            target.right > other.left &&
-            target.top < other.bottom &&
-            target.bottom > other.top,
+            rect.left < other.right &&
+            rect.right > other.left &&
+            rect.top < other.bottom &&
+            rect.bottom > other.top,
         ),
-    ).length;
-    const objectiveRect = objective?.getBoundingClientRect();
-    const lowerRect = lowerHud?.getBoundingClientRect();
+    );
     return {
-      lowerTop: lowerRect?.top ?? 0,
-      objectiveBottom: objectiveRect?.bottom ?? innerHeight,
-      overlapCount,
-      targets,
+      overlaps: overlaps.length,
+      sizes: rects.map((rect) => ({ height: rect.height, width: rect.width })),
     };
   });
-  expect(layout.overlapCount).toBe(0);
-  expect(layout.lowerTop - layout.objectiveBottom).toBeGreaterThan(100);
-  expect(layout.targets).toHaveLength(3);
-  for (const target of layout.targets) {
-    expect(target.width).toBeGreaterThanOrEqual(44);
-    expect(target.height).toBeGreaterThanOrEqual(44);
+  expect(layout.overlaps).toBe(0);
+  for (const size of layout.sizes) {
+    expect(size.height).toBeGreaterThanOrEqual(44);
+    expect(size.width).toBeGreaterThanOrEqual(44);
   }
+});
 
-  const move = page.getByRole("button", { name: "Move", exact: true });
-  const startZ = Number(await game.getAttribute("data-player-z"));
-  await move.evaluate((element) => {
+test("touch steering, boost, and brake alter the real simulation", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start run" }).click();
+  const game = page.getByTestId("mirage-game");
+  const steer = page.getByRole("button", { name: "Steer" });
+  const startYaw = Number(await game.getAttribute("data-player-yaw"));
+  const startX = Number(await game.getAttribute("data-player-x"));
+
+  await steer.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     element.dispatchEvent(
       new PointerEvent("pointerdown", {
         bubbles: true,
-        clientX: rect.left + rect.width / 2,
-        clientY: rect.top + 4,
-        pointerId: 41,
+        clientX: rect.right - 8,
+        clientY: rect.top + rect.height / 2,
+        pointerId: 7,
         pointerType: "touch",
       }),
     );
   });
-  await expect
-    .poll(async () => Number(await game.getAttribute("data-player-z")), {
-      timeout: 20_000,
-    })
-    .toBeLessThan(startZ - 2);
-  await move.evaluate((element) => {
+  await page.waitForTimeout(800);
+  await steer.evaluate((element) => {
     element.dispatchEvent(
       new PointerEvent("pointerup", {
         bubbles: true,
-        pointerId: 41,
+        pointerId: 7,
         pointerType: "touch",
       }),
     );
   });
+  expect(Number(await game.getAttribute("data-player-yaw"))).toBeGreaterThan(
+    startYaw + 0.5,
+  );
+  expect(Number(await game.getAttribute("data-player-x"))).toBeGreaterThan(
+    startX + 2,
+  );
+
+  const boost = page.getByRole("button", { name: "Boost" });
+  await boost.dispatchEvent("pointerdown", {
+    pointerId: 8,
+    pointerType: "touch",
+  });
+  await page.waitForTimeout(700);
+  const boostedSpeed = Number(await game.getAttribute("data-player-speed"));
+  await boost.dispatchEvent("pointerup", {
+    pointerId: 8,
+    pointerType: "touch",
+  });
+  expect(boostedSpeed).toBeGreaterThan(15);
+
+  const brake = page.getByRole("button", { name: "Brake" });
+  await brake.dispatchEvent("pointerdown", {
+    pointerId: 9,
+    pointerType: "touch",
+  });
+  await page.waitForTimeout(700);
+  const brakedSpeed = Number(await game.getAttribute("data-player-speed"));
+  await brake.dispatchEvent("pointerup", {
+    pointerId: 9,
+    pointerType: "touch",
+  });
+  expect(brakedSpeed).toBeLessThan(boostedSpeed - 5);
 });

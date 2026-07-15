@@ -6,29 +6,29 @@ const siteUrl =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Mirage: Hot Ride",
+  title: "Mirage: The Drop",
   description:
-    "Drive one hot coupe across a block-built San Francisco and make the drop.",
+    "Grab the package, break the pursuit, and reach Pier 11 in a handcrafted block-built San Francisco.",
   openGraph: {
     type: "website",
     url: "/",
-    title: "Mirage: Hot Ride",
+    title: "Mirage: The Drop",
     description:
-      "Drive one hot coupe across a block-built San Francisco and make the drop.",
+      "Grab the package, break the pursuit, and reach Pier 11 in a handcrafted block-built San Francisco.",
     images: [
       {
         url: "/og.png",
         width: 1440,
         height: 900,
-        alt: "Mirage: Hot Ride in Bay City",
+        alt: "Mirage: The Drop in Bay City",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Mirage: Hot Ride",
+    title: "Mirage: The Drop",
     description:
-      "Drive one hot coupe across a block-built San Francisco and make the drop.",
+      "Grab the package, break the pursuit, and reach Pier 11 in a handcrafted block-built San Francisco.",
     images: ["/og.png"],
   },
 };

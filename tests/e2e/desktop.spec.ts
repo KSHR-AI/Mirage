@@ -1,138 +1,114 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { expectRenderedCanvas } from "./canvas";
+import { driveMission } from "./drive";
 
-async function waitForTick(page: Page, tick: number): Promise<void> {
-  const game = page.getByTestId("afterlight-game");
-  await expect
-    .poll(async () => Number(await game.getAttribute("data-tick")), {
-      timeout: 20_000,
-    })
-    .toBeGreaterThanOrEqual(tick);
-}
-
-async function steerToward(
-  page: Page,
-  target: readonly [x: number, z: number],
-  radius: number,
-): Promise<void> {
-  const game = page.getByTestId("afterlight-game");
-  try {
-    await expect
-      .poll(
-        async () => {
-          const x = Number(await game.getAttribute("data-player-x"));
-          const z = Number(await game.getAttribute("data-player-z"));
-          const yaw = Number(await game.getAttribute("data-vehicle-yaw"));
-          const speedKph = Number(await game.getAttribute("data-speed"));
-          const desired = Math.atan2(-(target[0] - x), -(target[1] - z));
-          const delta = Math.atan2(
-            Math.sin(desired - yaw),
-            Math.cos(desired - yaw),
-          );
-          const distance = Math.hypot(target[0] - x, target[1] - z);
-
-          if (distance < radius + 6 && speedKph > 18) {
-            await page.keyboard.up("w");
-            await page.keyboard.down("Space");
-          } else {
-            await page.keyboard.up("Space");
-            await page.keyboard.down("w");
-          }
-
-          if (delta > 0.07) {
-            await page.keyboard.up("d");
-            await page.keyboard.down("a");
-          } else if (delta < -0.07) {
-            await page.keyboard.up("a");
-            await page.keyboard.down("d");
-          } else {
-            await page.keyboard.up("a");
-            await page.keyboard.up("d");
-          }
-          return distance;
-        },
-        { intervals: [100], timeout: 25_000 },
-      )
-      .toBeLessThan(radius);
-  } finally {
-    await page.keyboard.up("a");
-    await page.keyboard.up("d");
-    await page.keyboard.up("Space");
-    await page.keyboard.up("w");
-  }
-}
-
-test("starts Hot Ride with immediate, coherent vehicle control", async ({
+test("opens directly into one polished fixed-camera mission", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("Mirage: Hot Ride");
+  await expect(page).toHaveTitle("Mirage: The Drop");
   await expect(
-    page.getByRole("heading", { name: "MIRAGE", exact: true }),
+    page.getByRole("heading", { name: "Mirage", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("One car. One clean drop.")).toBeVisible();
-  await expect(page.getByRole("radiogroup")).toHaveCount(0);
-  await page.getByRole("button", { name: "Play" }).click();
-
-  const game = page.getByTestId("afterlight-game");
-  await expect(game).toHaveAttribute("data-contract", "hot-ride");
-  await expect(game).toHaveAttribute("data-mode", "car");
-  await expect(game).toHaveAttribute("data-opening-cinematic", "false");
-  await expect(page.getByRole("heading", { name: "Hot Ride" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The Drop" })).toBeVisible();
+  await expect(page.getByRole("button")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Start run" })).toBeEnabled();
   await expect(
-    page.getByText("Deliver the coupe to the downtown buyer."),
-  ).toBeVisible();
-  await expect(page.getByRole("region", { name: /ammunition/ })).toHaveCount(0);
+    page.getByText(/Loadout|Contract|Upgrade|Afterlight/),
+  ).toHaveCount(0);
   await expectRenderedCanvas(page);
 
-  await page.keyboard.press("e");
-  await expect(game).toHaveAttribute("data-mode", "car");
+  const game = page.getByTestId("mirage-game");
+  await expect(game).toHaveAttribute("data-camera-mode", "fixed-isometric");
+  await expect(game).toHaveAttribute("data-map-blocks", "36");
+  await expect(game).toHaveAttribute("data-scene-ready", "true");
+  await expect
+    .poll(async () => Number(await game.getAttribute("data-draw-calls")))
+    .toBeGreaterThan(0);
+  expect(
+    Number(await game.getAttribute("data-draw-calls")),
+  ).toBeLessThanOrEqual(120);
+});
 
+test("starts moving immediately and gives predictable steering", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start run" }).click();
+  const game = page.getByTestId("mirage-game");
   const startZ = Number(await game.getAttribute("data-player-z"));
-  const startTick = Number(await game.getAttribute("data-tick"));
-  await page.keyboard.down("w");
-  await waitForTick(page, startTick + 60);
-  await page.keyboard.up("w");
-  expect(Number(await game.getAttribute("data-player-z"))).toBeLessThan(
-    startZ - 3,
-  );
 
-  const yawBeforeLeft = Number(await game.getAttribute("data-vehicle-yaw"));
-  const leftTick = Number(await game.getAttribute("data-tick"));
-  await page.keyboard.down("w");
-  await page.keyboard.down("a");
-  await waitForTick(page, leftTick + 24);
-  await page.keyboard.up("a");
-  await page.keyboard.up("w");
-  const yawAfterLeft = Number(await game.getAttribute("data-vehicle-yaw"));
-  expect(yawAfterLeft).toBeGreaterThan(yawBeforeLeft);
-  await expect(game).toHaveAttribute(
-    "data-camera-yaw",
-    Number(await game.getAttribute("data-vehicle-yaw")).toFixed(4),
+  await expect
+    .poll(async () => Number(await game.getAttribute("data-player-z")), {
+      timeout: 6_000,
+    })
+    .toBeLessThan(startZ - 12);
+  await expect(game).toHaveAttribute("data-route-index", "1", {
+    timeout: 8_000,
+  });
+
+  const yawBefore = Number(await game.getAttribute("data-player-yaw"));
+  await page.keyboard.down("d");
+  await page.waitForTimeout(500);
+  await page.keyboard.up("d");
+  expect(Number(await game.getAttribute("data-player-yaw"))).toBeGreaterThan(
+    yawBefore + 0.25,
   );
 });
 
-test("drives the complete Hot Ride route and offers an immediate replay", async ({
+test("slides along obstacles without becoming stranded", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start run" }).click();
+  const game = page.getByTestId("mirage-game");
+  const startPosition = await game.evaluate((element) => ({
+    x: Number(element.getAttribute("data-player-x")),
+    z: Number(element.getAttribute("data-player-z")),
+  }));
+  await page.keyboard.down("d");
+  try {
+    await page.waitForTimeout(5_000);
+  } finally {
+    await page.keyboard.up("d");
+  }
+  const endPosition = await game.evaluate((element) => ({
+    x: Number(element.getAttribute("data-player-x")),
+    z: Number(element.getAttribute("data-player-z")),
+  }));
+  expect(
+    Math.hypot(
+      endPosition.x - startPosition.x,
+      endPosition.z - startPosition.z,
+    ),
+  ).toBeGreaterThan(4);
+  expect(Number(await game.getAttribute("data-player-speed"))).toBeGreaterThan(
+    0,
+  );
+});
+
+test("completes The Drop with pursuit, ramp, scoring, and replay", async ({
   page,
 }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(180_000);
   await page.goto("/");
-  await page.getByRole("button", { name: "Play" }).click();
+  await page.getByRole("button", { name: "Start run" }).click();
 
-  await steerToward(page, [56, -84], 16);
+  const trace = await driveMission(page);
+  expect(trace.map((entry) => entry.routeIndex)).toEqual([0, 1, 2, 3, 4, 5]);
 
-  await expect(
-    page.getByRole("heading", { name: "Car delivered." }),
-  ).toBeVisible({ timeout: 20_000 });
-  const debrief = page.getByRole("dialog", { name: "Car delivered." });
-  await expect(debrief.getByText("$2,500")).toBeVisible();
-  await expect(page.getByText("OPTIONAL")).toHaveCount(0);
-  await page.getByRole("button", { name: "Replay job" }).click();
-  await expect(page.getByTestId("afterlight-game")).toHaveAttribute(
-    "data-mode",
-    "car",
-  );
-  await expect(
-    page.getByText("Deliver the coupe to the downtown buyer."),
-  ).toBeVisible();
+  const game = page.getByTestId("mirage-game");
+  await expect(game).toHaveAttribute("data-phase", "complete");
+  await expect(game).toHaveAttribute("data-ramp-used", "true");
+  expect(
+    Number(await game.getAttribute("data-boost-pickups")),
+  ).toBeGreaterThanOrEqual(2);
+  const dialog = page.getByRole("dialog", { name: "The drop is clean." });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Pier 11 / Package delivered")).toBeVisible();
+  await expect(dialog.getByText("Score")).toBeVisible();
+  await expect(dialog.getByText("Collisions")).toBeVisible();
+  await expect(dialog.getByText("Near misses")).toBeVisible();
+
+  await page.getByRole("button", { name: "Replay The Drop" }).click();
+  await expect(game).toHaveAttribute("data-phase", "pickup");
+  await expect(game).toHaveAttribute("data-route-index", "0");
 });

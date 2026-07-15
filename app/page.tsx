@@ -1,5 +1,5 @@
-import { AfterlightGame } from "./components/AfterlightGame";
+import { MirageGame } from "./game/mirage/MirageGame";
 
 export default function Page() {
-  return <AfterlightGame />;
+  return <MirageGame />;
 }
