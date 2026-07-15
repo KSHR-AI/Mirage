@@ -22,8 +22,8 @@ pnpm playtest
 The playtest starts an isolated dev server when necessary, exercises desktop
 and mobile input in Chromium, then writes a visual and machine-readable report
 under `.artifacts/playtest/`. It checks canvas rendering, lane control, camera
-tracking, render budget, touch controls, no-input route completion, replay, and
-uncaught browser errors.
+tracking, render budget, touch controls, failure and clean-route completion,
+replay, and uncaught browser errors.
 
 Target a deployed build or run one journey while debugging:
 
@@ -36,8 +36,9 @@ pnpm playtest -- --scenario desktop --headed
 
 - Start already moving, collect the package, and escape a road-bound pursuit.
 - Clear three route gates, hit the waterfront ramp, and deliver to Pier 11.
-- Change lanes to dodge traffic; boost and brake control your pace.
-- Replay immediately to improve time, score, near misses, and rank.
+- Read the traffic waves, change lanes, and avoid three run-ending impacts.
+- Chain near misses for a multiplier; boost and brake control your pace.
+- Replay immediately to improve time, score, clean streak, and rank.
 - Play on desktop or mobile with no account, API key, or payment gate.
 
 ## Stack

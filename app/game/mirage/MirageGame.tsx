@@ -274,18 +274,27 @@ function GameHud({
           <strong>{state.score.toLocaleString("en-US")}</strong>
         </div>
       </section>
-      <div aria-label={`Heat ${state.heat} of 3`} className={styles.heat}>
-        <span className={styles.heatLabel}>Heat</span>
+      <div
+        aria-label={`Damage ${state.collisions} of 3`}
+        className={styles.heat}
+      >
+        <span className={styles.heatLabel}>Damage</span>
         <span className={styles.heatBars}>
           {[1, 2, 3].map((level) => (
             <span
               key={level}
               className={styles.heatBar}
-              data-active={level <= state.heat}
+              data-active={level <= state.collisions}
             />
           ))}
         </span>
       </div>
+      {state.combo > 1 ? (
+        <div aria-label={`Style combo ${state.combo}`} className={styles.combo}>
+          <span>Clean streak</span>
+          <strong>x{state.combo}</strong>
+        </div>
+      ) : null}
       <MiniMap state={state} />
       <section aria-label="Vehicle status" className={styles.driveStats}>
         <span className={styles.district}>
@@ -320,6 +329,7 @@ function Debrief({
   readonly state: MirageRunState;
 }) {
   const score = state.finalScore ?? state.score;
+  const busted = state.phase === "busted";
   return (
     <section
       aria-labelledby="debrief-title"
@@ -328,9 +338,17 @@ function Debrief({
       role="dialog"
     >
       <div className={styles.debriefCopy}>
-        <span className={styles.debriefEyebrow}>Mirage / Mission complete</span>
-        <h2 id="debrief-title">The drop is clean.</h2>
-        <p>Pier 11 / Package delivered</p>
+        <span className={styles.debriefEyebrow}>
+          Mirage / {busted ? "Run failed" : "Mission complete"}
+        </span>
+        <h2 id="debrief-title">
+          {busted ? "You got boxed in." : "The drop is clean."}
+        </h2>
+        <p>
+          {busted
+            ? "Three impacts / Package intercepted"
+            : "Pier 11 / Package delivered"}
+        </p>
       </div>
       <div>
         <div className={styles.debriefRank}>
@@ -389,12 +407,14 @@ export function MirageGame() {
   const pressedKeys = useRef(new Set<string>());
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastEventId = useRef(initial.eventId);
+  const audioRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     document.body.classList.add("mirage-active");
     return () => {
       document.body.classList.remove("mirage-active");
       if (toastTimer.current) clearTimeout(toastTimer.current);
+      void audioRef.current?.close();
     };
   }, []);
 
@@ -448,18 +468,52 @@ export function MirageGame() {
     };
   }, [mode]);
 
-  const handleSnapshot = useCallback((next: MirageRunState) => {
-    setSnapshot(next);
-    if (next.eventId !== lastEventId.current) {
-      lastEventId.current = next.eventId;
-      setToast(next.eventLabel);
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setToast(""), 2_200);
-    }
-    if (next.phase === "complete") setMode("complete");
+  const playEventSound = useCallback((label: string) => {
+    const context = audioRef.current;
+    if (!context || context.state === "closed") return;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const now = context.currentTime;
+    const impact = label.includes("Impact") || label === "Busted";
+    const boost = label.includes("Boost") || label.includes("Airborne");
+    oscillator.type = impact ? "square" : boost ? "sawtooth" : "sine";
+    oscillator.frequency.setValueAtTime(impact ? 95 : boost ? 320 : 620, now);
+    oscillator.frequency.exponentialRampToValueAtTime(
+      impact ? 55 : boost ? 760 : 880,
+      now + 0.12,
+    );
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(impact ? 0.12 : 0.07, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.15);
   }, []);
 
+  const handleSnapshot = useCallback(
+    (next: MirageRunState) => {
+      setSnapshot(next);
+      if (next.eventId !== lastEventId.current) {
+        lastEventId.current = next.eventId;
+        setToast(next.eventLabel);
+        playEventSound(next.eventLabel);
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setToast(""), 2_200);
+      }
+      if (next.phase === "complete" || next.phase === "busted") {
+        setMode("complete");
+      }
+    },
+    [playEventSound],
+  );
+
   const startRun = useCallback(() => {
+    try {
+      audioRef.current ??= new AudioContext();
+      void audioRef.current.resume();
+    } catch {
+      audioRef.current = null;
+    }
     const next = createMirageRunState();
     stateRef.current = next;
     inputRef.current = { ...EMPTY_INPUT };
@@ -485,17 +539,19 @@ export function MirageGame() {
     <main
       className={styles.game}
       data-camera-mode="fixed-isometric"
+      data-combo={snapshot.combo}
       data-collisions={snapshot.collisions}
       data-draw-calls={renderStats.drawCalls}
       data-map-blocks={CITY_BLOCKS.length}
       data-near-misses={snapshot.nearMisses}
       data-lane-offset={snapshot.car.laneOffset.toFixed(3)}
+      data-lane-target={snapshot.car.laneTarget.toFixed(0)}
       data-phase={snapshot.phase}
+      data-impact-cooldown={snapshot.impactCooldown.toFixed(3)}
       data-player-speed={snapshot.car.speed.toFixed(3)}
       data-player-x={snapshot.car.x.toFixed(3)}
       data-player-yaw={snapshot.car.yaw.toFixed(4)}
       data-player-z={snapshot.car.z.toFixed(3)}
-      data-recoveries={snapshot.recoveries}
       data-ramp-used={snapshot.rampUsed}
       data-route-distance={snapshot.car.routeDistance.toFixed(3)}
       data-route-index={snapshot.routeIndex}
@@ -504,6 +560,7 @@ export function MirageGame() {
       )}
       data-scene-ready={sceneReady}
       data-score={snapshot.score}
+      data-style-score={snapshot.styleScore}
       data-boost-pickups={snapshot.collectedBoosts.filter(Boolean).length}
       data-target-x={target.x}
       data-target-z={target.z}
@@ -545,8 +602,8 @@ export function MirageGame() {
             <h1 id="mirage-title">Mirage</h1>
             <h2>The Drop</h2>
             <p className={styles.introBrief}>
-              Grab the package downtown, break the pursuit, and reach Pier 11
-              before the city closes in.
+              Grab the package downtown, thread the blockades, and reach Pier 11
+              before three impacts end the run.
             </p>
             <button
               className={styles.startButton}

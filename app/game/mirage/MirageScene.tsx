@@ -15,6 +15,7 @@ import {
   Group,
   InstancedMesh,
   MathUtils,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
   OrthographicCamera,
@@ -534,14 +535,74 @@ function CarModel({
   );
 }
 
+function TrafficVehicles() {
+  const bodies = useMemo<readonly BoxInstance[]>(
+    () =>
+      Array.from({ length: getTrafficCount() }, (_, index) => {
+        const pose = getTrafficPose(index);
+        return {
+          color: TRAFFIC_COLORS[index % TRAFFIC_COLORS.length],
+          position: [pose.x, 0.72, pose.z],
+          rotationY: pose.yaw,
+          scale: [2.15, 0.72, 4.2],
+        };
+      }),
+    [],
+  );
+  const cabins = useMemo<readonly BoxInstance[]>(
+    () =>
+      Array.from({ length: getTrafficCount() }, (_, index) => {
+        const pose = getTrafficPose(index);
+        return {
+          color: "#17333a",
+          position: [pose.x, 1.3, pose.z],
+          rotationY: pose.yaw,
+          scale: [1.68, 0.62, 2.05],
+        };
+      }),
+    [],
+  );
+  const warnings = useMemo<readonly BoxInstance[]>(
+    () =>
+      Array.from({ length: getTrafficCount() }, (_, index) => {
+        const pose = getTrafficPose(index);
+        return {
+          color: "#ff5148",
+          position: [pose.x, 0.14, pose.z],
+          rotationY: pose.yaw,
+          scale: [2.65, 0.045, 4.9],
+        };
+      }),
+    [],
+  );
+
+  return (
+    <group>
+      <BoxInstances
+        emissive="#a51f24"
+        emissiveIntensity={1.1}
+        items={warnings}
+        roughness={0.48}
+      />
+      <BoxInstances
+        castShadow
+        items={bodies}
+        metalness={0.18}
+        roughness={0.5}
+      />
+      <BoxInstances items={cabins} metalness={0.32} roughness={0.24} />
+    </group>
+  );
+}
+
 function DynamicVehicles({
   inputRef,
   stateRef,
 }: Pick<MirageSceneProps, "inputRef" | "stateRef">) {
   const playerRef = useRef<Group>(null);
   const pursuitRefs = useRef<Array<Group | null>>([]);
-  const trafficRefs = useRef<Array<Group | null>>([]);
   const boostFlameRef = useRef<Group>(null);
+  const playerRingRef = useRef<MeshBasicMaterial>(null);
   useFrame(() => {
     const state = stateRef.current;
     const player = playerRef.current;
@@ -552,6 +613,14 @@ function DynamicVehicles({
         state.car.jumpRemaining > 0 ? Math.sin(jumpProgress * Math.PI) * 3 : 0;
       player.position.set(state.car.x, 0.28 + jumpHeight, state.car.z);
       player.rotation.y = state.car.yaw;
+      const impactPulse =
+        state.impactCooldown > 0 ? 1 + Math.sin(state.elapsed * 48) * 0.07 : 1;
+      player.scale.setScalar(impactPulse);
+    }
+    if (playerRingRef.current) {
+      playerRingRef.current.color.set(
+        state.impactCooldown > 0 ? "#ff5148" : "#d8ff55",
+      );
     }
     if (boostFlameRef.current) {
       boostFlameRef.current.visible =
@@ -568,13 +637,6 @@ function DynamicVehicles({
         index === Math.floor(state.elapsed * 8) % 2 ? 1.02 : 1,
       );
     });
-    for (let index = 0; index < getTrafficCount(); index += 1) {
-      const pose = getTrafficPose(index, state.elapsed);
-      const group = trafficRefs.current[index];
-      if (!group) continue;
-      group.position.set(pose.x, 0.28, pose.z);
-      group.rotation.y = pose.yaw;
-    }
   });
   return (
     <group>
@@ -585,6 +647,7 @@ function DynamicVehicles({
         <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[2.7, 3.15, 28]} />
           <meshBasicMaterial
+            ref={playerRingRef}
             color="#d8ff55"
             depthWrite={false}
             opacity={0.92}
@@ -614,17 +677,6 @@ function DynamicVehicles({
           <CarModel color="#e7ece7" police />
         </group>
       ))}
-      {Array.from({ length: getTrafficCount() }, (_, index) => (
-        <group
-          key={index}
-          ref={(group) => {
-            trafficRefs.current[index] = group;
-          }}
-          scale={0.92}
-        >
-          <CarModel color={TRAFFIC_COLORS[index % TRAFFIC_COLORS.length]} />
-        </group>
-      ))}
     </group>
   );
 }
@@ -637,7 +689,7 @@ function MissionMarker({ stateRef }: Pick<MirageSceneProps, "stateRef">) {
     const root = rootRef.current;
     if (!root) return;
     const target = getCurrentTarget(state);
-    root.visible = state.phase !== "complete";
+    root.visible = state.phase !== "complete" && state.phase !== "busted";
     root.position.set(target.x, 0.28, target.z);
     const pulse = 1 + Math.sin(state.elapsed * 5) * 0.12;
     root.scale.setScalar(pulse);
@@ -691,9 +743,14 @@ function CameraRig({ stateRef }: Pick<MirageSceneProps, "stateRef">) {
   useFrame((_, delta) => {
     const camera = cameraRef.current;
     if (!camera) return;
-    const car = stateRef.current.car;
+    const state = stateRef.current;
+    const car = state.car;
     const targetZoom = size.width < 600 ? 8.6 : 13.5;
-    desired.current.set(car.x + 8, 100, car.z + 14);
+    const shake =
+      state.impactCooldown > 0
+        ? Math.sin(state.elapsed * 72) * state.impactCooldown * 0.8
+        : 0;
+    desired.current.set(car.x + 1 + shake, 110, car.z + 3 - shake);
     camera.position.lerp(desired.current, 1 - Math.exp(-delta * 4.5));
     lookTarget.current.set(car.x, 0.6, car.z);
     lookAt.current.lerp(lookTarget.current, 1 - Math.exp(-delta * 6));
@@ -710,7 +767,7 @@ function CameraRig({ stateRef }: Pick<MirageSceneProps, "stateRef">) {
       makeDefault
       far={400}
       near={0.1}
-      position={[-64, 100, 118]}
+      position={[-71, 110, 107]}
       zoom={13.5}
     />
   );
@@ -729,7 +786,7 @@ function SimulationDriver({
       stateRef.current = advanceMirageRun(
         stateRef.current,
         inputRef.current,
-        Math.min(0.05, delta),
+        Math.min(0.1, delta),
       );
     }
     publishTimer.current += delta;
@@ -791,6 +848,7 @@ export const MirageScene = memo(function MirageScene({
       <StreetTrees />
       <CityLandmarks />
       <BoostPadsAndRamp />
+      <TrafficVehicles />
       <DynamicVehicles inputRef={inputRef} stateRef={stateRef} />
       <MissionMarker stateRef={stateRef} />
       <CameraRig stateRef={stateRef} />

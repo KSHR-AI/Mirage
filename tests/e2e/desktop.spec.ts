@@ -83,6 +83,23 @@ test("cannot steer off the road or strand the car", async ({ page }) => {
   );
 });
 
+test("an unattended run is intercepted after three impacts", async ({
+  page,
+}) => {
+  test.setTimeout(40_000);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start run" }).click();
+  const game = page.getByTestId("mirage-game");
+
+  await expect(game).toHaveAttribute("data-phase", "busted", {
+    timeout: 25_000,
+  });
+  await expect(game).toHaveAttribute("data-collisions", "3");
+  await expect(
+    page.getByRole("dialog", { name: "You got boxed in." }),
+  ).toBeVisible();
+});
+
 test("completes The Drop with pursuit, ramp, scoring, and replay", async ({
   page,
 }) => {
@@ -95,10 +112,16 @@ test("completes The Drop with pursuit, ramp, scoring, and replay", async ({
 
   const game = page.getByTestId("mirage-game");
   await expect(game).toHaveAttribute("data-phase", "complete");
+  expect(
+    Number(await game.getAttribute("data-collisions")),
+  ).toBeLessThanOrEqual(1);
   await expect(game).toHaveAttribute("data-ramp-used", "true");
   expect(
     Number(await game.getAttribute("data-boost-pickups")),
-  ).toBeGreaterThanOrEqual(1);
+  ).toBeGreaterThanOrEqual(3);
+  expect(Number(await game.getAttribute("data-combo"))).toBeGreaterThanOrEqual(
+    3,
+  );
   const dialog = page.getByRole("dialog", { name: "The drop is clean." });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Pier 11 / Package delivered")).toBeVisible();

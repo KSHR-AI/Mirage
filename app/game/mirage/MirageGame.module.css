@@ -238,6 +238,30 @@
   box-shadow: 0 0 12px rgba(255, 107, 88, 0.7);
 }
 
+.combo {
+  position: absolute;
+  z-index: 8;
+  right: max(22px, env(safe-area-inset-right));
+  bottom: max(142px, calc(env(safe-area-inset-bottom) + 120px));
+  display: grid;
+  justify-items: end;
+  color: #d8ff55;
+  filter: drop-shadow(0 3px 12px rgba(0, 0, 0, 0.65));
+  pointer-events: none;
+}
+
+.combo span {
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.combo strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 42px;
+  line-height: 0.9;
+}
+
 .eventToast {
   position: absolute;
   z-index: 9;
@@ -568,6 +592,11 @@
     right: max(14px, env(safe-area-inset-right));
     bottom: max(116px, calc(env(safe-area-inset-bottom) + 100px));
     min-width: 134px;
+  }
+
+  .combo {
+    right: max(14px, env(safe-area-inset-right));
+    bottom: max(270px, calc(env(safe-area-inset-bottom) + 250px));
   }
 
   .speed strong {

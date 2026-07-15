@@ -242,7 +242,10 @@ async function readTelemetry(game) {
     return {
       boostPickups: number("boost-pickups"),
       cameraMode: attribute("camera-mode"),
+      collisions: number("collisions"),
+      combo: number("combo"),
       laneOffset: number("lane-offset"),
+      laneTarget: number("lane-target"),
       mapBlocks: number("map-blocks"),
       phase: attribute("phase"),
       rampUsed: attribute("ramp-used") === "true",
@@ -251,6 +254,7 @@ async function readTelemetry(game) {
       routeProgress: number("route-progress"),
       score: number("score"),
       speed: number("player-speed"),
+      styleScore: number("style-score"),
       targetX: number("target-x"),
       targetZ: number("target-z"),
       touch: attribute("touch") === "true",
@@ -302,10 +306,11 @@ async function holdKey(page, key, duration) {
   }
 }
 
-async function holdKeyUntil(page, key, predicate, argument, timeout = 5_000) {
+async function measureHeldKey(page, game, key, duration) {
   await page.keyboard.down(key);
   try {
-    await page.waitForFunction(predicate, argument, { timeout });
+    await page.waitForTimeout(duration);
+    return await readTelemetry(game);
   } finally {
     await page.keyboard.up(key);
   }
@@ -316,10 +321,22 @@ async function driveMission(page, game, timeout = 60_000) {
   let previousRoute = -1;
   const startedAt = Date.now();
 
+  const targetLane = (routeDistance) => {
+    if (routeDistance < 70) return 0;
+    if (routeDistance < 112) return 4;
+    if (routeDistance < 156) return -4;
+    if (routeDistance < 200) return 0;
+    if (routeDistance < 218) return 4;
+    if (routeDistance < 246) return 0;
+    if (routeDistance < 268) return 4;
+    return -4;
+  };
+
   while (Date.now() - startedAt < timeout) {
     const state = await readTelemetry(game);
     if (state.routeIndex !== previousRoute) {
       trace.push({
+        collisions: state.collisions,
         phase: state.phase,
         routeIndex: state.routeIndex,
         routeDistance: state.routeDistance,
@@ -327,7 +344,20 @@ async function driveMission(page, game, timeout = 60_000) {
       previousRoute = state.routeIndex;
     }
     if (state.phase === "complete") return trace;
-    await page.waitForTimeout(50);
+    if (state.phase === "busted") {
+      throw new Error(`Clean route was busted: ${JSON.stringify(state)}`);
+    }
+
+    const difference = targetLane(state.routeDistance) - state.laneTarget;
+    if (Math.abs(difference) >= 1.25) {
+      const key = difference > 0 ? "d" : "a";
+      await page.keyboard.down(key);
+      await page.waitForTimeout(250);
+      await page.keyboard.up(key);
+      await page.waitForTimeout(200);
+    } else {
+      await page.waitForTimeout(50);
+    }
   }
   throw new Error(
     `Mission did not complete in ${timeout}ms: ${JSON.stringify(trace)}`,
@@ -346,6 +376,7 @@ async function desktopScenario(browser, url, outDir) {
     await validateWorld(scenario, page, game, outDir);
     await capture(scenario, page, outDir, "start");
 
+    game = await startGame(page, url);
     const starting = await readTelemetry(game);
     await page.waitForFunction(
       ({ selector, startZ }) =>
@@ -369,19 +400,7 @@ async function desktopScenario(browser, url, outDir) {
     );
 
     const beforeBoost = await readTelemetry(game);
-    await holdKeyUntil(
-      page,
-      "w",
-      ({ selector, threshold }) =>
-        Number(
-          document.querySelector(selector)?.getAttribute("data-player-speed"),
-        ) > threshold,
-      {
-        selector: GAME_SELECTOR,
-        threshold: Math.max(15, beforeBoost.speed + 2),
-      },
-    );
-    const afterBoost = await readTelemetry(game);
+    const afterBoost = await measureHeldKey(page, game, "w", 500);
     addCheck(
       scenario,
       "keyboard-boost",
@@ -389,16 +408,7 @@ async function desktopScenario(browser, url, outDir) {
       { after: afterBoost.speed, before: beforeBoost.speed },
       "> before + 1",
     );
-    await holdKeyUntil(
-      page,
-      "s",
-      ({ selector, threshold }) =>
-        Number(
-          document.querySelector(selector)?.getAttribute("data-player-speed"),
-        ) < threshold,
-      { selector: GAME_SELECTOR, threshold: afterBoost.speed - 5 },
-    );
-    const afterBrake = await readTelemetry(game);
+    const afterBrake = await measureHeldKey(page, game, "s", 500);
     addCheck(
       scenario,
       "keyboard-brake",
@@ -407,6 +417,24 @@ async function desktopScenario(browser, url, outDir) {
       "< before - 3",
     );
     await capture(scenario, page, outDir, "desktop-input");
+
+    game = await startGame(page, url);
+    await page.waitForFunction(
+      (selector) =>
+        document.querySelector(selector)?.getAttribute("data-phase") ===
+        "busted",
+      GAME_SELECTOR,
+      { timeout: 25_000 },
+    );
+    const unattended = await readTelemetry(game);
+    addCheck(
+      scenario,
+      "inaction-fails",
+      unattended.phase === "busted" && unattended.collisions === 3,
+      { collisions: unattended.collisions, phase: unattended.phase },
+      { collisions: 3, phase: "busted" },
+    );
+    await capture(scenario, page, outDir, "busted");
 
     game = await startGame(page, url);
     const trace = await driveMission(page, game);
@@ -428,6 +456,13 @@ async function desktopScenario(browser, url, outDir) {
     );
     addCheck(
       scenario,
+      "clean-route",
+      completed.collisions <= 1 && completed.combo >= 3,
+      { collisions: completed.collisions, combo: completed.combo },
+      { collisions: "<= 1", combo: ">= 3" },
+    );
+    addCheck(
+      scenario,
       "ramp-traversed",
       completed.rampUsed,
       completed.rampUsed,
@@ -436,9 +471,9 @@ async function desktopScenario(browser, url, outDir) {
     addCheck(
       scenario,
       "boost-route",
-      completed.boostPickups >= 1,
+      completed.boostPickups >= 3,
       completed.boostPickups,
-      ">= 1",
+      ">= 3",
     );
     addCheck(
       scenario,

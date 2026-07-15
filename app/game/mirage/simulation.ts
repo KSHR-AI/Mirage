@@ -5,17 +5,20 @@ import type {
   MissionTarget,
   Point2,
   PursuerState,
+  TrafficResult,
 } from "./types";
 
 const FIXED_STEP = 1 / 60;
-const CRUISE_SPEED = 10.5;
-const BOOST_SPEED = 17;
-const BRAKE_SPEED = 6.5;
+const CRUISE_SPEED = 11;
+const BOOST_SPEED = 18;
+const BRAKE_SPEED = 6;
 const LANE_LIMIT = 4;
-const LANE_SPEED = 6.2;
+const LANE_SPEED = 8.5;
 const TARGET_TIME = 55;
-const TRAFFIC_COLLISION_RADIUS = 2.4;
-const TRAFFIC_NEAR_MISS_RADIUS = 4.6;
+const TRAFFIC_LONGITUDINAL_RADIUS = 2.4;
+const TRAFFIC_COLLISION_LANE_RADIUS = 2;
+const TRAFFIC_NEAR_MISS_LANE_RADIUS = 5;
+const MAX_COLLISIONS = 3;
 
 export const EMPTY_INPUT: MirageInput = Object.freeze({
   boost: false,
@@ -57,10 +60,6 @@ function clamp(value: number, minimum: number, maximum: number): number {
 function moveToward(value: number, target: number, amount: number): number {
   if (value < target) return Math.min(target, value + amount);
   return Math.max(target, value - amount);
-}
-
-function distance(a: Point2, b: Point2): number {
-  return Math.hypot(a.x - b.x, a.z - b.z);
 }
 
 function pointAtRouteDistance(routeDistance: number): Point2 {
@@ -142,10 +141,10 @@ interface RouteItem {
 }
 
 const BOOST_PAD_DEFINITIONS: readonly RouteItem[] = Object.freeze([
-  { laneOffset: 0, routeDistance: 55 },
-  { laneOffset: -2.8, routeDistance: 120 },
-  { laneOffset: 2.8, routeDistance: 190 },
-  { laneOffset: 0, routeDistance: 258 },
+  { laneOffset: 0, routeDistance: 58 },
+  { laneOffset: -4, routeDistance: 140 },
+  { laneOffset: 0, routeDistance: 186 },
+  { laneOffset: -4, routeDistance: 280 },
 ]);
 
 export const BOOST_PADS = Object.freeze(
@@ -160,11 +159,24 @@ export const RAMP_POSITION: Point2 = Object.freeze(
 );
 
 const TRAFFIC_DEFINITIONS = Object.freeze([
-  { laneOffset: -2.9, routeDistance: 72, speed: 4.2 },
-  { laneOffset: 2.8, routeDistance: 132, speed: 4.8 },
-  { laneOffset: 0, routeDistance: 186, speed: 4.4 },
-  { laneOffset: -2.7, routeDistance: 238, speed: 5 },
-  { laneOffset: 2.7, routeDistance: 280, speed: 4.6 },
+  { laneOffset: -3, routeDistance: 48 },
+  { laneOffset: 3, routeDistance: 68 },
+  { laneOffset: 0, routeDistance: 82 },
+  { laneOffset: -3, routeDistance: 110 },
+  { laneOffset: 0, routeDistance: 110 },
+  { laneOffset: 3, routeDistance: 132 },
+  { laneOffset: 0, routeDistance: 154 },
+  { laneOffset: 3, routeDistance: 154 },
+  { laneOffset: -3, routeDistance: 178 },
+  { laneOffset: -3, routeDistance: 198 },
+  { laneOffset: 3, routeDistance: 198 },
+  { laneOffset: 0, routeDistance: 216 },
+  { laneOffset: -3, routeDistance: 244 },
+  { laneOffset: -3, routeDistance: 266 },
+  { laneOffset: 0, routeDistance: 266 },
+  { laneOffset: 3, routeDistance: 292 },
+  { laneOffset: 0, routeDistance: 308 },
+  { laneOffset: 3, routeDistance: 308 },
 ] as const);
 
 function missionPhase(routeIndex: number): MirageMissionPhase {
@@ -190,37 +202,37 @@ export function getTimeRemaining(state: Pick<MirageRunState, "elapsed">) {
 export function calculateScore(
   state: Pick<
     MirageRunState,
-    "collectedBoosts" | "collisions" | "elapsed" | "nearMisses" | "rampUsed"
+    "car" | "collisions" | "elapsed" | "phase" | "routeIndex" | "styleScore"
   >,
 ): number {
-  const boostBonus = state.collectedBoosts.filter(Boolean).length * 200;
+  const completionBonus =
+    state.phase === "complete"
+      ? 2_000 + Math.max(0, TARGET_TIME - state.elapsed) * 60
+      : 0;
   return Math.max(
-    1_000,
+    0,
     Math.round(
-      10_000 -
-        state.elapsed * 80 -
-        state.collisions * 450 +
-        state.nearMisses * 300 +
-        boostBonus +
-        (state.rampUsed ? 500 : 0),
+      state.car.routeDistance * 10 +
+        state.routeIndex * 250 +
+        state.styleScore +
+        completionBonus -
+        state.collisions * 800,
     ),
   );
 }
 
 export function getRank(score: number): "S" | "A" | "B" | "C" {
-  if (score >= 9_000) return "S";
-  if (score >= 7_700) return "A";
-  if (score >= 6_200) return "B";
+  if (score >= 9_500) return "S";
+  if (score >= 7_500) return "A";
+  if (score >= 4_500) return "B";
   return "C";
 }
 
-export function getTrafficPose(index: number, elapsed: number) {
+export function getTrafficPose(index: number) {
   const definition = TRAFFIC_DEFINITIONS[index % TRAFFIC_DEFINITIONS.length];
-  const routeDistance =
-    (definition.routeDistance + elapsed * definition.speed) % ROUTE_LENGTH;
   return {
-    ...getRoutePose(routeDistance, definition.laneOffset),
-    speed: definition.speed,
+    ...getRoutePose(definition.routeDistance, definition.laneOffset),
+    speed: 0,
   };
 }
 
@@ -228,10 +240,15 @@ export function getTrafficCount(): number {
   return TRAFFIC_DEFINITIONS.length;
 }
 
-function createPursuers(routeDistance: number, laneOffset: number) {
+function createPursuers(
+  routeDistance: number,
+  laneOffset: number,
+  collisions = 0,
+) {
+  const leadGap = Math.max(7, 15 - collisions * 2.5);
   return [
-    { gap: 12, id: 0, laneOffset: laneOffset - 1.8 },
-    { gap: 20, id: 1, laneOffset: laneOffset + 2.2 },
+    { gap: leadGap, id: 0, laneOffset: laneOffset - 1.8 },
+    { gap: leadGap + 8, id: 1, laneOffset: laneOffset + 2.2 },
   ].map(
     (definition): PursuerState => ({
       ...getRoutePose(
@@ -248,27 +265,29 @@ export function createMirageRunState(): MirageRunState {
   return {
     car: {
       ...pose,
-      boost: 0.74,
+      boost: 0.68,
       jumpRemaining: 0,
+      laneTarget: 0,
       speed: 8,
     },
     collectedBoosts: BOOST_PAD_DEFINITIONS.map(() => false),
     collisions: 0,
+    combo: 0,
     elapsed: 0,
     eventId: 0,
     eventLabel: "Package marked",
     finalScore: null,
-    heat: 0,
-    nearMissArmed: TRAFFIC_DEFINITIONS.map(() => true),
+    impactCooldown: 0,
     nearMisses: 0,
     phase: "pickup",
     pursuers: createPursuers(0, 0),
     rampUsed: false,
-    recoveries: 0,
     routeIndex: 0,
-    score: 10_000,
+    score: 0,
+    steerLatch: 0,
+    styleScore: 0,
     tick: 0,
-    trafficCooldowns: TRAFFIC_DEFINITIONS.map(() => 0),
+    trafficResults: TRAFFIC_DEFINITIONS.map(() => "pending"),
   };
 }
 
@@ -277,24 +296,30 @@ function withEvent(state: MirageRunState, eventLabel: string): MirageRunState {
 }
 
 function updateMission(state: MirageRunState): MirageRunState {
-  if (state.phase === "complete") return state;
+  if (state.phase === "complete" || state.phase === "busted") return state;
   const target = getCurrentTarget(state);
   if (state.car.routeDistance < target.routeDistance) return state;
 
   const routeIndex = state.routeIndex + 1;
   const phase = missionPhase(routeIndex);
+  const progressed = {
+    ...state,
+    phase,
+    routeIndex,
+    styleScore: state.styleScore + 150,
+  };
   if (phase === "complete") {
-    const finalScore = calculateScore(state);
+    const finalScore = calculateScore(progressed);
     return withEvent(
-      { ...state, finalScore, phase, routeIndex, score: finalScore },
+      { ...progressed, finalScore, score: finalScore },
       "Package delivered",
     );
   }
   return withEvent(
-    { ...state, phase, routeIndex },
+    progressed,
     state.routeIndex === 0
       ? "Package secured. Two units inbound."
-      : `Gate ${state.routeIndex} cleared`,
+      : `Gate ${state.routeIndex} cleared +150`,
   );
 }
 
@@ -303,7 +328,7 @@ function updateBoostPads(state: MirageRunState): MirageRunState {
   BOOST_PAD_DEFINITIONS.forEach((pad, index) => {
     if (next.collectedBoosts[index]) return;
     if (Math.abs(next.car.routeDistance - pad.routeDistance) > 3.8) return;
-    if (Math.abs(next.car.laneOffset - pad.laneOffset) > 2.25) return;
+    if (Math.abs(next.car.laneOffset - pad.laneOffset) > 2.2) return;
     const collectedBoosts = [...next.collectedBoosts];
     collectedBoosts[index] = true;
     next = withEvent(
@@ -311,87 +336,99 @@ function updateBoostPads(state: MirageRunState): MirageRunState {
         ...next,
         car: { ...next.car, boost: 1 },
         collectedBoosts,
+        styleScore: next.styleScore + 200,
       },
-      "Boost refilled",
+      "Boost refill +200",
     );
   });
   return next;
 }
 
-function updateTraffic(state: MirageRunState, delta: number): MirageRunState {
-  let next: MirageRunState = {
+function resolveImpact(
+  state: MirageRunState,
+  results: TrafficResult[],
+  index: number,
+): MirageRunState {
+  const collisions = state.collisions + 1;
+  results[index] = "hit";
+  const pose = getRoutePose(
+    state.car.routeDistance + TRAFFIC_LONGITUDINAL_RADIUS + 1,
+    state.car.laneOffset,
+  );
+  const impacted: MirageRunState = {
     ...state,
-    nearMissArmed: [...state.nearMissArmed],
-    trafficCooldowns: state.trafficCooldowns.map((value) =>
-      Math.max(0, value - delta),
-    ),
+    car: { ...state.car, ...pose, speed: 5 },
+    collisions,
+    combo: 0,
+    impactCooldown: 0.85,
+    trafficResults: results,
   };
-  if (next.car.jumpRemaining > 0) return next;
+  if (collisions < MAX_COLLISIONS) {
+    return withEvent(impacted, `Impact ${collisions} / ${MAX_COLLISIONS}`);
+  }
+  const busted = { ...impacted, phase: "busted" as const };
+  const finalScore = calculateScore(busted);
+  return withEvent({ ...busted, finalScore, score: finalScore }, "Busted");
+}
+
+function updateTraffic(state: MirageRunState): MirageRunState {
+  if (state.car.jumpRemaining > 0 || state.phase === "busted") return state;
+  let next = state;
+  const results = [...state.trafficResults];
 
   for (let index = 0; index < TRAFFIC_DEFINITIONS.length; index += 1) {
-    const traffic = getTrafficPose(index, next.elapsed);
-    const separation = distance(next.car, traffic);
+    if (results[index] !== "pending") continue;
+    const traffic = TRAFFIC_DEFINITIONS[index];
+    const longitudinal = next.car.routeDistance - traffic.routeDistance;
+    const lateral = Math.abs(next.car.laneOffset - traffic.laneOffset);
+
     if (
-      separation < TRAFFIC_COLLISION_RADIUS &&
-      next.trafficCooldowns[index] <= 0
+      Math.abs(longitudinal) < TRAFFIC_LONGITUDINAL_RADIUS &&
+      lateral < TRAFFIC_COLLISION_LANE_RADIUS &&
+      next.impactCooldown <= 0
     ) {
-      const cooldowns = [...next.trafficCooldowns];
-      const armed = [...next.nearMissArmed];
-      const safeLane = traffic.laneOffset >= 0 ? -LANE_LIMIT : LANE_LIMIT;
-      const pose = getRoutePose(next.car.routeDistance + 2.5, safeLane);
-      cooldowns[index] = 1.4;
-      armed[index] = false;
+      next = resolveImpact(next, results, index);
+      if (next.phase === "busted") return next;
+      continue;
+    }
+    if (longitudinal <= TRAFFIC_LONGITUDINAL_RADIUS) continue;
+
+    if (lateral < TRAFFIC_NEAR_MISS_LANE_RADIUS) {
+      results[index] = "near";
+      const combo = Math.min(5, next.combo + 1);
+      const points = 150 * Math.min(3, combo);
       next = withEvent(
         {
           ...next,
-          car: {
-            ...next.car,
-            ...pose,
-            speed: Math.max(7, next.car.speed * 0.72),
-          },
-          collisions: next.collisions + 1,
-          nearMissArmed: armed,
-          recoveries: next.recoveries + 1,
-          trafficCooldowns: cooldowns,
+          combo,
+          nearMisses: next.nearMisses + 1,
+          styleScore: next.styleScore + points,
+          trafficResults: results,
         },
-        "Impact avoided",
+        `Near miss x${combo} +${points}`,
       );
-    } else if (
-      separation < TRAFFIC_NEAR_MISS_RADIUS &&
-      next.nearMissArmed[index]
-    ) {
-      const armed = [...next.nearMissArmed];
-      armed[index] = false;
-      next = withEvent(
-        { ...next, nearMissArmed: armed, nearMisses: next.nearMisses + 1 },
-        "Near miss +300",
-      );
-    } else if (separation > 8 && !next.nearMissArmed[index]) {
-      const armed = [...next.nearMissArmed];
-      armed[index] = true;
-      next = { ...next, nearMissArmed: armed };
+    } else {
+      results[index] = "clear";
+      next = { ...next, trafficResults: results };
     }
   }
   return next;
 }
 
 function updatePursuit(state: MirageRunState): MirageRunState {
-  if (state.routeIndex === 0 || state.phase === "complete") {
+  if (state.routeIndex === 0) {
     return {
       ...state,
-      heat: 0,
       pursuers: createPursuers(state.car.routeDistance, 0),
     };
   }
-  const pursuers = createPursuers(
-    state.car.routeDistance,
-    state.car.laneOffset,
-  );
-  const leadGap = state.car.routeDistance - pursuers[0].routeDistance;
   return {
     ...state,
-    heat: leadGap < 10 ? 3 : leadGap < 15 ? 2 : 1,
-    pursuers,
+    pursuers: createPursuers(
+      state.car.routeDistance,
+      state.car.laneOffset,
+      state.collisions,
+    ),
   };
 }
 
@@ -400,13 +437,14 @@ function stepOnce(
   input: MirageInput,
   delta: number,
 ): MirageRunState {
-  if (previous.phase === "complete") {
+  if (previous.phase === "complete" || previous.phase === "busted") {
     return {
       ...previous,
       car: {
         ...previous.car,
         speed: moveToward(previous.car.speed, 0, 18 * delta),
       },
+      impactCooldown: Math.max(0, previous.impactCooldown - delta),
       tick: previous.tick + 1,
     };
   }
@@ -420,12 +458,18 @@ function stepOnce(
   const speed = moveToward(
     previous.car.speed,
     targetSpeed,
-    (input.brake ? 16 : boosting ? 12 : 8) * delta,
+    (input.brake ? 18 : boosting ? 14 : 9) * delta,
   );
-  const laneOffset = clamp(
-    previous.car.laneOffset + clamp(input.steer, -1, 1) * LANE_SPEED * delta,
-    -LANE_LIMIT,
-    LANE_LIMIT,
+  const steering: -1 | 0 | 1 =
+    input.steer < -0.2 ? -1 : input.steer > 0.2 ? 1 : 0;
+  const laneTarget =
+    steering !== 0 && steering !== previous.steerLatch
+      ? clamp(previous.car.laneTarget + steering * 4, -LANE_LIMIT, LANE_LIMIT)
+      : previous.car.laneTarget;
+  const laneOffset = moveToward(
+    previous.car.laneOffset,
+    laneTarget,
+    LANE_SPEED * delta,
   );
   const routeDistance = Math.min(
     ROUTE_LENGTH,
@@ -437,13 +481,16 @@ function stepOnce(
     car: {
       ...routePose,
       boost: boosting
-        ? Math.max(0, previous.car.boost - delta * 0.24)
-        : Math.min(1, previous.car.boost + delta * 0.05),
+        ? Math.max(0, previous.car.boost - delta * 0.27)
+        : Math.min(1, previous.car.boost + delta * 0.035),
       jumpRemaining: Math.max(0, previous.car.jumpRemaining - delta),
+      laneTarget,
       speed,
-      yaw: routePose.yaw + clamp(input.steer, -1, 1) * 0.08,
+      yaw: routePose.yaw + steering * 0.07,
     },
     elapsed: previous.elapsed + delta,
+    impactCooldown: Math.max(0, previous.impactCooldown - delta),
+    steerLatch: steering,
     tick: previous.tick + 1,
   };
 
@@ -451,15 +498,16 @@ function stepOnce(
     next = withEvent(
       {
         ...next,
-        car: { ...next.car, jumpRemaining: 1.05, speed: Math.max(15, speed) },
+        car: { ...next.car, jumpRemaining: 1.05, speed: Math.max(16, speed) },
         rampUsed: true,
+        styleScore: next.styleScore + 500,
       },
       "Airborne +500",
     );
   }
 
   next = updateBoostPads(next);
-  next = updateTraffic(next, delta);
+  next = updateTraffic(next);
   next = updatePursuit(next);
   next = updateMission(next);
   return { ...next, score: next.finalScore ?? calculateScore(next) };
