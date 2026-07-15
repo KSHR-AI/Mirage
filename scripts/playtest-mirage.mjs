@@ -592,7 +592,7 @@ async function mobileScenario(browser, url, outDir) {
   });
   const errors = collectErrors(page);
   try {
-    const game = await startGame(page, url);
+    let game = await startGame(page, url);
     await validateWorld(scenario, page, game, outDir);
     const initial = await readTelemetry(game);
     addCheck(scenario, "touch-profile", initial.touch, initial.touch, true);
@@ -640,6 +640,7 @@ async function mobileScenario(browser, url, outDir) {
     );
     await capture(scenario, page, outDir, "start");
 
+    game = await startGame(page, url);
     const steer = page.getByRole("button", { name: "Steer" });
     const beforeSteer = await readTelemetry(game);
     await dispatchTouch(steer, "pointerdown", 41, 0.9);
