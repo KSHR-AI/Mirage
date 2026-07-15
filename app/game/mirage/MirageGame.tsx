@@ -18,13 +18,14 @@ import {
   type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { ACESFilmicToneMapping, PCFShadowMap, SRGBColorSpace } from "three";
+import { ACESFilmicToneMapping, SRGBColorSpace } from "three";
 
 import { CITY_BLOCKS, ROAD_LINES, districtAtPosition } from "./map";
 import { MirageScene } from "./MirageScene";
 import {
   EMPTY_INPUT,
   MISSION_TARGETS,
+  ROUTE_LENGTH,
   createMirageRunState,
   getCurrentTarget,
   getRank,
@@ -256,7 +257,9 @@ function GameHud({
             ? "Package pickup"
             : state.phase === "delivery"
               ? "Final delivery"
-              : `Escape gate ${checkpointProgress + 1} / ${checkpointTotal}`}
+              : state.phase === "complete"
+                ? "Mission complete"
+                : `Escape gate ${checkpointProgress + 1} / ${checkpointTotal}`}
         </small>
       </section>
       <section aria-label="Run statistics" className={styles.runStats}>
@@ -486,6 +489,7 @@ export function MirageGame() {
       data-draw-calls={renderStats.drawCalls}
       data-map-blocks={CITY_BLOCKS.length}
       data-near-misses={snapshot.nearMisses}
+      data-lane-offset={snapshot.car.laneOffset.toFixed(3)}
       data-phase={snapshot.phase}
       data-player-speed={snapshot.car.speed.toFixed(3)}
       data-player-x={snapshot.car.x.toFixed(3)}
@@ -493,7 +497,11 @@ export function MirageGame() {
       data-player-z={snapshot.car.z.toFixed(3)}
       data-recoveries={snapshot.recoveries}
       data-ramp-used={snapshot.rampUsed}
+      data-route-distance={snapshot.car.routeDistance.toFixed(3)}
       data-route-index={snapshot.routeIndex}
+      data-route-progress={(snapshot.car.routeDistance / ROUTE_LENGTH).toFixed(
+        4,
+      )}
       data-scene-ready={sceneReady}
       data-score={snapshot.score}
       data-boost-pickups={snapshot.collectedBoosts.filter(Boolean).length}
@@ -512,11 +520,9 @@ export function MirageGame() {
           gl.outputColorSpace = SRGBColorSpace;
           gl.toneMapping = ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.02;
-          gl.shadowMap.enabled = true;
-          gl.shadowMap.type = PCFShadowMap;
         }}
         performance={{ min: 0.75 }}
-        shadows
+        shadows="percentage"
       >
         <MirageScene
           inputRef={inputRef}
@@ -556,9 +562,9 @@ export function MirageGame() {
             San Francisco, reimagined in blocks
           </footer>
         </section>
-      ) : (
+      ) : mode === "playing" ? (
         <GameHud inputRef={inputRef} state={snapshot} touch={touch} />
-      )}
+      ) : null}
 
       {toast && mode === "playing" ? (
         <div

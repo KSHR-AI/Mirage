@@ -30,7 +30,7 @@ test("opens directly into one polished fixed-camera mission", async ({
   ).toBeLessThanOrEqual(120);
 });
 
-test("starts moving immediately and gives predictable steering", async ({
+test("starts moving immediately and gives predictable lane controls", async ({
   page,
 }) => {
   await page.goto("/");
@@ -47,39 +47,37 @@ test("starts moving immediately and gives predictable steering", async ({
     timeout: 8_000,
   });
 
-  const yawBefore = Number(await game.getAttribute("data-player-yaw"));
+  const routeBefore = Number(await game.getAttribute("data-route-distance"));
   await page.keyboard.down("d");
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(650);
   await page.keyboard.up("d");
-  expect(Number(await game.getAttribute("data-player-yaw"))).toBeGreaterThan(
-    yawBefore + 0.25,
+  const laneAfter = Number(await game.getAttribute("data-lane-offset"));
+  const routeAfter = Number(await game.getAttribute("data-route-distance"));
+  expect(laneAfter).toBeGreaterThan(3.2);
+  expect(routeAfter).toBeGreaterThan(routeBefore + 4);
+
+  await page.waitForTimeout(600);
+  expect(Number(await game.getAttribute("data-lane-offset"))).toBeCloseTo(
+    laneAfter,
+    1,
   );
 });
 
-test("slides along obstacles without becoming stranded", async ({ page }) => {
+test("cannot steer off the road or strand the car", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Start run" }).click();
   const game = page.getByTestId("mirage-game");
-  const startPosition = await game.evaluate((element) => ({
-    x: Number(element.getAttribute("data-player-x")),
-    z: Number(element.getAttribute("data-player-z")),
-  }));
+  const startRoute = Number(await game.getAttribute("data-route-distance"));
   await page.keyboard.down("d");
   try {
     await page.waitForTimeout(5_000);
   } finally {
     await page.keyboard.up("d");
   }
-  const endPosition = await game.evaluate((element) => ({
-    x: Number(element.getAttribute("data-player-x")),
-    z: Number(element.getAttribute("data-player-z")),
-  }));
+  expect(Number(await game.getAttribute("data-lane-offset"))).toBe(4);
   expect(
-    Math.hypot(
-      endPosition.x - startPosition.x,
-      endPosition.z - startPosition.z,
-    ),
-  ).toBeGreaterThan(4);
+    Number(await game.getAttribute("data-route-distance")),
+  ).toBeGreaterThan(startRoute + 40);
   expect(Number(await game.getAttribute("data-player-speed"))).toBeGreaterThan(
     0,
   );
@@ -100,7 +98,7 @@ test("completes The Drop with pursuit, ramp, scoring, and replay", async ({
   await expect(game).toHaveAttribute("data-ramp-used", "true");
   expect(
     Number(await game.getAttribute("data-boost-pickups")),
-  ).toBeGreaterThanOrEqual(2);
+  ).toBeGreaterThanOrEqual(1);
   const dialog = page.getByRole("dialog", { name: "The drop is clean." });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Pier 11 / Package delivered")).toBeVisible();

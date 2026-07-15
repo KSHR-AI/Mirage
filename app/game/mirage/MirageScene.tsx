@@ -26,8 +26,10 @@ import {
   BOOST_PADS,
   MISSION_TARGETS,
   RAMP_POSITION,
+  ROUTE_LENGTH,
   advanceMirageRun,
   getCurrentTarget,
+  getRoutePose,
   getTrafficCount,
   getTrafficPose,
 } from "./simulation";
@@ -45,6 +47,7 @@ interface MirageSceneProps {
 interface BoxInstance {
   readonly color: string;
   readonly position: readonly [number, number, number];
+  readonly rotationY?: number;
   readonly scale: readonly [number, number, number];
 }
 
@@ -75,6 +78,7 @@ function BoxInstances({
     const color = new Color();
     items.forEach((item, index) => {
       helper.position.set(...item.position);
+      helper.rotation.set(0, item.rotationY ?? 0, 0);
       helper.scale.set(...item.scale);
       helper.updateMatrix();
       mesh.setMatrixAt(index, helper.matrix);
@@ -100,6 +104,35 @@ function BoxInstances({
         roughness={roughness}
       />
     </instancedMesh>
+  );
+}
+
+function RouteGuides() {
+  const items = useMemo<readonly BoxInstance[]>(() => {
+    const guides: BoxInstance[] = [];
+    for (
+      let routeDistance = 5;
+      routeDistance < ROUTE_LENGTH;
+      routeDistance += 9
+    ) {
+      const pose = getRoutePose(routeDistance);
+      guides.push({
+        color: "#d8ff55",
+        position: [pose.x, 0.15, pose.z],
+        rotationY: pose.yaw,
+        scale: [0.22, 0.05, 3.4],
+      });
+    }
+    return guides;
+  }, []);
+
+  return (
+    <BoxInstances
+      emissive="#8fca2c"
+      emissiveIntensity={1.6}
+      items={items}
+      roughness={0.4}
+    />
   );
 }
 
@@ -388,7 +421,12 @@ function BoostPadsAndRamp() {
       BOOST_PADS.flatMap((pad) =>
         [-2.1, 0, 2.1].map((offset) => ({
           color: "#cfff4f",
-          position: [pad.x + offset, 0.18, pad.z] as const,
+          position: [
+            pad.x + Math.cos(pad.yaw) * offset,
+            0.18,
+            pad.z + Math.sin(pad.yaw) * offset,
+          ] as const,
+          rotationY: pad.yaw,
           scale: [1.15, 0.08, 5.6] as const,
         })),
       ),
@@ -541,7 +579,18 @@ function DynamicVehicles({
   return (
     <group>
       <group ref={playerRef}>
-        <CarModel color="#f05c4f" />
+        <group scale={1.18}>
+          <CarModel color="#ff4e3d" />
+        </group>
+        <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[2.7, 3.15, 28]} />
+          <meshBasicMaterial
+            color="#d8ff55"
+            depthWrite={false}
+            opacity={0.92}
+            transparent
+          />
+        </mesh>
         <group ref={boostFlameRef} position={[0, 0.72, 2.75]}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <coneGeometry args={[0.45, 2.2, 8]} />
@@ -643,8 +692,8 @@ function CameraRig({ stateRef }: Pick<MirageSceneProps, "stateRef">) {
     const camera = cameraRef.current;
     if (!camera) return;
     const car = stateRef.current.car;
-    const targetZoom = size.width < 600 ? 7.2 : 11.4;
-    desired.current.set(car.x + 46, 62, car.z + 46);
+    const targetZoom = size.width < 600 ? 8.6 : 13.5;
+    desired.current.set(car.x + 8, 100, car.z + 14);
     camera.position.lerp(desired.current, 1 - Math.exp(-delta * 4.5));
     lookTarget.current.set(car.x, 0.6, car.z);
     lookAt.current.lerp(lookTarget.current, 1 - Math.exp(-delta * 6));
@@ -661,8 +710,8 @@ function CameraRig({ stateRef }: Pick<MirageSceneProps, "stateRef">) {
       makeDefault
       far={400}
       near={0.1}
-      position={[-26, 62, 150]}
-      zoom={11.4}
+      position={[-64, 100, 118]}
+      zoom={13.5}
     />
   );
 }
@@ -737,6 +786,7 @@ export const MirageScene = memo(function MirageScene({
         shadow-mapSize-width={2048}
       />
       <CityGround />
+      <RouteGuides />
       <CityBuildings />
       <StreetTrees />
       <CityLandmarks />

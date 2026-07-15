@@ -59,8 +59,7 @@ test("touch steering, boost, and brake alter the real simulation", async ({
   await page.getByRole("button", { name: "Start run" }).click();
   const game = page.getByTestId("mirage-game");
   const steer = page.getByRole("button", { name: "Steer" });
-  const startYaw = Number(await game.getAttribute("data-player-yaw"));
-  const startX = Number(await game.getAttribute("data-player-x"));
+  const startLane = Number(await game.getAttribute("data-lane-offset"));
 
   await steer.evaluate((element) => {
     const rect = element.getBoundingClientRect();
@@ -84,11 +83,8 @@ test("touch steering, boost, and brake alter the real simulation", async ({
       }),
     );
   });
-  expect(Number(await game.getAttribute("data-player-yaw"))).toBeGreaterThan(
-    startYaw + 0.5,
-  );
-  expect(Number(await game.getAttribute("data-player-x"))).toBeGreaterThan(
-    startX + 2,
+  expect(Number(await game.getAttribute("data-lane-offset"))).toBeGreaterThan(
+    startLane + 3.5,
   );
 
   const boost = page.getByRole("button", { name: "Boost" });

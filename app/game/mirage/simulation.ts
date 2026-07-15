@@ -1,4 +1,3 @@
-import { CITY_LIMIT, ROAD_LINES, isDriveable, recoverToRoad } from "./map";
 import type {
   MirageInput,
   MirageMissionPhase,
@@ -9,12 +8,14 @@ import type {
 } from "./types";
 
 const FIXED_STEP = 1 / 60;
-const CRUISE_SPEED = 12;
-const BOOST_SPEED = 19;
-const TURN_RATE = 2.35;
-const TARGET_TIME = 90;
-const TRAFFIC_COLLISION_RADIUS = 2.75;
-const TRAFFIC_NEAR_MISS_RADIUS = 4.8;
+const CRUISE_SPEED = 10.5;
+const BOOST_SPEED = 17;
+const BRAKE_SPEED = 6.5;
+const LANE_LIMIT = 4;
+const LANE_SPEED = 6.2;
+const TARGET_TIME = 55;
+const TRAFFIC_COLLISION_RADIUS = 2.4;
+const TRAFFIC_NEAR_MISS_RADIUS = 4.6;
 
 export const EMPTY_INPUT: MirageInput = Object.freeze({
   boost: false,
@@ -22,103 +23,35 @@ export const EMPTY_INPUT: MirageInput = Object.freeze({
   steer: 0,
 });
 
-export const MISSION_TARGETS: readonly MissionTarget[] = Object.freeze([
-  {
-    id: "pickup",
-    label: "Collect the package",
-    radius: 8,
-    type: "pickup",
-    x: -72,
-    z: 72,
-  },
-  {
-    id: "gate-downtown",
-    label: "Lose them through Downtown",
-    radius: 9,
-    type: "checkpoint",
-    x: -72,
-    z: 0,
-  },
-  {
-    id: "gate-market",
-    label: "Cut across Market Street",
-    radius: 9,
-    type: "checkpoint",
-    x: 36,
-    z: 0,
-  },
-  {
-    id: "gate-waterfront",
-    label: "Break for the waterfront",
-    radius: 9,
-    type: "checkpoint",
-    x: 36,
-    z: 36,
-  },
-  {
-    id: "pier-11",
-    label: "Deliver to Pier 11",
-    radius: 10,
-    type: "finish",
-    x: 108,
-    z: 36,
-  },
-]);
-
-export const BOOST_PADS: readonly Point2[] = Object.freeze([
+export const ROUTE_POINTS: readonly Point2[] = Object.freeze([
+  { x: -72, z: 104 },
+  { x: -72, z: 72 },
   { x: -72, z: 36 },
+  { x: -72, z: 0 },
   { x: 0, z: 0 },
-  { x: 36, z: 18 },
+  { x: 36, z: 0 },
+  { x: 36, z: 36 },
   { x: 72, z: 36 },
+  { x: 108, z: 36 },
 ]);
 
-export const RAMP_POSITION: Point2 = Object.freeze({ x: 36, z: 18 });
+const ROUTE_CUMULATIVE = (() => {
+  const values = [0];
+  for (let index = 1; index < ROUTE_POINTS.length; index += 1) {
+    const previous = ROUTE_POINTS[index - 1];
+    const current = ROUTE_POINTS[index];
+    values.push(
+      values[index - 1] +
+        Math.hypot(current.x - previous.x, current.z - previous.z),
+    );
+  }
+  return Object.freeze(values);
+})();
 
-const TRAFFIC_ROUTES = Object.freeze([
-  {
-    offset: 32,
-    points: [
-      { x: -108, z: -108 },
-      { x: 108, z: -108 },
-      { x: 108, z: 108 },
-      { x: -108, z: 108 },
-    ],
-    speed: 7.2,
-  },
-  {
-    offset: 118,
-    points: [
-      { x: -36, z: -72 },
-      { x: 72, z: -72 },
-      { x: 72, z: 72 },
-      { x: -36, z: 72 },
-    ],
-    speed: 6.4,
-  },
-  {
-    offset: 205,
-    points: [
-      { x: -72, z: -36 },
-      { x: 36, z: -36 },
-      { x: 36, z: 108 },
-      { x: -72, z: 108 },
-    ],
-    speed: 8.1,
-  },
-  {
-    offset: 76,
-    points: [
-      { x: 0, z: -108 },
-      { x: 108, z: -108 },
-      { x: 108, z: 0 },
-      { x: 0, z: 0 },
-    ],
-    speed: 7.6,
-  },
-] as const);
+export const ROUTE_LENGTH = ROUTE_CUMULATIVE[ROUTE_CUMULATIVE.length - 1];
 
-function distance(a: Point2, b: Point2): number {
-  return Math.hypot(a.x - b.x, a.z - b.z);
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.max(minimum, Math.min(maximum, value));
 }
 
 function moveToward(value: number, target: number, amount: number): number {
@@ -126,12 +59,113 @@ function moveToward(value: number, target: number, amount: number): number {
   return Math.max(target, value - amount);
 }
 
-function wrapAngle(angle: number): number {
-  let next = angle;
-  while (next > Math.PI) next -= Math.PI * 2;
-  while (next < -Math.PI) next += Math.PI * 2;
-  return next;
+function distance(a: Point2, b: Point2): number {
+  return Math.hypot(a.x - b.x, a.z - b.z);
 }
+
+function pointAtRouteDistance(routeDistance: number): Point2 {
+  const travel = clamp(routeDistance, 0, ROUTE_LENGTH);
+  for (let index = 1; index < ROUTE_POINTS.length; index += 1) {
+    const segmentEnd = ROUTE_CUMULATIVE[index];
+    if (travel > segmentEnd) continue;
+    const start = ROUTE_POINTS[index - 1];
+    const end = ROUTE_POINTS[index];
+    const segmentStart = ROUTE_CUMULATIVE[index - 1];
+    const segmentLength = segmentEnd - segmentStart;
+    const progress =
+      segmentLength === 0 ? 0 : (travel - segmentStart) / segmentLength;
+    return {
+      x: start.x + (end.x - start.x) * progress,
+      z: start.z + (end.z - start.z) * progress,
+    };
+  }
+  return ROUTE_POINTS[ROUTE_POINTS.length - 1];
+}
+
+export function getRoutePose(routeDistance: number, laneOffset = 0) {
+  const center = pointAtRouteDistance(routeDistance);
+  const before = pointAtRouteDistance(routeDistance - 2.5);
+  const after = pointAtRouteDistance(routeDistance + 2.5);
+  const yaw = Math.atan2(after.x - before.x, -(after.z - before.z));
+  return {
+    laneOffset,
+    routeDistance: clamp(routeDistance, 0, ROUTE_LENGTH),
+    x: center.x + Math.cos(yaw) * laneOffset,
+    yaw,
+    z: center.z + Math.sin(yaw) * laneOffset,
+  };
+}
+
+function targetAtPoint(
+  pointIndex: number,
+  target: Omit<MissionTarget, "routeDistance" | "x" | "z">,
+): MissionTarget {
+  return Object.freeze({
+    ...target,
+    routeDistance: ROUTE_CUMULATIVE[pointIndex],
+    x: ROUTE_POINTS[pointIndex].x,
+    z: ROUTE_POINTS[pointIndex].z,
+  });
+}
+
+export const MISSION_TARGETS: readonly MissionTarget[] = Object.freeze([
+  targetAtPoint(1, {
+    id: "pickup",
+    label: "Collect the package",
+    type: "pickup",
+  }),
+  targetAtPoint(3, {
+    id: "gate-downtown",
+    label: "Lose them through Downtown",
+    type: "checkpoint",
+  }),
+  targetAtPoint(5, {
+    id: "gate-market",
+    label: "Cut across Market Street",
+    type: "checkpoint",
+  }),
+  targetAtPoint(6, {
+    id: "gate-waterfront",
+    label: "Break for the waterfront",
+    type: "checkpoint",
+  }),
+  targetAtPoint(8, {
+    id: "pier-11",
+    label: "Deliver to Pier 11",
+    type: "finish",
+  }),
+]);
+
+interface RouteItem {
+  readonly laneOffset: number;
+  readonly routeDistance: number;
+}
+
+const BOOST_PAD_DEFINITIONS: readonly RouteItem[] = Object.freeze([
+  { laneOffset: 0, routeDistance: 55 },
+  { laneOffset: -2.8, routeDistance: 120 },
+  { laneOffset: 2.8, routeDistance: 190 },
+  { laneOffset: 0, routeDistance: 258 },
+]);
+
+export const BOOST_PADS = Object.freeze(
+  BOOST_PAD_DEFINITIONS.map((pad) =>
+    getRoutePose(pad.routeDistance, pad.laneOffset),
+  ),
+);
+
+export const RAMP_ROUTE_DISTANCE = ROUTE_CUMULATIVE[5] + 14;
+export const RAMP_POSITION: Point2 = Object.freeze(
+  getRoutePose(RAMP_ROUTE_DISTANCE),
+);
+
+const TRAFFIC_DEFINITIONS = Object.freeze([
+  { laneOffset: -2.9, routeDistance: 72, speed: 4.2 },
+  { laneOffset: 2.8, routeDistance: 132, speed: 4.8 },
+  { laneOffset: 0, routeDistance: 186, speed: 4.4 },
+  { laneOffset: -2.7, routeDistance: 238, speed: 5 },
+  { laneOffset: 2.7, routeDistance: 280, speed: 4.6 },
+] as const);
 
 function missionPhase(routeIndex: number): MirageMissionPhase {
   if (routeIndex === 0) return "pickup";
@@ -159,216 +193,117 @@ export function calculateScore(
     "collectedBoosts" | "collisions" | "elapsed" | "nearMisses" | "rampUsed"
   >,
 ): number {
-  const boostBonus = state.collectedBoosts.filter(Boolean).length * 150;
-  const rampBonus = state.rampUsed ? 500 : 0;
+  const boostBonus = state.collectedBoosts.filter(Boolean).length * 200;
   return Math.max(
     1_000,
     Math.round(
-      12_000 -
-        state.elapsed * 75 -
-        state.collisions * 300 +
-        state.nearMisses * 350 +
+      10_000 -
+        state.elapsed * 80 -
+        state.collisions * 450 +
+        state.nearMisses * 300 +
         boostBonus +
-        rampBonus,
+        (state.rampUsed ? 500 : 0),
     ),
   );
 }
 
 export function getRank(score: number): "S" | "A" | "B" | "C" {
-  if (score >= 10_500) return "S";
-  if (score >= 8_500) return "A";
-  if (score >= 6_500) return "B";
+  if (score >= 9_000) return "S";
+  if (score >= 7_700) return "A";
+  if (score >= 6_200) return "B";
   return "C";
 }
 
+export function getTrafficPose(index: number, elapsed: number) {
+  const definition = TRAFFIC_DEFINITIONS[index % TRAFFIC_DEFINITIONS.length];
+  const routeDistance =
+    (definition.routeDistance + elapsed * definition.speed) % ROUTE_LENGTH;
+  return {
+    ...getRoutePose(routeDistance, definition.laneOffset),
+    speed: definition.speed,
+  };
+}
+
+export function getTrafficCount(): number {
+  return TRAFFIC_DEFINITIONS.length;
+}
+
+function createPursuers(routeDistance: number, laneOffset: number) {
+  return [
+    { gap: 12, id: 0, laneOffset: laneOffset - 1.8 },
+    { gap: 20, id: 1, laneOffset: laneOffset + 2.2 },
+  ].map(
+    (definition): PursuerState => ({
+      ...getRoutePose(
+        Math.max(0, routeDistance - definition.gap),
+        definition.laneOffset,
+      ),
+      id: definition.id,
+    }),
+  );
+}
+
 export function createMirageRunState(): MirageRunState {
-  const base: MirageRunState = {
+  const pose = getRoutePose(0, 0);
+  return {
     car: {
-      boost: 0.72,
+      ...pose,
+      boost: 0.74,
       jumpRemaining: 0,
-      speed: 6,
-      x: -72,
-      yaw: 0,
-      z: 104,
+      speed: 8,
     },
-    collectedBoosts: BOOST_PADS.map(() => false),
-    collisionCooldown: 0,
+    collectedBoosts: BOOST_PAD_DEFINITIONS.map(() => false),
     collisions: 0,
     elapsed: 0,
     eventId: 0,
     eventLabel: "Package marked",
     finalScore: null,
     heat: 0,
-    nearMissArmed: TRAFFIC_ROUTES.map(() => true),
+    nearMissArmed: TRAFFIC_DEFINITIONS.map(() => true),
     nearMisses: 0,
     phase: "pickup",
-    pursuers: [
-      {
-        axis: "z",
-        direction: -1,
-        id: 0,
-        speed: 10.4,
-        x: -72,
-        yaw: 0,
-        z: 108,
-      },
-      {
-        axis: "x",
-        direction: 1,
-        id: 1,
-        speed: 10.9,
-        x: -108,
-        yaw: Math.PI / 2,
-        z: 72,
-      },
-    ],
+    pursuers: createPursuers(0, 0),
     rampUsed: false,
     recoveries: 0,
     routeIndex: 0,
-    score: 12_000,
-    stuckSeconds: 0,
-    targetHold: 0,
+    score: 10_000,
     tick: 0,
-    trafficCooldowns: TRAFFIC_ROUTES.map(() => 0),
+    trafficCooldowns: TRAFFIC_DEFINITIONS.map(() => 0),
   };
-  return base;
-}
-
-function polylineLength(points: readonly Point2[]): number {
-  let total = 0;
-  for (let index = 0; index < points.length; index += 1) {
-    total += distance(points[index], points[(index + 1) % points.length]);
-  }
-  return total;
-}
-
-export function getTrafficPose(index: number, elapsed: number) {
-  const route = TRAFFIC_ROUTES[index % TRAFFIC_ROUTES.length];
-  const totalLength = polylineLength(route.points);
-  let travel = (route.offset + elapsed * route.speed) % totalLength;
-  for (let pointIndex = 0; pointIndex < route.points.length; pointIndex += 1) {
-    const start = route.points[pointIndex];
-    const end = route.points[(pointIndex + 1) % route.points.length];
-    const segmentLength = distance(start, end);
-    if (travel <= segmentLength) {
-      const progress = segmentLength === 0 ? 0 : travel / segmentLength;
-      const dx = end.x - start.x;
-      const dz = end.z - start.z;
-      return {
-        speed: route.speed,
-        x: start.x + dx * progress,
-        yaw: Math.atan2(dx, -dz),
-        z: start.z + dz * progress,
-      };
-    }
-    travel -= segmentLength;
-  }
-  return {
-    speed: route.speed,
-    x: route.points[0].x,
-    yaw: 0,
-    z: route.points[0].z,
-  };
-}
-
-export function getTrafficCount(): number {
-  return TRAFFIC_ROUTES.length;
-}
-
-function choosePursuerDirection(
-  pursuer: PursuerState,
-  target: Point2,
-): Pick<PursuerState, "axis" | "direction" | "yaw"> {
-  const dx = target.x - pursuer.x;
-  const dz = target.z - pursuer.z;
-  if (Math.abs(dx) > Math.abs(dz)) {
-    const direction = (dx >= 0 ? 1 : -1) as -1 | 1;
-    return {
-      axis: "x",
-      direction,
-      yaw: direction > 0 ? Math.PI / 2 : -Math.PI / 2,
-    };
-  }
-  const direction = (dz >= 0 ? 1 : -1) as -1 | 1;
-  return {
-    axis: "z",
-    direction,
-    yaw: direction > 0 ? Math.PI : 0,
-  };
-}
-
-function advancePursuer(
-  pursuer: PursuerState,
-  target: Point2,
-  delta: number,
-): PursuerState {
-  let next = { ...pursuer };
-  let remaining = pursuer.speed * delta;
-  for (let iteration = 0; iteration < 2 && remaining > 0; iteration += 1) {
-    const coordinate = next.axis === "x" ? next.x : next.z;
-    const forwardLines = ROAD_LINES.filter((line) =>
-      next.direction > 0 ? line > coordinate + 0.05 : line < coordinate - 0.05,
-    );
-    const nextIntersection =
-      next.direction > 0
-        ? Math.min(...forwardLines, CITY_LIMIT)
-        : Math.max(...forwardLines, -CITY_LIMIT);
-    const intersectionDistance = Math.abs(nextIntersection - coordinate);
-    if (intersectionDistance > remaining) {
-      if (next.axis === "x") next.x += next.direction * remaining;
-      else next.z += next.direction * remaining;
-      remaining = 0;
-      continue;
-    }
-    if (next.axis === "x") next.x = nextIntersection;
-    else next.z = nextIntersection;
-    remaining -= intersectionDistance;
-    const turn = choosePursuerDirection(next, target);
-    next = { ...next, ...turn };
-  }
-  return next;
 }
 
 function withEvent(state: MirageRunState, eventLabel: string): MirageRunState {
   return { ...state, eventId: state.eventId + 1, eventLabel };
 }
 
-function updateMission(state: MirageRunState, delta: number): MirageRunState {
+function updateMission(state: MirageRunState): MirageRunState {
   if (state.phase === "complete") return state;
   const target = getCurrentTarget(state);
-  const inside = distance(state.car, target) <= target.radius;
-  const requiredHold = target.type === "finish" ? 0.45 : 0.1;
-  const targetHold = inside ? state.targetHold + delta : 0;
-  if (targetHold < requiredHold) return { ...state, targetHold };
+  if (state.car.routeDistance < target.routeDistance) return state;
 
   const routeIndex = state.routeIndex + 1;
   const phase = missionPhase(routeIndex);
   if (phase === "complete") {
     const finalScore = calculateScore(state);
     return withEvent(
-      {
-        ...state,
-        finalScore,
-        phase,
-        routeIndex,
-        score: finalScore,
-        targetHold: 0,
-      },
+      { ...state, finalScore, phase, routeIndex, score: finalScore },
       "Package delivered",
     );
   }
-  const label =
+  return withEvent(
+    { ...state, phase, routeIndex },
     state.routeIndex === 0
       ? "Package secured. Two units inbound."
-      : `Gate ${state.routeIndex} cleared`;
-  return withEvent({ ...state, phase, routeIndex, targetHold: 0 }, label);
+      : `Gate ${state.routeIndex} cleared`,
+  );
 }
 
 function updateBoostPads(state: MirageRunState): MirageRunState {
   let next = state;
-  for (let index = 0; index < BOOST_PADS.length; index += 1) {
-    if (next.collectedBoosts[index]) continue;
-    if (distance(next.car, BOOST_PADS[index]) > 4.2) continue;
+  BOOST_PAD_DEFINITIONS.forEach((pad, index) => {
+    if (next.collectedBoosts[index]) return;
+    if (Math.abs(next.car.routeDistance - pad.routeDistance) > 3.8) return;
+    if (Math.abs(next.car.laneOffset - pad.laneOffset) > 2.25) return;
     const collectedBoosts = [...next.collectedBoosts];
     collectedBoosts[index] = true;
     next = withEvent(
@@ -379,7 +314,7 @@ function updateBoostPads(state: MirageRunState): MirageRunState {
       },
       "Boost refilled",
     );
-  }
+  });
   return next;
 }
 
@@ -393,7 +328,7 @@ function updateTraffic(state: MirageRunState, delta: number): MirageRunState {
   };
   if (next.car.jumpRemaining > 0) return next;
 
-  for (let index = 0; index < TRAFFIC_ROUTES.length; index += 1) {
+  for (let index = 0; index < TRAFFIC_DEFINITIONS.length; index += 1) {
     const traffic = getTrafficPose(index, next.elapsed);
     const separation = distance(next.car, traffic);
     if (
@@ -402,17 +337,24 @@ function updateTraffic(state: MirageRunState, delta: number): MirageRunState {
     ) {
       const cooldowns = [...next.trafficCooldowns];
       const armed = [...next.nearMissArmed];
-      cooldowns[index] = 1.2;
+      const safeLane = traffic.laneOffset >= 0 ? -LANE_LIMIT : LANE_LIMIT;
+      const pose = getRoutePose(next.car.routeDistance + 2.5, safeLane);
+      cooldowns[index] = 1.4;
       armed[index] = false;
       next = withEvent(
         {
           ...next,
-          car: { ...next.car, speed: next.car.speed * 0.5 },
+          car: {
+            ...next.car,
+            ...pose,
+            speed: Math.max(7, next.car.speed * 0.72),
+          },
           collisions: next.collisions + 1,
           nearMissArmed: armed,
+          recoveries: next.recoveries + 1,
           trafficCooldowns: cooldowns,
         },
-        "Traffic hit",
+        "Impact avoided",
       );
     } else if (
       separation < TRAFFIC_NEAR_MISS_RADIUS &&
@@ -422,7 +364,7 @@ function updateTraffic(state: MirageRunState, delta: number): MirageRunState {
       armed[index] = false;
       next = withEvent(
         { ...next, nearMissArmed: armed, nearMisses: next.nearMisses + 1 },
-        "Near miss +350",
+        "Near miss +300",
       );
     } else if (separation > 8 && !next.nearMissArmed[index]) {
       const armed = [...next.nearMissArmed];
@@ -433,34 +375,24 @@ function updateTraffic(state: MirageRunState, delta: number): MirageRunState {
   return next;
 }
 
-function updatePursuit(state: MirageRunState, delta: number): MirageRunState {
+function updatePursuit(state: MirageRunState): MirageRunState {
   if (state.routeIndex === 0 || state.phase === "complete") {
-    return { ...state, heat: 0 };
+    return {
+      ...state,
+      heat: 0,
+      pursuers: createPursuers(state.car.routeDistance, 0),
+    };
   }
-  const pursuers = state.pursuers.map((pursuer) =>
-    advancePursuer(pursuer, state.car, delta),
+  const pursuers = createPursuers(
+    state.car.routeDistance,
+    state.car.laneOffset,
   );
-  const nearest = Math.min(
-    ...pursuers.map((pursuer) => distance(pursuer, state.car)),
-  );
-  const heat = nearest < 14 ? 3 : nearest < 28 ? 2 : nearest < 46 ? 1 : 0;
-  let next: MirageRunState = { ...state, heat, pursuers };
-  if (
-    nearest < 3.4 &&
-    state.collisionCooldown <= 0 &&
-    state.car.jumpRemaining <= 0
-  ) {
-    next = withEvent(
-      {
-        ...next,
-        car: { ...next.car, speed: next.car.speed * 0.72 },
-        collisionCooldown: 0.8,
-        collisions: next.collisions + 1,
-      },
-      "Police contact",
-    );
-  }
-  return next;
+  const leadGap = state.car.routeDistance - pursuers[0].routeDistance;
+  return {
+    ...state,
+    heat: leadGap < 10 ? 3 : leadGap < 15 ? 2 : 1,
+    pursuers,
+  };
 }
 
 function stepOnce(
@@ -480,96 +412,46 @@ function stepOnce(
   }
 
   const boosting = input.boost && previous.car.boost > 0.015 && !input.brake;
-  const targetSpeed = input.brake ? 1.5 : boosting ? BOOST_SPEED : CRUISE_SPEED;
-  const acceleration = input.brake ? 20 : boosting ? 13 : 8.5;
+  const targetSpeed = input.brake
+    ? BRAKE_SPEED
+    : boosting
+      ? BOOST_SPEED
+      : CRUISE_SPEED;
   const speed = moveToward(
     previous.car.speed,
     targetSpeed,
-    acceleration * delta,
+    (input.brake ? 16 : boosting ? 12 : 8) * delta,
   );
-  const turnScale = 0.42 + Math.min(1, speed / CRUISE_SPEED) * 0.58;
-  const yaw = wrapAngle(
-    previous.car.yaw +
-      Math.max(-1, Math.min(1, input.steer)) * TURN_RATE * turnScale * delta,
+  const laneOffset = clamp(
+    previous.car.laneOffset + clamp(input.steer, -1, 1) * LANE_SPEED * delta,
+    -LANE_LIMIT,
+    LANE_LIMIT,
   );
-  const candidate = {
-    x: previous.car.x + Math.sin(yaw) * speed * delta,
-    z: previous.car.z - Math.cos(yaw) * speed * delta,
-  };
-  let x = candidate.x;
-  let z = candidate.z;
-  let collided = false;
-  if (!isDriveable(candidate)) {
-    const xSlide = { x: candidate.x, z: previous.car.z };
-    const zSlide = { x: previous.car.x, z: candidate.z };
-    if (isDriveable(xSlide)) {
-      x = xSlide.x;
-      z = xSlide.z;
-    } else if (isDriveable(zSlide)) {
-      x = zSlide.x;
-      z = zSlide.z;
-    } else {
-      x = previous.car.x;
-      z = previous.car.z;
-      collided = true;
-    }
-  }
-
-  const collisionCooldown = Math.max(0, previous.collisionCooldown - delta);
+  const routeDistance = Math.min(
+    ROUTE_LENGTH,
+    previous.car.routeDistance + speed * delta,
+  );
+  const routePose = getRoutePose(routeDistance, laneOffset);
   let next: MirageRunState = {
     ...previous,
     car: {
+      ...routePose,
       boost: boosting
-        ? Math.max(0, previous.car.boost - delta * 0.26)
-        : Math.min(1, previous.car.boost + delta * 0.045),
+        ? Math.max(0, previous.car.boost - delta * 0.24)
+        : Math.min(1, previous.car.boost + delta * 0.05),
       jumpRemaining: Math.max(0, previous.car.jumpRemaining - delta),
-      speed: collided ? Math.min(speed, 3.5) : speed,
-      x,
-      yaw,
-      z,
+      speed,
+      yaw: routePose.yaw + clamp(input.steer, -1, 1) * 0.08,
     },
-    collisionCooldown,
     elapsed: previous.elapsed + delta,
-    stuckSeconds: collided ? previous.stuckSeconds + delta : 0,
     tick: previous.tick + 1,
   };
 
-  if (collided && collisionCooldown <= 0) {
+  if (!next.rampUsed && routeDistance >= RAMP_ROUTE_DISTANCE) {
     next = withEvent(
       {
         ...next,
-        collisionCooldown: 0.75,
-        collisions: next.collisions + 1,
-      },
-      "Wall contact",
-    );
-  }
-  if (next.stuckSeconds >= 1.2) {
-    const recovery = recoverToRoad(next.car, next.car.yaw);
-    next = withEvent(
-      {
-        ...next,
-        car: { ...next.car, ...recovery, speed: 6 },
-        recoveries: next.recoveries + 1,
-        stuckSeconds: 0,
-      },
-      "Returned to road",
-    );
-  }
-
-  if (
-    !next.rampUsed &&
-    distance(next.car, RAMP_POSITION) < 4.4 &&
-    next.car.speed > 8
-  ) {
-    next = withEvent(
-      {
-        ...next,
-        car: {
-          ...next.car,
-          jumpRemaining: 1.05,
-          speed: Math.max(16, next.car.speed),
-        },
+        car: { ...next.car, jumpRemaining: 1.05, speed: Math.max(15, speed) },
         rampUsed: true,
       },
       "Airborne +500",
@@ -578,10 +460,9 @@ function stepOnce(
 
   next = updateBoostPads(next);
   next = updateTraffic(next, delta);
-  next = updatePursuit(next, delta);
-  next = updateMission(next, delta);
-  const score = calculateScore(next);
-  return { ...next, score: next.finalScore ?? score };
+  next = updatePursuit(next);
+  next = updateMission(next);
+  return { ...next, score: next.finalScore ?? calculateScore(next) };
 }
 
 export function advanceMirageRun(

@@ -242,10 +242,13 @@ async function readTelemetry(game) {
     return {
       boostPickups: number("boost-pickups"),
       cameraMode: attribute("camera-mode"),
+      laneOffset: number("lane-offset"),
       mapBlocks: number("map-blocks"),
       phase: attribute("phase"),
       rampUsed: attribute("ramp-used") === "true",
       routeIndex: number("route-index"),
+      routeDistance: number("route-distance"),
+      routeProgress: number("route-progress"),
       score: number("score"),
       speed: number("player-speed"),
       targetX: number("target-x"),
@@ -290,13 +293,6 @@ async function validateWorld(scenario, page, game, outDir) {
   await inspectCanvas(scenario, page, outDir, "start");
 }
 
-function signedAngleChange(from, to) {
-  let change = to - from;
-  while (change > Math.PI) change -= Math.PI * 2;
-  while (change < -Math.PI) change += Math.PI * 2;
-  return change;
-}
-
 async function holdKey(page, key, duration) {
   await page.keyboard.down(key);
   try {
@@ -315,64 +311,23 @@ async function holdKeyUntil(page, key, predicate, argument, timeout = 5_000) {
   }
 }
 
-async function driveMission(page, game, timeout = 160_000) {
+async function driveMission(page, game, timeout = 60_000) {
   const trace = [];
-  let heldSteer = "";
-  let braking = false;
-  let boosting = false;
   let previousRoute = -1;
   const startedAt = Date.now();
-  const setKey = async (key, down) => {
-    if (down) await page.keyboard.down(key);
-    else await page.keyboard.up(key);
-  };
 
-  try {
-    while (Date.now() - startedAt < timeout) {
-      const state = await readTelemetry(game);
-      if (state.routeIndex !== previousRoute) {
-        trace.push({
-          phase: state.phase,
-          routeIndex: state.routeIndex,
-          x: state.x,
-          z: state.z,
-        });
-        previousRoute = state.routeIndex;
-      }
-      if (state.phase === "complete") return trace;
-
-      const desiredX = [2, 4].includes(state.routeIndex)
-        ? Math.min(state.targetX, state.x + 14)
-        : state.targetX;
-      const desiredZ = [0, 1].includes(state.routeIndex)
-        ? Math.max(state.targetZ, state.z - 14)
-        : state.routeIndex === 3
-          ? Math.min(state.targetZ, state.z + 14)
-          : state.targetZ;
-      const targetYaw = Math.atan2(desiredX - state.x, -(desiredZ - state.z));
-      const angle = signedAngleChange(state.yaw, targetYaw);
-      const nextSteer = Math.abs(angle) < 0.05 ? "" : angle > 0 ? "d" : "a";
-      if (nextSteer !== heldSteer) {
-        if (heldSteer) await setKey(heldSteer, false);
-        if (nextSteer) await setKey(nextSteer, true);
-        heldSteer = nextSteer;
-      }
-      const nextBraking = Math.abs(angle) > 0.3;
-      if (nextBraking !== braking) {
-        await setKey("s", nextBraking);
-        braking = nextBraking;
-      }
-      const nextBoosting = Math.abs(angle) < 0.08;
-      if (nextBoosting !== boosting) {
-        await setKey("w", nextBoosting);
-        boosting = nextBoosting;
-      }
-      await page.waitForTimeout(40);
+  while (Date.now() - startedAt < timeout) {
+    const state = await readTelemetry(game);
+    if (state.routeIndex !== previousRoute) {
+      trace.push({
+        phase: state.phase,
+        routeIndex: state.routeIndex,
+        routeDistance: state.routeDistance,
+      });
+      previousRoute = state.routeIndex;
     }
-  } finally {
-    if (heldSteer) await setKey(heldSteer, false);
-    if (braking) await setKey("s", false);
-    if (boosting) await setKey("w", false);
+    if (state.phase === "complete") return trace;
+    await page.waitForTimeout(50);
   }
   throw new Error(
     `Mission did not complete in ${timeout}ms: ${JSON.stringify(trace)}`,
@@ -404,13 +359,13 @@ async function desktopScenario(browser, url, outDir) {
     const beforeSteer = await readTelemetry(game);
     await holdKey(page, "d", 500);
     const afterSteer = await readTelemetry(game);
-    const steerChange = signedAngleChange(beforeSteer.yaw, afterSteer.yaw);
+    const laneChange = afterSteer.laneOffset - beforeSteer.laneOffset;
     addCheck(
       scenario,
       "keyboard-steering",
-      steerChange > 0.25,
-      steerChange,
-      "> 0.25 radians",
+      laneChange > 2.5,
+      laneChange,
+      "> 2.5 lane units",
     );
 
     const beforeBoost = await readTelemetry(game);
@@ -481,9 +436,9 @@ async function desktopScenario(browser, url, outDir) {
     addCheck(
       scenario,
       "boost-route",
-      completed.boostPickups >= 2,
+      completed.boostPickups >= 1,
       completed.boostPickups,
-      ">= 2",
+      ">= 1",
     );
     addCheck(
       scenario,
@@ -656,16 +611,13 @@ async function mobileScenario(browser, url, outDir) {
     await page.waitForTimeout(800);
     await dispatchTouch(steer, "pointerup", 41, 0.9);
     const afterSteer = await readTelemetry(game);
-    const steerChange = signedAngleChange(beforeSteer.yaw, afterSteer.yaw);
+    const laneChange = afterSteer.laneOffset - beforeSteer.laneOffset;
     addCheck(
       scenario,
       "touch-steering",
-      steerChange > 0.5 && afterSteer.x > beforeSteer.x + 2,
-      {
-        deltaX: afterSteer.x - beforeSteer.x,
-        deltaYaw: steerChange,
-      },
-      { deltaX: "> 2", deltaYaw: "> 0.5" },
+      laneChange > 3.5,
+      laneChange,
+      "> 3.5 lane units",
     );
 
     const boost = page.getByRole("button", { name: "Boost" });

@@ -12,15 +12,16 @@ export interface MirageInput {
 export interface MirageCarState extends Point2 {
   readonly boost: number;
   readonly jumpRemaining: number;
+  readonly laneOffset: number;
+  readonly routeDistance: number;
   readonly speed: number;
   readonly yaw: number;
 }
 
 export interface PursuerState extends Point2 {
-  readonly axis: "x" | "z";
-  readonly direction: -1 | 1;
   readonly id: number;
-  readonly speed: number;
+  readonly laneOffset: number;
+  readonly routeDistance: number;
   readonly yaw: number;
 }
 
@@ -33,7 +34,6 @@ export type MirageMissionPhase =
 export interface MirageRunState {
   readonly car: MirageCarState;
   readonly collectedBoosts: readonly boolean[];
-  readonly collisionCooldown: number;
   readonly collisions: number;
   readonly elapsed: number;
   readonly eventId: number;
@@ -48,8 +48,6 @@ export interface MirageRunState {
   readonly recoveries: number;
   readonly routeIndex: number;
   readonly score: number;
-  readonly stuckSeconds: number;
-  readonly targetHold: number;
   readonly tick: number;
   readonly trafficCooldowns: readonly number[];
 }
@@ -57,6 +55,6 @@ export interface MirageRunState {
 export interface MissionTarget extends Point2 {
   readonly id: string;
   readonly label: string;
-  readonly radius: number;
+  readonly routeDistance: number;
   readonly type: "pickup" | "checkpoint" | "finish";
 }
