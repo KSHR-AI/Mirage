@@ -6,29 +6,29 @@ const siteUrl =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Mirage: The Afterlight Job",
+  title: "Mirage: Hot Ride",
   description:
-    "Steal the core, kill the grid, and break the response across a playable Bay City.",
+    "Drive one hot coupe across a block-built San Francisco and make the drop.",
   openGraph: {
     type: "website",
     url: "/",
-    title: "Mirage: The Afterlight Job",
+    title: "Mirage: Hot Ride",
     description:
-      "Steal the core, kill the grid, and break the response across a playable Bay City.",
+      "Drive one hot coupe across a block-built San Francisco and make the drop.",
     images: [
       {
         url: "/og.png",
         width: 1440,
         height: 900,
-        alt: "Mirage: The Afterlight Job in Bay City",
+        alt: "Mirage: Hot Ride in Bay City",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Mirage: The Afterlight Job",
+    title: "Mirage: Hot Ride",
     description:
-      "Steal the core, kill the grid, and break the response across a playable Bay City.",
+      "Drive one hot coupe across a block-built San Francisco and make the drop.",
     images: ["/og.png"],
   },
 };

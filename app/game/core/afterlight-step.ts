@@ -14,6 +14,7 @@ import {
 } from "../missions/afterlight-job";
 import {
   DEFAULT_AFTERLIGHT_CONTRACT_ID,
+  HOT_RIDE_CONTRACT_ID,
   createAfterlightMission,
   type AfterlightMissionDefinition,
 } from "../missions/afterlight-contracts";
@@ -28,6 +29,7 @@ import {
   applyVehicleCollisionImpulse,
   createTrafficAgent,
   DEFAULT_ARCADE_CAR_CONFIG,
+  HOT_RIDE_ARCADE_CAR_CONFIG,
   resolveIntersectionReservations,
   resolveVehicleBuildingCollision,
   stepHeroCar,
@@ -661,9 +663,11 @@ export class AfterlightStepController {
         hero,
         input,
         SIMULATION_DT,
-        hasAfterlightUpgradeMarker(state, "street-tune")
-          ? STREET_TUNED_ARCADE_CAR_CONFIG
-          : DEFAULT_ARCADE_CAR_CONFIG,
+        this.definition.contract.id === HOT_RIDE_CONTRACT_ID
+          ? HOT_RIDE_ARCADE_CAR_CONFIG
+          : hasAfterlightUpgradeMarker(state, "street-tune")
+            ? STREET_TUNED_ARCADE_CAR_CONFIG
+            : DEFAULT_ARCADE_CAR_CONFIG,
       );
       const clampedHero = {
         ...proposedHero,
@@ -678,7 +682,10 @@ export class AfterlightStepController {
         this.characterWorld.obstacles,
       );
       hero = buildingCollision.vehicle;
-      if (buildingCollision.collision) {
+      if (
+        buildingCollision.collision &&
+        !this.definition.contract.vehicleInvulnerable
+      ) {
         const impact = applyVehicleCollisionImpulse(hero, {
           impulse: buildingCollision.collision.impactSpeed,
           tick: context.tick,
@@ -782,7 +789,11 @@ export class AfterlightStepController {
           );
           if (crime) events.push(crime);
         }
-      } else if (driving && vehiclePlanarSpeed(hero) <= 1.5) {
+      } else if (
+        driving &&
+        this.definition.contract.allowsVehicleExit !== false &&
+        vehiclePlanarSpeed(hero) <= 1.5
+      ) {
         hero = { ...hero, occupiedBy: undefined };
         collections.vehicles.set(hero.id, hero);
         player = {
@@ -810,6 +821,9 @@ export class AfterlightStepController {
 
     if (
       driving &&
+      phase.objectives.some(
+        (objective) => objective.id === AFTERLIGHT_OBJECTIVE_IDS.learnDriving,
+      ) &&
       !completed.has(AFTERLIGHT_OBJECTIVE_IDS.learnDriving) &&
       vehiclePlanarSpeed(hero) >= 16
     ) {
@@ -845,17 +859,23 @@ export class AfterlightStepController {
       events,
       context.tick,
     );
-    const playerWeaponFired = this.handlePlayerWeapon(
-      collections,
-      events,
-      context.tick,
-      input,
-      player,
-    );
+    const playerWeaponFired =
+      this.definition.contract.combatEnabled === false
+        ? false
+        : this.handlePlayerWeapon(
+            collections,
+            events,
+            context.tick,
+            input,
+            player,
+          );
     const hostileGraceActive =
       context.tick - state.mission.startedAtTick <=
       this.definition.contract.hostileGraceTicks;
-    if (!hostileGraceActive) {
+    if (
+      this.definition.contract.combatEnabled !== false &&
+      !hostileGraceActive
+    ) {
       this.stepHostiles(
         phaseId,
         collections,
@@ -1656,6 +1676,10 @@ export function restoreAfterlightCheckpointState(state: GameState): GameState {
 
   const vehicles = new Map(state.vehicles);
   const hero = vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+  const definition = createAfterlightMission(
+    state.mission.missionId,
+    state.seed,
+  );
   if (hero) {
     vehicles.set(hero.id, {
       ...hero,
@@ -1665,14 +1689,25 @@ export function restoreAfterlightCheckpointState(state: GameState): GameState {
         ? 125
         : 100,
       life: "active",
-      occupiedBy: undefined,
+      occupiedBy: definition.contract.startsInVehicle
+        ? state.playerId
+        : undefined,
     });
+    if (definition.contract.startsInVehicle) {
+      actors.set(state.playerId, {
+        ...actors.get(state.playerId)!,
+        pose: {
+          position: [
+            (checkpoint.vehiclePose ?? hero.pose).position[0],
+            1.15,
+            (checkpoint.vehiclePose ?? hero.pose).position[2],
+          ],
+          rotationY: (checkpoint.vehiclePose ?? hero.pose).rotationY,
+        },
+      });
+    }
   }
 
-  const definition = createAfterlightMission(
-    state.mission.missionId,
-    state.seed,
-  );
   const restored = restoreMissionState(definition, {
     ...state,
     tick: 0,

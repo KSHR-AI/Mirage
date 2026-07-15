@@ -27,7 +27,6 @@ import {
   AFTERLIGHT_ENTITY_IDS,
   AFTERLIGHT_LANDMARKS,
   createInitialAfterlightState,
-  hydrateAfterlightState,
 } from "../game/core/afterlight-state";
 import {
   AfterlightStepController,
@@ -40,7 +39,6 @@ import {
   type GameState,
   type InputFrame,
   type RenderSnapshot,
-  type SaveGameV1,
   type Vec3,
 } from "../game/core/contracts";
 import {
@@ -61,40 +59,19 @@ import {
 } from "../game/input/input-buffer";
 import { prefersTouchControls } from "../game/input/device-profile";
 import {
-  AFTERLIGHT_CONTRACTS,
   DEFAULT_AFTERLIGHT_CONTRACT_ID,
+  HOT_RIDE_CONTRACT_ID,
   afterlightContract,
   createAfterlightMission,
-  isAfterlightContractId,
   type AfterlightMissionDefinition,
 } from "../game/missions/afterlight-contracts";
+import { activeAfterlightPoliceCount } from "../game/missions/afterlight-operations";
 import {
-  AFTERLIGHT_OPERATIONS,
-  DEFAULT_AFTERLIGHT_OPERATION_ID,
-  activeAfterlightPoliceCount,
-  afterlightOperation,
-  afterlightSeedForOperation,
-  isAfterlightOperationId,
-} from "../game/missions/afterlight-operations";
-import {
-  SaveGameRepository,
-  createCheckpointSave,
-} from "../game/persistence/save-game";
-import {
-  AFTERLIGHT_UPGRADES,
   AfterlightProgressionRepository,
-  afterlightContractRecord,
-  afterlightUpgradeAvailability,
-  applyAfterlightUpgrade,
   completeAfterlightRun,
   createAfterlightProfile,
   hasAfterlightUpgradeMarker,
-  purchaseAfterlightUpgrade,
-  selectAfterlightContract,
-  selectAfterlightOperation,
-  selectAfterlightUpgrade,
   type AfterlightProfileV1,
-  type AfterlightUpgradeId,
   type CompletedRunProgressResult,
 } from "../game/progression";
 import {
@@ -107,7 +84,6 @@ import {
 } from "../game/performance";
 import {
   resolveVehicleCameraRoll,
-  shouldFinishOpeningCinematic,
   type AfterlightCameraImpulse,
 } from "../game/presentation/camera";
 import {
@@ -336,9 +312,13 @@ function missionForHud(
       return {
         id: objective.id,
         label:
-          getAfterlightObjectivePrompt(
-            objective.id as Parameters<typeof getAfterlightObjectivePrompt>[0],
-          )?.text ?? objective.label,
+          objective.id === "deliver-coupe"
+            ? objective.label
+            : (getAfterlightObjectivePrompt(
+                objective.id as Parameters<
+                  typeof getAfterlightObjectivePrompt
+                >[0],
+              )?.text ?? objective.label),
         completed: objectiveCompleted,
         optional: objective.optional,
         active: objective.optional
@@ -644,10 +624,8 @@ export function AfterlightGame() {
   const audioRef = useRef(new AfterlightAudioDirector());
   const recorderRef = useRef(initialSession.recorder);
   const completedReplayRef = useRef<ReplayTapeV1 | null>(null);
-  const saveRepositoryRef = useRef<SaveGameRepository | null>(null);
   const progressionRepositoryRef =
     useRef<AfterlightProgressionRepository | null>(null);
-  const continueSaveRef = useRef<SaveGameV1 | null>(null);
   const [profile, setProfile] = useState<AfterlightProfileV1>(() =>
     createAfterlightProfile(),
   );
@@ -689,7 +667,6 @@ export function AfterlightGame() {
   );
   const sceneReadyRef = useRef(false);
   const performanceWarmupFramesRef = useRef(0);
-  const openingCinematicStartedAtTickRef = useRef(0);
 
   const [view, setView] = useState<SessionView>(() =>
     freshView(initialSession.state, initialSession.runtime),
@@ -708,14 +685,12 @@ export function AfterlightGame() {
   const [keyboardBindings, setKeyboardBindings] = useState<KeyboardLayout>(
     DEFAULT_KEYBOARD_LAYOUT,
   );
-  const [continueAvailable, setContinueAvailable] = useState(false);
   const [debriefDismissed, setDebriefDismissed] = useState(false);
   const [runScore, setRunScore] = useState<RunScore | null>(null);
   const [runProgressionResult, setRunProgressionResult] =
     useState<CompletedRunProgressResult | null>(null);
   const openingAssetsReady = true;
   const [sceneReady, setSceneReady] = useState(false);
-  const [openingCinematic, setOpeningCinematic] = useState(false);
   const startedRef = useRef(started);
   const pausedRef = useRef(paused);
   const reducedMotionRef = useRef(reducedMotion);
@@ -726,17 +701,6 @@ export function AfterlightGame() {
     governorRef.current.reset(qualityRef.current);
     setSceneReady(true);
   }, []);
-  const finishOpeningCinematic = useCallback(() => {
-    setOpeningCinematic(false);
-  }, []);
-  const startOpeningCinematic = useCallback((tick: number) => {
-    openingCinematicStartedAtTickRef.current = tick;
-    const inspecting = new URLSearchParams(window.location.search).has(
-      "inspect",
-    );
-    setOpeningCinematic(!reducedMotionRef.current && !inspecting);
-  }, []);
-
   useEffect(() => {
     document.body.classList.add("bay-city-active");
     const profile = readBrowserDeviceProfile();
@@ -752,11 +716,9 @@ export function AfterlightGame() {
       ...DEFAULT_INPUT_BINDINGS,
       keyboard: createKeyboardActionMap(controls.keyboardBindings),
     });
-    saveRepositoryRef.current = new SaveGameRepository(window.localStorage);
     progressionRepositoryRef.current = new AfterlightProgressionRepository(
       window.localStorage,
     );
-    continueSaveRef.current = saveRepositoryRef.current.load();
     const savedProfile = progressionRepositoryRef.current.load();
     profileRef.current = savedProfile;
     let cancelled = false;
@@ -768,7 +730,6 @@ export function AfterlightGame() {
       setLookSensitivity(controls.lookSensitivity);
       setInvertLookY(controls.invertLookY);
       setKeyboardBindings(controls.keyboardBindings);
-      setContinueAvailable(Boolean(continueSaveRef.current));
       setProfile(savedProfile);
     });
     return () => {
@@ -860,7 +821,6 @@ export function AfterlightGame() {
     setRunScore(null);
     setRunProgressionResult(null);
     setDebriefDismissed(false);
-    setOpeningCinematic(false);
     pausedRef.current = false;
     setPaused(false);
     setSessionVersion((version) => version + 1);
@@ -977,12 +937,6 @@ export function AfterlightGame() {
               strength: Math.min(1, event.amount / 45),
               kind: event.type === "actor-damaged" ? "recoil" : "impact",
             });
-          }
-          if (event.type === "checkpoint-reached") {
-            const save = createCheckpointSave(state);
-            saveRepositoryRef.current?.save(save);
-            continueSaveRef.current = save;
-            setContinueAvailable(true);
           }
         }
 
@@ -1272,26 +1226,6 @@ export function AfterlightGame() {
   }, [blocked, muted, paused, reducedMotion, started]);
 
   useEffect(() => {
-    if (!openingCinematic) return;
-    if (
-      shouldFinishOpeningCinematic({
-        currentTick: view.state.tick,
-        input: view.input,
-        reducedMotion,
-        startedAtTick: openingCinematicStartedAtTickRef.current,
-      })
-    ) {
-      finishOpeningCinematic();
-    }
-  }, [
-    finishOpeningCinematic,
-    openingCinematic,
-    reducedMotion,
-    view.input,
-    view.state.tick,
-  ]);
-
-  useEffect(() => {
     const adapter = keyboardRef.current;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.code === "Escape") {
@@ -1347,58 +1281,23 @@ export function AfterlightGame() {
   );
 
   const begin = useCallback(() => {
-    const operationId =
-      profileRef.current.selectedOperationId ?? DEFAULT_AFTERLIGHT_OPERATION_ID;
-    installSession(
-      applyAfterlightUpgrade(
-        createInitialAfterlightState(
-          afterlightSeedForOperation(
-            operationId,
-            profileRef.current.completedRuns,
-          ),
-          profileRef.current.selectedContractId ??
-            DEFAULT_AFTERLIGHT_CONTRACT_ID,
-        ),
-        profileRef.current.activeUpgradeId,
-      ),
-    );
+    installSession(createInitialAfterlightState());
     startedRef.current = true;
     pausedRef.current = false;
     setStarted(true);
     setPaused(false);
-    startOpeningCinematic(viewRef.current.state.tick);
     requestGamePointerLock();
     void audioRef.current.start();
-    const accepted = selectAfterlightRadioLine(
-      viewRef.current.state.seed,
-      "runner",
-      "mission.accepted",
-    );
     notificationRef.current = [
       {
-        id: accepted.cueId + "-start",
-        title: accepted.speaker.toUpperCase(),
-        detail: accepted.line.text,
+        id: "hot-ride-start",
+        title: "FIXER",
+        detail: "The buyer is waiting downtown. Keep the car moving.",
         tone: "neutral",
       },
     ];
     track("bay_city_started");
-  }, [installSession, requestGamePointerLock, startOpeningCinematic]);
-
-  const continueCheckpoint = useCallback(() => {
-    const save = continueSaveRef.current;
-    if (!save) return;
-    installSession(
-      applyAfterlightUpgrade(
-        hydrateAfterlightState(save),
-        profileRef.current.activeUpgradeId,
-      ),
-    );
-    startedRef.current = true;
-    setStarted(true);
-    void audioRef.current.start();
-    track("bay_city_started", "checkpoint");
-  }, [installSession]);
+  }, [installSession, requestGamePointerLock]);
 
   const retryCheckpoint = useCallback(() => {
     const deaths = statsRef.current.deaths;
@@ -1413,56 +1312,15 @@ export function AfterlightGame() {
 
   const restartMission = useCallback(() => {
     installSession(
-      applyAfterlightUpgrade(
-        createInitialAfterlightState(
-          viewRef.current.state.seed,
-          viewRef.current.state.mission.missionId,
-        ),
-        profileRef.current.activeUpgradeId,
+      createInitialAfterlightState(
+        viewRef.current.state.seed,
+        DEFAULT_AFTERLIGHT_CONTRACT_ID,
       ),
     );
     startedRef.current = true;
     setStarted(true);
-    startOpeningCinematic(0);
     track("bay_city_restarted", "mission");
-  }, [installSession, startOpeningCinematic]);
-
-  const setOperation = useCallback((id: string) => {
-    if (!isAfterlightOperationId(id)) return;
-    const next = selectAfterlightOperation(profileRef.current, id);
-    profileRef.current = next;
-    progressionRepositoryRef.current?.save(next);
-    setProfile(next);
-  }, []);
-
-  const setContract = useCallback((id: string) => {
-    if (!isAfterlightContractId(id)) return;
-    const next = selectAfterlightContract(profileRef.current, id);
-    profileRef.current = next;
-    progressionRepositoryRef.current?.save(next);
-    setProfile(next);
-  }, []);
-
-  const setLoadout = useCallback((id: string) => {
-    const upgradeId =
-      id === "standard" ? undefined : (id as AfterlightUpgradeId);
-    if (upgradeId && !(upgradeId in AFTERLIGHT_UPGRADES)) return;
-    const next = selectAfterlightUpgrade(profileRef.current, upgradeId);
-    profileRef.current = next;
-    progressionRepositoryRef.current?.save(next);
-    setProfile(next);
-  }, []);
-
-  const purchaseLoadout = useCallback((id: string) => {
-    if (!(id in AFTERLIGHT_UPGRADES)) return;
-    const next = purchaseAfterlightUpgrade(
-      profileRef.current,
-      id as AfterlightUpgradeId,
-    );
-    profileRef.current = next;
-    progressionRepositoryRef.current?.save(next);
-    setProfile(next);
-  }, []);
+  }, [installSession]);
 
   const quitToTitle = useCallback(() => {
     loopRef.current?.stop();
@@ -1471,9 +1329,8 @@ export function AfterlightGame() {
     pausedRef.current = false;
     setStarted(false);
     setPaused(false);
-    finishOpeningCinematic();
     releaseGamePointerLock();
-  }, [finishOpeningCinematic, releaseGamePointerLock]);
+  }, [releaseGamePointerLock]);
 
   const setPause = useCallback(
     (next: boolean) => {
@@ -1491,14 +1348,10 @@ export function AfterlightGame() {
     audioRef.current.setMuted(next);
   }, []);
 
-  const setReducedMotionValue = useCallback(
-    (next: boolean) => {
-      reducedMotionRef.current = next;
-      setReducedMotion(next);
-      if (next) finishOpeningCinematic();
-    },
-    [finishOpeningCinematic],
-  );
+  const setReducedMotionValue = useCallback((next: boolean) => {
+    reducedMotionRef.current = next;
+    setReducedMotion(next);
+  }, []);
 
   const setQualityValue = useCallback((next: GameQualityTier) => {
     qualityRef.current = next;
@@ -1674,40 +1527,9 @@ export function AfterlightGame() {
   );
   const streetTune = hasAfterlightUpgradeMarker(view.state, "street-tune");
   const traumaPlates = hasAfterlightUpgradeMarker(view.state, "trauma-plates");
-  const activeOperationId =
-    profile.selectedOperationId ?? DEFAULT_AFTERLIGHT_OPERATION_ID;
-  const activeContractId =
-    profile.selectedContractId ?? DEFAULT_AFTERLIGHT_CONTRACT_ID;
+  const activeContractId = DEFAULT_AFTERLIGHT_CONTRACT_ID;
   const selectedContract = afterlightContract(activeContractId);
-  const selectedContractRecord = afterlightContractRecord(
-    profile,
-    activeContractId,
-  );
-  const contractOptions = AFTERLIGHT_CONTRACTS.map((contract) => ({
-    ...contract,
-    completed: (profile.completedContractIds ?? []).includes(contract.id),
-  }));
-  const operationOptions = AFTERLIGHT_OPERATIONS.map((operation) => ({
-    ...operation,
-    mastered: (profile.completedOperationIds ?? []).includes(operation.id),
-  }));
-  const loadoutOptions = [
-    {
-      description: "Factory coupe and 24-round Signal-9.",
-      id: "standard",
-      label: "Standard",
-      status: "owned" as const,
-    },
-    ...(Object.keys(AFTERLIGHT_UPGRADES) as AfterlightUpgradeId[]).map((id) => {
-      const availability = afterlightUpgradeAvailability(profile, id);
-      return {
-        description: AFTERLIGHT_UPGRADES[id].description,
-        id,
-        label: AFTERLIGHT_UPGRADES[id].label,
-        ...availability,
-      };
-    }),
-  ];
+  const simpleContract = definition.contract.id === HOT_RIDE_CONTRACT_ID;
   const debriefStats: readonly DebriefStat[] =
     runScore?.breakdown.map((entry) => ({
       id: entry.id,
@@ -1745,7 +1567,7 @@ export function AfterlightGame() {
       data-longitudinal-load={longitudinalLoad.toFixed(3)}
       data-mode={driving ? "car" : "foot"}
       data-magazine={weapon?.magazine ?? 0}
-      data-loadout={profile.activeUpgradeId ?? "standard"}
+      data-loadout="standard"
       data-banked-cash={profile.bankedCash}
       data-contract={definition.contract.id}
       data-contract-inventory={[...view.state.inventory].sort().join(",")}
@@ -1763,7 +1585,7 @@ export function AfterlightGame() {
       data-quality={quality}
       data-scene-ready={sceneReady ? "true" : "false"}
       data-opening-assets-ready={openingAssetsReady ? "true" : "false"}
-      data-opening-cinematic={openingCinematic ? "true" : "false"}
+      data-opening-cinematic="false"
       data-frame-ms={view.performance.averageFrameMs.toFixed(2)}
       data-slow-frame-ratio={view.performance.slowFrameRatio.toFixed(3)}
       data-dropped-seconds={view.performance.droppedSimulationSeconds.toFixed(
@@ -1775,7 +1597,7 @@ export function AfterlightGame() {
       data-throttle={view.input.throttle.toFixed(3)}
       data-tick={view.state.tick}
       data-vehicle-health={(hero?.health ?? 0).toFixed(2)}
-      data-vehicle-target-speed={streetTune ? 29 : 26}
+      data-vehicle-target-speed={simpleContract ? 18 : streetTune ? 29 : 26}
       data-vehicle-yaw={(hero?.pose.rotationY ?? 0).toFixed(4)}
       data-testid="afterlight-game"
     >
@@ -1820,7 +1642,7 @@ export function AfterlightGame() {
               cameraYaw={view.cameraYaw}
               input={view.input}
               onReady={profileReady ? markSceneReady : undefined}
-              openingCinematic={openingCinematic}
+              openingCinematic={false}
               paused={paused || missionBlocked}
               quality={quality}
               reducedMotion={reducedMotion}
@@ -1872,35 +1694,24 @@ export function AfterlightGame() {
               : undefined
           }
           wantedLevel={view.state.heat.wantedLevel}
-          weapon={{
-            name: "SIGNAL-9",
-            magazine: weapon?.magazine ?? 0,
-            magazineSize: weapon?.magazineCapacity ?? 24,
-            reserve: weapon?.reserve ?? 0,
-            reloading,
-            reloadProgress,
-          }}
+          weapon={
+            simpleContract
+              ? undefined
+              : {
+                  name: "SIGNAL-9",
+                  magazine: weapon?.magazine ?? 0,
+                  magazineSize: weapon?.magazineCapacity ?? 24,
+                  reserve: weapon?.reserve ?? 0,
+                  reloading,
+                  reloadProgress,
+                }
+          }
         />
       ) : null}
 
       <MirageIntroOverlay
-        activeContractId={activeContractId}
-        activeLoadoutId={profile.activeUpgradeId ?? "standard"}
-        activeOperationId={activeOperationId}
-        bankedCash={profile.bankedCash}
-        bestRank={selectedContractRecord?.bestRank}
-        canContinue={continueAvailable}
         contractBrief={selectedContract.briefing}
-        contractOptions={contractOptions}
         contractTitle={selectedContract.label}
-        inputMode={touch ? "touch" : "desktop"}
-        loadoutOptions={loadoutOptions}
-        operationOptions={operationOptions}
-        onContinue={continueCheckpoint}
-        onContractChange={setContract}
-        onLoadoutChange={setLoadout}
-        onLoadoutPurchase={purchaseLoadout}
-        onOperationChange={setOperation}
         onStart={begin}
         ready={openingAssetsReady && sceneReady}
         visible={!started}
@@ -1939,24 +1750,16 @@ export function AfterlightGame() {
         onContinue={() => setDebriefDismissed(true)}
         onReplay={restartMission}
         rank={runScore?.rank ?? "C"}
-        stats={debriefStats}
+        stats={simpleContract ? [] : debriefStats}
         isPersonalBest={runProgressionResult?.isPersonalBest}
-        unlockLabel={runProgressionResult?.newlyUnlockedIds
-          .map((id) => AFTERLIGHT_UPGRADES[id].label)
-          .join(" + ")}
-        masteryLabel={
-          runProgressionResult?.newlyMasteredOperationId
-            ? afterlightOperation(runProgressionResult.newlyMasteredOperationId)
-                .label
-            : undefined
-        }
         visible={started && view.state.mission.completed && !debriefDismissed}
       />
 
       {touch && started && !paused && !blocked ? (
         <TouchControls
+          drivingOnly={simpleContract}
           disabled={blocked}
-          interactionAvailable
+          interactionAvailable={!simpleContract}
           mode={driving ? "vehicle" : "foot"}
           onAimChange={(pressed) => inputRef.current.setAction("aim", pressed)}
           onBrakeJumpChange={(pressed) => {

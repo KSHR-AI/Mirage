@@ -25,6 +25,7 @@ import type {
   SetpieceQualityBudget,
   VaultSetpiecePlan,
 } from "./types";
+import { HOT_RIDE_CONTRACT_ID } from "../../missions/afterlight-contracts";
 
 export const INTERACTION_COLORS = Object.freeze({
   coral: "#ff6b57",
@@ -198,17 +199,23 @@ function createBoostPlan(
   encounter: AfterlightEncounterVariant,
   quality: SetpieceQualityBudget,
 ): BoostSetpiecePlan {
+  const hotRide = options.contractId === HOT_RIDE_CONTRACT_ID;
   const stolen = has(
     options.completedObjectiveIds,
     AFTERLIGHT_OBJECTIVE_IDS.stealCoupe,
   );
   const reachedMission = has(
     options.completedObjectiveIds,
-    AFTERLIGHT_OBJECTIVE_IDS.reachMission,
+    hotRide
+      ? AFTERLIGHT_OBJECTIVE_IDS.deliverCoupe
+      : AFTERLIGHT_OBJECTIVE_IDS.reachMission,
   );
+  const routeGatePosition = hotRide
+    ? AFTERLIGHT_LANDMARKS.hotRideDrop
+    : AFTERLIGHT_SETPIECE_ANCHORS.missionIntercept;
   const cues: InteractionCuePlan[] = [];
 
-  if (!stolen) {
+  if (!stolen && !hotRide) {
     cues.push(
       cue(
         "boost-enter-coupe",
@@ -225,7 +232,7 @@ function createBoostPlan(
         "boost-reach-mission",
         "destination",
         "white",
-        AFTERLIGHT_SETPIECE_ANCHORS.missionIntercept,
+        routeGatePosition,
         8.5,
       ),
     );
@@ -249,8 +256,9 @@ function createBoostPlan(
       ),
     ]),
     estimatedDrawCalls: estimate("boost", quality, options.reducedMotion),
-    heroCoupeVisible: !stolen,
-    routeGateVisible: stolen && !reachedMission,
+    heroCoupeVisible: !hotRide && !stolen,
+    routeGateVisible: (hotRide || stolen) && !reachedMission,
+    routeGatePosition,
   });
 }
 

@@ -17,6 +17,7 @@ export const AFTERLIGHT_PHASE_IDS = {
 } as const;
 
 export const AFTERLIGHT_OBJECTIVE_IDS = {
+  deliverCoupe: "deliver-coupe",
   stealCoupe: "steal-coupe",
   learnDriving: "learn-driving",
   cleanBoost: "clean-boost",

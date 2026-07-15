@@ -42,6 +42,20 @@ function moveVehicle(state: GameState, id: number, position: Vec3): GameState {
 }
 
 describe("Afterlight mission target", () => {
+  it("points the default Hot Ride at the downtown buyer", () => {
+    const state = createInitialAfterlightState();
+    const hotRide = createAfterlightMission(
+      state.mission.missionId,
+      state.seed,
+    );
+
+    expect(resolveAfterlightMissionTarget(state, hotRide)).toEqual({
+      label: "Deliver the coupe to the downtown buyer.",
+      objectiveId: AFTERLIGHT_OBJECTIVE_IDS.deliverCoupe,
+      position: AFTERLIGHT_LANDMARKS.hotRideDrop,
+    });
+  });
+
   it("tracks the live courier and then its physical credential", () => {
     const courierPosition: Vec3 = [32, 0.72, -7];
     const keyholder = withMission(

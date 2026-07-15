@@ -57,13 +57,15 @@ export function MissionDebriefOverlay({
           <span>TAKE</span>
           <strong>{formatCash(earnedCash)}</strong>
         </div>
-        <div>
-          <Check aria-hidden="true" size={16} />
-          <span>OPTIONAL</span>
-          <strong>
-            {optionalCompleted}/{optionalTotal}
-          </strong>
-        </div>
+        {optionalTotal > 0 ? (
+          <div>
+            <Check aria-hidden="true" size={16} />
+            <span>OPTIONAL</span>
+            <strong>
+              {optionalCompleted}/{optionalTotal}
+            </strong>
+          </div>
+        ) : null}
       </div>
 
       {stats.length > 0 ? (

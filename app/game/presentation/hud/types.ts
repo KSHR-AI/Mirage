@@ -90,7 +90,7 @@ export interface AfterlightHudProps {
   readonly health: number;
   readonly maxHealth?: number;
   readonly vehicle?: HudVehicle;
-  readonly weapon: HudWeapon;
+  readonly weapon?: HudWeapon;
   readonly wantedLevel: 0 | 1 | 2 | 3;
   readonly speedKph: number;
   readonly location: string;
@@ -105,48 +105,10 @@ export interface AfterlightHudProps {
 
 export interface MirageIntroOverlayProps {
   readonly visible?: boolean;
-  readonly inputMode?: "desktop" | "touch";
-  readonly canContinue?: boolean;
   readonly ready?: boolean;
-  readonly bankedCash?: number;
-  readonly bestRank?: HudRank;
   readonly contractBrief?: string;
   readonly contractTitle?: string;
-  readonly activeContractId?: string;
-  readonly activeOperationId?: string;
-  readonly activeLoadoutId?: string;
-  readonly contractOptions?: readonly HudContractOption[];
-  readonly operationOptions?: readonly HudOperationOption[];
-  readonly loadoutOptions?: readonly HudLoadoutOption[];
   readonly onStart: () => void;
-  readonly onContinue?: () => void;
-  readonly onContractChange?: (id: string) => void;
-  readonly onOperationChange?: (id: string) => void;
-  readonly onLoadoutChange?: (id: string) => void;
-  readonly onLoadoutPurchase?: (id: string) => void;
-}
-
-export interface HudContractOption {
-  readonly completed: boolean;
-  readonly description: string;
-  readonly id: string;
-  readonly label: string;
-}
-
-export interface HudOperationOption {
-  readonly description: string;
-  readonly id: string;
-  readonly label: string;
-  readonly mastered: boolean;
-}
-
-export interface HudLoadoutOption {
-  readonly description: string;
-  readonly id: string;
-  readonly label: string;
-  readonly price?: number;
-  readonly reason?: string;
-  readonly status?: "owned" | "available" | "unaffordable" | "locked";
 }
 
 export interface AfterlightSettingsValue {
@@ -217,6 +179,7 @@ export type TouchVector = readonly [x: number, y: number];
 
 export interface TouchControlsProps {
   readonly mode: "foot" | "vehicle";
+  readonly drivingOnly?: boolean;
   readonly disabled?: boolean;
   readonly interactionAvailable?: boolean;
   readonly onMove: (vector: TouchVector) => void;

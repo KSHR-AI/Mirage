@@ -44,6 +44,7 @@ export const AfterlightMissionSetpieces = memo(
   function AfterlightMissionSetpieces({
     blackout,
     completedObjectiveIds,
+    contractId,
     encounterVariant,
     inventory,
     interactionCuesVisible = true,
@@ -57,6 +58,7 @@ export const AfterlightMissionSetpieces = memo(
         createAfterlightSetpiecePlan({
           blackout,
           completedObjectiveIds,
+          contractId,
           encounterVariant,
           inventory,
           phaseId,
@@ -66,6 +68,7 @@ export const AfterlightMissionSetpieces = memo(
       [
         blackout,
         completedObjectiveIds,
+        contractId,
         encounterVariant,
         inventory,
         phaseId,

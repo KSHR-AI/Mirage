@@ -1,7 +1,6 @@
 "use client";
 
 import { memo } from "react";
-import { AFTERLIGHT_LANDMARKS } from "../../core/afterlight-state";
 import {
   AFTERLIGHT_ITEMS,
   type AfterlightEncounterVariantId,
@@ -307,7 +306,7 @@ function BoostYard({ plan }: { readonly plan: BoostSetpiecePlan }) {
       {plan.routeGateVisible ? (
         <RouteGate
           color={INTERACTION_COLORS.white}
-          position={AFTERLIGHT_LANDMARKS.missionIntercept}
+          position={plan.routeGatePosition}
           quality={plan.quality.modelQuality}
           width={12}
         />

@@ -817,7 +817,9 @@ export const AfterlightScene = memo(function AfterlightScene({
         vehicle.health / Math.max(1, vehicle.kind === "courier" ? 120 : 100),
     }));
   const showRuntimeHero =
-    phaseId !== AFTERLIGHT_PHASE_IDS.boost || completed.has("steal-coupe");
+    driving ||
+    phaseId !== AFTERLIGHT_PHASE_IDS.boost ||
+    completed.has("steal-coupe");
 
   return (
     <>
@@ -840,6 +842,7 @@ export const AfterlightScene = memo(function AfterlightScene({
       <AfterlightMissionSetpieces
         blackout={blackoutActive}
         completedObjectiveIds={state.mission.completedObjectiveIds}
+        contractId={definition.contract.id}
         encounterVariant={presentationEncounter}
         inventory={state.inventory}
         interactionCuesVisible={started}

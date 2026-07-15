@@ -219,7 +219,7 @@ export function AfterlightHud({
       (objective) => !objective.optional && !objective.completed,
     ) ??
     mission.objectives.find((objective) => !objective.completed);
-  const reloadProgress = clampPercent(weapon.reloadProgress ?? 0, 1);
+  const reloadProgress = clampPercent(weapon?.reloadProgress ?? 0, 1);
   const rootClassName = [
     styles.hudRoot,
     touchControlsVisible ? styles.hudWithTouch : "",
@@ -314,45 +314,47 @@ export function AfterlightHud({
             </div>
           ) : null}
 
-          <section
-            aria-label={`${weapon.name ?? "Signal-9"} ammunition`}
-            className={styles.weapon}
-          >
-            <div className={styles.weaponName}>
-              <Crosshair aria-hidden="true" size={14} />
-              <span>{weapon.name ?? "SIGNAL-9"}</span>
-            </div>
-            <div className={styles.ammoCount}>
-              <strong>
-                {Math.max(0, weapon.magazine).toString().padStart(2, "0")}
-              </strong>
-              <span>
-                / {Math.max(0, weapon.reserve).toString().padStart(3, "0")}
-              </span>
-            </div>
-            <div
-              aria-label={
-                weapon.reloading
-                  ? `Reloading: ${Math.round(reloadProgress)} percent`
-                  : "Weapon ready"
-              }
-              className={styles.ammoTrack}
-              data-reloading={Boolean(weapon.reloading)}
+          {weapon ? (
+            <section
+              aria-label={`${weapon.name ?? "Signal-9"} ammunition`}
+              className={styles.weapon}
             >
-              <span
-                style={
-                  {
-                    "--ammo-value": `${
-                      weapon.reloading
-                        ? reloadProgress
-                        : clampPercent(weapon.magazine, weapon.magazineSize)
-                    }%`,
-                  } as HudStyle
+              <div className={styles.weaponName}>
+                <Crosshair aria-hidden="true" size={14} />
+                <span>{weapon.name ?? "SIGNAL-9"}</span>
+              </div>
+              <div className={styles.ammoCount}>
+                <strong>
+                  {Math.max(0, weapon.magazine).toString().padStart(2, "0")}
+                </strong>
+                <span>
+                  / {Math.max(0, weapon.reserve).toString().padStart(3, "0")}
+                </span>
+              </div>
+              <div
+                aria-label={
+                  weapon.reloading
+                    ? `Reloading: ${Math.round(reloadProgress)} percent`
+                    : "Weapon ready"
                 }
-              />
-            </div>
-            {weapon.reloading ? <small>RELOADING</small> : null}
-          </section>
+                className={styles.ammoTrack}
+                data-reloading={Boolean(weapon.reloading)}
+              >
+                <span
+                  style={
+                    {
+                      "--ammo-value": `${
+                        weapon.reloading
+                          ? reloadProgress
+                          : clampPercent(weapon.magazine, weapon.magazineSize)
+                      }%`,
+                    } as HudStyle
+                  }
+                />
+              </div>
+              {weapon.reloading ? <small>RELOADING</small> : null}
+            </section>
+          ) : null}
         </div>
       </footer>
     </div>

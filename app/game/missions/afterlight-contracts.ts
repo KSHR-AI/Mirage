@@ -3,12 +3,14 @@ import {
   AFTERLIGHT_CHECKPOINT_IDS,
   AFTERLIGHT_ITEMS,
   AFTERLIGHT_JOB_ID,
+  AFTERLIGHT_OBJECTIVE_IDS,
   AFTERLIGHT_PHASE_IDS,
   createAfterlightJob,
   type AfterlightJobDefinition,
 } from "./afterlight-job";
 
 export type AfterlightContractId =
+  | typeof HOT_RIDE_CONTRACT_ID
   | typeof AFTERLIGHT_JOB_ID
   | "courier-jack"
   | "vault-breach"
@@ -28,13 +30,36 @@ export interface AfterlightContractDefinition {
   readonly startingInventory: readonly string[];
   readonly targetCompletionTicks: number;
   readonly zeroPaceTicks: number;
+  readonly startsInVehicle?: boolean;
+  readonly allowsVehicleExit?: boolean;
+  readonly vehicleInvulnerable?: boolean;
+  readonly combatEnabled?: boolean;
 }
 
 export interface AfterlightMissionDefinition extends AfterlightJobDefinition {
   readonly contract: AfterlightContractDefinition;
 }
 
+export const HOT_RIDE_CONTRACT_ID = "hot-ride" as const;
+
 export const AFTERLIGHT_CONTRACTS = Object.freeze([
+  Object.freeze({
+    id: HOT_RIDE_CONTRACT_ID,
+    label: "Hot Ride",
+    description: "One car / one clean drop",
+    briefing: "Take the coupe down the SoMa arterial and make the garage drop.",
+    completionHeading: "Car delivered.",
+    completionSubhead: "South Market / Buyer paid",
+    hostileGraceTicks: 0,
+    startCheckpointId: "afterlight:checkpoint:hot-ride",
+    startingInventory: Object.freeze([]),
+    targetCompletionTicks: 600,
+    zeroPaceTicks: 1_200,
+    startsInVehicle: true,
+    allowsVehicleExit: false,
+    vehicleInvulnerable: true,
+    combatEnabled: false,
+  }),
   Object.freeze({
     id: AFTERLIGHT_JOB_ID,
     label: "Full Heist",
@@ -115,7 +140,7 @@ const CONTRACT_BY_ID = new Map(
   AFTERLIGHT_CONTRACTS.map((contract) => [contract.id, contract]),
 );
 
-export const DEFAULT_AFTERLIGHT_CONTRACT_ID = AFTERLIGHT_JOB_ID;
+export const DEFAULT_AFTERLIGHT_CONTRACT_ID = HOT_RIDE_CONTRACT_ID;
 
 export function isAfterlightContractId(
   value: unknown,
@@ -152,6 +177,35 @@ export function createAfterlightMission(
       : DEFAULT_AFTERLIGHT_CONTRACT_ID,
   );
   const job = createAfterlightJob(seed);
+  if (contract.id === HOT_RIDE_CONTRACT_ID) {
+    const hotRidePhase = {
+      id: AFTERLIGHT_PHASE_IDS.boost,
+      chapter: "Hot Ride",
+      location: "Downtown",
+      heatFloor: 0,
+      objectives: [
+        {
+          id: AFTERLIGHT_OBJECTIVE_IDS.deliverCoupe,
+          label: "Deliver the coupe to the downtown buyer.",
+          trigger: {
+            type: "volume",
+            center: [56, 0.72, -84],
+            radius: 16,
+            actor: "hero",
+            dwellTicks: 8,
+          },
+          reward: 2_500,
+        },
+      ],
+    } as const satisfies MissionPhaseDefinition;
+    return {
+      id: contract.id,
+      title: "Mirage: Hot Ride",
+      encounter: job.encounter,
+      phases: Object.freeze([hotRidePhase]),
+      contract,
+    };
+  }
   if (contract.id === AFTERLIGHT_JOB_ID) return { ...job, contract };
 
   const phase = job.phases.find(

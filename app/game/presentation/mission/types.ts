@@ -48,6 +48,7 @@ export interface BoostSetpiecePlan extends SetpiecePlanBase {
   readonly kind: "boost";
   readonly heroCoupeVisible: boolean;
   readonly routeGateVisible: boolean;
+  readonly routeGatePosition: Vec3;
 }
 
 export interface CourierSetpiecePlan extends SetpiecePlanBase {
@@ -117,6 +118,7 @@ export type AfterlightMissionSetpiecePlan =
   | EmptySetpiecePlan;
 
 export interface CreateAfterlightSetpiecePlanOptions {
+  readonly contractId?: string;
   readonly phaseId: string;
   readonly completedObjectiveIds: MissionStringCollection;
   readonly inventory: MissionStringCollection;

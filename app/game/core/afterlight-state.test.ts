@@ -5,6 +5,7 @@ import {
   AFTERLIGHT_ENCOUNTER_VARIANTS,
   AFTERLIGHT_JOB_ID,
 } from "../missions/afterlight-job";
+import { HOT_RIDE_CONTRACT_ID } from "../missions/afterlight-contracts";
 import {
   AFTERLIGHT_CHECKPOINTS,
   AFTERLIGHT_ENTITY_IDS,
@@ -44,7 +45,7 @@ describe("initial Afterlight state", () => {
     });
   });
 
-  it("creates the canonical player, vehicles, weapon, and mission", () => {
+  it("starts the default Hot Ride inside the hero coupe", () => {
     const state = createInitialAfterlightState();
 
     expect(state.playerId).toBe(AFTERLIGHT_ENTITY_IDS.player);
@@ -60,21 +61,14 @@ describe("initial Afterlight state", () => {
     const hero = state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
     if (!player || !hero) throw new Error("missing opening fixtures");
     expect(hero.pose.rotationY).toBe(0);
-    expect(
-      Math.hypot(
-        player.pose.position[0] - hero.pose.position[0],
-        player.pose.position[2] - hero.pose.position[2],
-      ),
-    ).toBeLessThanOrEqual(7);
-    expect(
-      Math.abs(player.pose.position[0] - hero.pose.position[0]),
-    ).toBeGreaterThan(2.2 + 0.46);
+    expect(player.pose.position).toEqual([56, 1.15, 40]);
+    expect(hero.occupiedBy).toBe(state.playerId);
     expect(state.vehicles.get(AFTERLIGHT_ENTITY_IDS.courier)?.kind).toBe(
       "courier",
     );
     expect(state.weapons.get(SIGNAL_9_SPEC.id)?.magazine).toBe(24);
-    expect(state.mission.missionId).toBe(AFTERLIGHT_JOB_ID);
-    expect(state.checkpointId).toBe(AFTERLIGHT_START_CHECKPOINT_ID);
+    expect(state.mission.missionId).toBe(HOT_RIDE_CONTRACT_ID);
+    expect(state.checkpointId).toBe("afterlight:checkpoint:hot-ride");
   });
 
   it("is deterministic per seed and selects variants through the mission", () => {
@@ -132,7 +126,7 @@ describe("initial Afterlight state", () => {
   });
 
   it("hydrates a checkpoint save without reviving a failed mission", () => {
-    const initial = createInitialAfterlightState();
+    const initial = createInitialAfterlightState(2407, AFTERLIGHT_JOB_ID);
     const player = initial.actors.get(initial.playerId);
     if (!player) throw new Error("missing player fixture");
     const hydrated = hydrateAfterlightState({

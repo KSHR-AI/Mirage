@@ -56,6 +56,8 @@ function credentialPosition(state: GameState): Vec3 {
 
 function positionForObjective(state: GameState, objectiveId: string): Vec3 {
   switch (objectiveId) {
+    case AFTERLIGHT_OBJECTIVE_IDS.deliverCoupe:
+      return AFTERLIGHT_LANDMARKS.hotRideDrop;
     case AFTERLIGHT_OBJECTIVE_IDS.stealCoupe:
       return AFTERLIGHT_LANDMARKS.boostYard;
     case AFTERLIGHT_OBJECTIVE_IDS.learnDriving:
@@ -105,7 +107,10 @@ export function resolveAfterlightMissionTarget(
 
   return {
     objectiveId,
-    label: prompt?.text ?? objective?.label ?? phase.chapter,
+    label:
+      objectiveId === AFTERLIGHT_OBJECTIVE_IDS.deliverCoupe
+        ? (objective?.label ?? phase.chapter)
+        : (prompt?.text ?? objective?.label ?? phase.chapter),
     position: positionForObjective(state, objectiveId),
   };
 }

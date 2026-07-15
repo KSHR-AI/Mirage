@@ -198,6 +198,54 @@ function placeHeroForBuildingImpact(scenario: AfterlightScenario) {
 }
 
 describe("Afterlight step", () => {
+  it("keeps Hot Ride in the coupe and completes at the downtown drop", () => {
+    const scenario = new AfterlightScenario("hot-ride");
+    const hero = scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    if (!hero) throw new Error("missing Hot Ride coupe");
+
+    expect(hero.occupiedBy).toBe(scenario.state.playerId);
+    scenario.step({ interactPressed: true });
+    expect(
+      scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe)?.occupiedBy,
+    ).toBe(scenario.state.playerId);
+
+    scenario.placeVehicle(
+      AFTERLIGHT_ENTITY_IDS.heroCoupe,
+      AFTERLIGHT_LANDMARKS.hotRideDrop,
+      0,
+      { occupiedBy: scenario.state.playerId },
+    );
+    scenario.placeActor(scenario.state.playerId, [56, 1.15, -84]);
+    scenario.stepMany(8);
+
+    expect(scenario.state.mission.completed).toBe(true);
+    expect(scenario.state.mission.completedObjectiveIds).toContain(
+      AFTERLIGHT_OBJECTIVE_IDS.deliverCoupe,
+    );
+    expect(scenario.state.cash).toBe(2_500);
+  });
+
+  it("makes Hot Ride building impacts recoverable", () => {
+    const scenario = new AfterlightScenario("hot-ride");
+    placeHeroForBuildingImpact(scenario);
+
+    scenario.step({ throttle: 1 });
+
+    expect(
+      scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe),
+    ).toMatchObject({ health: 100, life: "active" });
+  });
+
+  it("keeps Hot Ride at a controllable city speed without boost", () => {
+    const scenario = new AfterlightScenario("hot-ride");
+    scenario.stepMany(180, { throttle: 1 });
+    const hero = scenario.state.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
+    if (!hero) throw new Error("missing Hot Ride coupe");
+
+    expect(vehiclePlanarSpeed(hero)).toBeGreaterThan(16);
+    expect(vehiclePlanarSpeed(hero)).toBeLessThanOrEqual(18);
+  });
+
   it("uses the purchased street tune in the deterministic driving step", () => {
     const standard = new AfterlightScenario();
     const tuned = new AfterlightScenario();
@@ -354,10 +402,10 @@ describe("Afterlight step", () => {
   });
 
   it("turns entering the hero coupe into the first mission objective", () => {
-    const initial = createInitialAfterlightState();
+    const initial = createInitialAfterlightState(2407, "afterlight-job");
     const runtime = createGameRuntime(
       initial,
-      createAfterlightStep(initial.seed),
+      createAfterlightStep(initial.seed, initial.mission.missionId),
     );
 
     runtime.command(input({ interactPressed: true }));
@@ -378,10 +426,10 @@ describe("Afterlight step", () => {
   });
 
   it("completes the driving lesson once the coupe reaches speed", () => {
-    const initial = createInitialAfterlightState();
+    const initial = createInitialAfterlightState(2407, "afterlight-job");
     const runtime = createGameRuntime(
       initial,
-      createAfterlightStep(initial.seed),
+      createAfterlightStep(initial.seed, initial.mission.missionId),
     );
     runtime.command(input({ interactPressed: true }));
     runtime.advance();
@@ -397,10 +445,10 @@ describe("Afterlight step", () => {
   });
 
   it("starts the coupe facing the Mission intercept", () => {
-    const initial = createInitialAfterlightState();
+    const initial = createInitialAfterlightState(2407, "afterlight-job");
     const runtime = createGameRuntime(
       initial,
-      createAfterlightStep(initial.seed),
+      createAfterlightStep(initial.seed, initial.mission.missionId),
     );
     const start = initial.vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
     if (!start) throw new Error("missing opening coupe");
@@ -622,7 +670,7 @@ describe("Afterlight step", () => {
   });
 
   it("fires the Signal-9 through the shared physics query", () => {
-    const initial = createInitialAfterlightState();
+    const initial = createInitialAfterlightState(2407, "afterlight-job");
     const actors = new Map(initial.actors);
     const player = actors.get(initial.playerId);
     if (!player) throw new Error("missing player fixture");
@@ -632,7 +680,7 @@ describe("Afterlight step", () => {
     });
     const runtime = createGameRuntime(
       { ...initial, actors },
-      createAfterlightStep(initial.seed),
+      createAfterlightStep(initial.seed, initial.mission.missionId),
     );
 
     runtime.command(input({ firePressed: true, aim: true }));
@@ -1105,7 +1153,7 @@ describe("Afterlight step", () => {
   });
 
   it("restores player and coupe at the current checkpoint", () => {
-    const initial = createInitialAfterlightState();
+    const initial = createInitialAfterlightState(2407, "afterlight-job");
     const actors = new Map(initial.actors);
     const player = actors.get(initial.playerId);
     if (!player) throw new Error("missing player fixture");
@@ -1131,7 +1179,7 @@ describe("Afterlight step", () => {
   });
 
   it("keeps the bridge escape and safehouse inside the playable world", () => {
-    const initial = createInitialAfterlightState();
+    const initial = createInitialAfterlightState(2407, "afterlight-job");
     const actors = new Map(initial.actors);
     const player = actors.get(initial.playerId);
     const vehicles = new Map(initial.vehicles);
@@ -1147,7 +1195,7 @@ describe("Afterlight step", () => {
     });
     const runtime = createGameRuntime(
       { ...initial, actors, vehicles },
-      createAfterlightStep(initial.seed),
+      createAfterlightStep(initial.seed, initial.mission.missionId),
     );
 
     runtime.advance();

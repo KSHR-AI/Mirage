@@ -907,169 +907,6 @@
   line-height: 1.35;
 }
 
-.introContract,
-.introOperation,
-.introLoadout {
-  display: grid;
-  width: min(650px, 100%);
-  gap: 8px;
-}
-
-.introContract {
-  margin-top: 16px;
-}
-
-.introOperation {
-  margin-top: 12px;
-}
-
-.introLoadout {
-  margin-top: 12px;
-}
-
-.introLoadoutHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  color: var(--hud-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 8px;
-  font-weight: 800;
-}
-
-.introLoadoutHeader span:first-child {
-  color: var(--hud-lime);
-}
-
-.contractSegments,
-.operationSegments,
-.loadoutSegments {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border: 1px solid var(--hud-line);
-  background: rgba(7, 19, 23, 0.72);
-}
-
-.contractSegments {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-.contractSegments button,
-.operationSegments button,
-.loadoutSegments button {
-  display: grid;
-  min-width: 0;
-  min-height: 58px;
-  align-content: center;
-  gap: 3px;
-  border: 0;
-  border-right: 1px solid var(--hud-faint);
-  background: transparent;
-  padding: 9px 11px;
-  color: var(--hud-muted);
-  text-align: left;
-}
-
-.contractSegments button:last-child,
-.operationSegments button:last-child,
-.loadoutSegments button:last-child {
-  border-right: 0;
-}
-
-.contractSegments button[data-active="true"],
-.operationSegments button[data-active="true"],
-.loadoutSegments button[data-active="true"] {
-  background: var(--hud-lime);
-  color: #10190b;
-}
-
-.loadoutSegments button[data-status="available"]:not([data-active="true"]) {
-  box-shadow: inset 0 -2px 0 var(--hud-lime);
-  color: var(--hud-white);
-}
-
-.loadoutSegments button:disabled {
-  color: rgba(255, 253, 247, 0.38);
-  cursor: not-allowed;
-}
-
-.contractSegments strong,
-.contractSegments span,
-.operationSegments strong,
-.operationSegments span,
-.loadoutSegments strong,
-.loadoutSegments span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.contractSegments strong,
-.operationSegments strong,
-.loadoutSegments strong {
-  font-size: 9px;
-}
-
-.contractSegments span,
-.operationSegments span,
-.loadoutSegments span {
-  font-size: 7px;
-  opacity: 0.74;
-}
-
-.contractSegments button[data-completed="true"]:not([data-active="true"]) {
-  box-shadow: inset 0 -2px 0 var(--hud-coral);
-}
-
-.operationSegments button[data-mastered="true"]:not([data-active="true"]) {
-  box-shadow: inset 0 -2px 0 var(--hud-coral);
-}
-
-.introControls {
-  display: flex;
-  width: 100%;
-  flex-wrap: wrap;
-  gap: 0;
-  margin-top: 24px;
-  border-top: 1px solid var(--hud-line);
-  border-bottom: 1px solid var(--hud-line);
-}
-
-.introControls > span {
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 7px;
-  border-right: 1px solid var(--hud-faint);
-  padding: 0 15px;
-  color: var(--hud-muted);
-  font-size: 9px;
-  font-weight: 750;
-  text-transform: uppercase;
-}
-
-.introControls > span:first-child {
-  padding-left: 0;
-}
-
-.introControls kbd {
-  display: grid;
-  min-width: 28px;
-  height: 25px;
-  place-items: center;
-  border: 1px solid rgba(255, 253, 247, 0.38);
-  border-radius: 4px;
-  background: rgba(255, 253, 247, 0.08);
-  padding: 0 5px;
-  color: var(--hud-lime);
-  font: inherit;
-}
-
-.introControls small {
-  color: var(--hud-white);
-  font-size: inherit;
-}
-
 .introActions,
 .debriefActions {
   display: flex;
@@ -1893,6 +1730,11 @@
   pointer-events: auto;
 }
 
+.touchActionGrid[data-driving-only="true"] {
+  grid-template-columns: repeat(2, 48px);
+  grid-template-rows: 48px;
+}
+
 .touchAction {
   display: grid;
   width: 48px;
@@ -2397,60 +2239,6 @@
     font-size: 17px;
   }
 
-  .introContract {
-    margin-top: 10px;
-  }
-
-  .introOperation {
-    margin-top: 8px;
-  }
-
-  .introLoadout {
-    margin-top: 12px;
-  }
-
-  .introLoadoutHeader {
-    font-size: 7px;
-  }
-
-  .contractSegments,
-  .operationSegments,
-  .loadoutSegments {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .contractSegments button,
-  .operationSegments button,
-  .loadoutSegments button {
-    min-height: 44px;
-    padding: 7px;
-  }
-
-  .contractSegments span,
-  .operationSegments span,
-  .loadoutSegments span {
-    display: none;
-  }
-
-  .introControls {
-    margin-top: 17px;
-  }
-
-  .introControls > span {
-    min-height: 38px;
-    padding: 0 9px;
-    font-size: 8px;
-  }
-
-  .introControls > span:nth-child(2) {
-    border-right: 0;
-  }
-
-  .introControls kbd {
-    min-width: 24px;
-    height: 22px;
-  }
-
   .introActions {
     width: 100%;
     margin-top: 17px;
@@ -2625,6 +2413,11 @@
     gap: 5px;
   }
 
+  .touchActionGrid[data-driving-only="true"] {
+    grid-template-columns: repeat(2, 44px);
+    grid-template-rows: 44px;
+  }
+
   .touchAction {
     width: 44px;
     height: 44px;
@@ -2708,14 +2501,6 @@
     width: 238px;
   }
 
-  .introControls > span {
-    flex: 1 1 50%;
-  }
-
-  .introControls > span:nth-child(2n) {
-    border-right: 0;
-  }
-
   .settingCopy small {
     max-width: 118px;
   }
@@ -2762,28 +2547,6 @@
     height: 108px;
   }
 
-  .introContract,
-  .introOperation,
-  .introLoadout {
-    margin-top: 8px;
-  }
-
-  .introLoadoutHeader {
-    display: none;
-  }
-
-  .contractSegments button,
-  .operationSegments button,
-  .loadoutSegments button {
-    min-height: 34px;
-  }
-
-  .contractSegments span,
-  .operationSegments span,
-  .loadoutSegments span {
-    display: none;
-  }
-
   .hudWithTouch .lowerHud {
     bottom: max(116px, calc(env(safe-area-inset-bottom) + 106px));
   }
@@ -2823,14 +2586,6 @@
 
   .introBrief {
     font-size: 15px;
-  }
-
-  .introControls {
-    margin-top: 10px;
-  }
-
-  .introControls > span {
-    min-height: 32px;
   }
 
   .introActions {

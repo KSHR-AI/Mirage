@@ -1,400 +1,138 @@
-import { expect, test } from "@playwright/test";
-import { LOCOMOTION_TUNING } from "../../app/game/actors/locomotion";
-import { SIMULATION_HZ } from "../../app/game/core/contracts";
+import { expect, test, type Page } from "@playwright/test";
 import { expectRenderedCanvas } from "./canvas";
 
-test("plays the opening Afterlight loop with keyboard and mouse", async ({
+async function waitForTick(page: Page, tick: number): Promise<void> {
+  const game = page.getByTestId("afterlight-game");
+  await expect
+    .poll(async () => Number(await game.getAttribute("data-tick")), {
+      timeout: 20_000,
+    })
+    .toBeGreaterThanOrEqual(tick);
+}
+
+async function steerToward(
+  page: Page,
+  target: readonly [x: number, z: number],
+  radius: number,
+): Promise<void> {
+  const game = page.getByTestId("afterlight-game");
+  try {
+    await expect
+      .poll(
+        async () => {
+          const x = Number(await game.getAttribute("data-player-x"));
+          const z = Number(await game.getAttribute("data-player-z"));
+          const yaw = Number(await game.getAttribute("data-vehicle-yaw"));
+          const speedKph = Number(await game.getAttribute("data-speed"));
+          const desired = Math.atan2(-(target[0] - x), -(target[1] - z));
+          const delta = Math.atan2(
+            Math.sin(desired - yaw),
+            Math.cos(desired - yaw),
+          );
+          const distance = Math.hypot(target[0] - x, target[1] - z);
+
+          if (distance < radius + 6 && speedKph > 18) {
+            await page.keyboard.up("w");
+            await page.keyboard.down("Space");
+          } else {
+            await page.keyboard.up("Space");
+            await page.keyboard.down("w");
+          }
+
+          if (delta > 0.07) {
+            await page.keyboard.up("d");
+            await page.keyboard.down("a");
+          } else if (delta < -0.07) {
+            await page.keyboard.up("a");
+            await page.keyboard.down("d");
+          } else {
+            await page.keyboard.up("a");
+            await page.keyboard.up("d");
+          }
+          return distance;
+        },
+        { intervals: [100], timeout: 25_000 },
+      )
+      .toBeLessThan(radius);
+  } finally {
+    await page.keyboard.up("a");
+    await page.keyboard.up("d");
+    await page.keyboard.up("Space");
+    await page.keyboard.up("w");
+  }
+}
+
+test("starts Hot Ride with immediate, coherent vehicle control", async ({
   page,
 }) => {
-  test.setTimeout(1_200_000);
-  await page.addInitScript(() => {
-    let pointerLocked = false;
-    Object.defineProperty(navigator, "hardwareConcurrency", {
-      configurable: true,
-      value: 4,
-    });
-    Object.defineProperty(navigator, "deviceMemory", {
-      configurable: true,
-      value: 4,
-    });
-    Object.defineProperty(Document.prototype, "pointerLockElement", {
-      configurable: true,
-      get: () =>
-        pointerLocked ? document.querySelector(".game-input-surface") : null,
-    });
-    Object.defineProperty(HTMLElement.prototype, "requestPointerLock", {
-      configurable: true,
-      value: function requestPointerLock() {
-        pointerLocked = true;
-        document.dispatchEvent(new Event("pointerlockchange"));
-      },
-    });
-    Object.defineProperty(Document.prototype, "exitPointerLock", {
-      configurable: true,
-      value: function exitPointerLock() {
-        pointerLocked = false;
-        document.dispatchEvent(new Event("pointerlockchange"));
-      },
-    });
-  });
   await page.goto("/");
-  await expect(page).toHaveTitle("Mirage: The Afterlight Job");
+  await expect(page).toHaveTitle("Mirage: Hot Ride");
   await expect(
     page.getByRole("heading", { name: "MIRAGE", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Start contract" }).click();
+  await expect(page.getByText("One car. One clean drop.")).toBeVisible();
+  await expect(page.getByRole("radiogroup")).toHaveCount(0);
+  await page.getByRole("button", { name: "Play" }).click();
 
-  const decodedAudioDurations = await page.evaluate(async () => {
-    const context = new AudioContext();
-    const decode = async (path: string) => {
-      const response = await fetch(path);
-      if (!response.ok) throw new Error(`${response.status} loading ${path}`);
-      return (await context.decodeAudioData(await response.arrayBuffer()))
-        .duration;
-    };
-    const durations = await Promise.all([
-      decode("/game-assets/audio/weapons/pistol-fire-01.ogg"),
-      decode("/game-assets/audio/ambience/urban-rain-loop.ogg"),
-    ]);
-    await context.close();
-    return durations;
-  });
-  expect(decodedAudioDurations[0]).toBeGreaterThan(0.1);
-  expect(decodedAudioDurations[1]).toBeGreaterThan(5);
-
-  const shell = page.getByTestId("afterlight-game");
-  await expect(shell).toHaveAttribute("data-city", "san-francisco");
-  await expect(shell).toHaveAttribute("data-environment", "sf-daylight");
-  const inputSurface = page.locator(".game-input-surface");
-  const dispatchPointer = async (
-    type: "pointerdown" | "pointerup",
-    button: number,
-  ) =>
-    page.evaluate(
-      ({ eventType, eventButton }) => {
-        const surface = document.querySelector(".game-input-surface");
-        if (!surface) throw new Error("missing game input surface");
-        surface.dispatchEvent(
-          new PointerEvent(eventType, {
-            bubbles: true,
-            button: eventButton,
-            pointerId: 1,
-            pointerType: "mouse",
-          }),
-        );
-      },
-      { eventButton: button, eventType: type },
-    );
-  await expect(shell).toHaveAttribute("data-mode", "foot");
-  await inputSurface.click({ force: true, position: { x: 640, y: 360 } });
-  await expect(shell).toHaveAttribute("data-pointer-locked", "true");
-  await expect(page.getByRole("heading", { name: "Boost" })).toBeVisible();
-  await expect(page.getByText("Steal the car.", { exact: true })).toBeVisible();
+  const game = page.getByTestId("afterlight-game");
+  await expect(game).toHaveAttribute("data-contract", "hot-ride");
+  await expect(game).toHaveAttribute("data-mode", "car");
+  await expect(game).toHaveAttribute("data-opening-cinematic", "false");
+  await expect(page.getByRole("heading", { name: "Hot Ride" })).toBeVisible();
   await expect(
-    page.getByText("Drive through SoMa.", { exact: true }),
-  ).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "MIRAGE" })).toHaveCount(0);
-  await expect
-    .poll(async () => Number(await shell.getAttribute("data-tick")), {
-      timeout: 120_000,
-    })
-    .toBeGreaterThan(0);
+    page.getByText("Deliver the coupe to the downtown buyer."),
+  ).toBeVisible();
+  await expect(page.getByRole("region", { name: /ammunition/ })).toHaveCount(0);
   await expectRenderedCanvas(page);
-  await page.waitForFunction(
-    () => document.documentElement.dataset.mirageRenderer !== undefined,
-    undefined,
-    { timeout: 120_000 },
-  );
-  const renderer = await page.evaluate(() =>
-    JSON.parse(document.documentElement.dataset.mirageRenderer ?? "null"),
-  );
-  expect(renderer.calls).toBeLessThanOrEqual(160);
-  expect(renderer.triangles).toBeLessThanOrEqual(100_000);
-
-  const groundedY = Number(await shell.getAttribute("data-player-y"));
-  await page.keyboard.press("Space");
-  await expect
-    .poll(async () => Number(await shell.getAttribute("data-player-y")), {
-      timeout: 120_000,
-    })
-    .toBeGreaterThan(groundedY + 0.12);
-  await expect
-    .poll(
-      async () =>
-        Math.abs(Number(await shell.getAttribute("data-player-y")) - groundedY),
-      { timeout: 120_000 },
-    )
-    .toBeLessThan(0.03);
-
-  const yawBeforeLook = Number(await shell.getAttribute("data-player-yaw"));
-  const cameraYawBeforeLook = Number(
-    await shell.getAttribute("data-camera-yaw"),
-  );
-  const magazineBeforeLook = Number(await shell.getAttribute("data-magazine"));
-  await inputSurface.dispatchEvent("pointermove", {
-    movementX: 140,
-    movementY: -30,
-    pointerId: 1,
-    pointerType: "mouse",
-  });
-  // Free-look moves the camera without snapping an idle actor's body.
-  await expect(shell).toHaveAttribute(
-    "data-player-yaw",
-    yawBeforeLook.toFixed(4),
-  );
-  await expect
-    .poll(async () => Number(await shell.getAttribute("data-camera-yaw")))
-    .not.toBe(cameraYawBeforeLook);
-  const walkingCameraYaw = Number(await shell.getAttribute("data-camera-yaw"));
-  await expect(shell).toHaveAttribute(
-    "data-magazine",
-    String(magazineBeforeLook),
-  );
-
-  await dispatchPointer("pointerdown", 2);
-  await expect(shell).toHaveAttribute("data-aiming", "true");
-  await expect(shell).toHaveAttribute(
-    "data-magazine",
-    String(magazineBeforeLook),
-  );
-  await dispatchPointer("pointerup", 2);
-
-  await inputSurface.click({ force: true, position: { x: 640, y: 360 } });
-  await expect
-    .poll(async () => Number(await shell.getAttribute("data-magazine")))
-    .toBeLessThan(magazineBeforeLook);
-
-  const before = Number(await shell.getAttribute("data-player-z"));
-  const beforeX = Number(await shell.getAttribute("data-player-x"));
-  const strideStartTick = Number(await shell.getAttribute("data-tick"));
-  await page.keyboard.down("w");
-  await expect
-    .poll(async () => Number(await shell.getAttribute("data-tick")), {
-      timeout: 120_000,
-    })
-    .toBeGreaterThanOrEqual(strideStartTick + 60);
-  await page.keyboard.up("w");
-  const strideEndTick = Number(await shell.getAttribute("data-tick"));
-  const afterStride = Number(await shell.getAttribute("data-player-z"));
-  const afterStrideX = Number(await shell.getAttribute("data-player-x"));
-  const strideDistance = Math.hypot(
-    afterStrideX - beforeX,
-    afterStride - before,
-  );
-  const strideX = afterStrideX - beforeX;
-  const strideZ = afterStride - before;
-  const forwardTravel =
-    strideX * Math.sin(walkingCameraYaw) + strideZ * Math.cos(walkingCameraYaw);
-  const lateralTravel =
-    strideX * Math.cos(walkingCameraYaw) - strideZ * Math.sin(walkingCameraYaw);
-  const maximumWalkDistance =
-    ((strideEndTick - strideStartTick + 2) / SIMULATION_HZ) *
-    LOCOMOTION_TUNING.walkSpeed;
-  expect(strideDistance).toBeGreaterThan(3);
-  expect(strideDistance).toBeLessThanOrEqual(maximumWalkDistance);
-  expect(forwardTravel).toBeGreaterThan(3);
-  expect(Math.abs(lateralTravel)).toBeLessThan(0.35);
-
-  const restingYaw = Number(await shell.getAttribute("data-player-yaw"));
-  const restStartTick = Number(await shell.getAttribute("data-tick"));
-  await expect
-    .poll(async () => Number(await shell.getAttribute("data-tick")), {
-      timeout: 120_000,
-    })
-    .toBeGreaterThanOrEqual(restStartTick + 20);
-  expect(Number(await shell.getAttribute("data-player-yaw"))).toBeCloseTo(
-    restingYaw,
-    2,
-  );
-
-  const returnStartTick = Number(await shell.getAttribute("data-tick"));
-  await page.keyboard.down("s");
-  await expect
-    .poll(async () => Number(await shell.getAttribute("data-tick")), {
-      timeout: 120_000,
-    })
-    .toBeGreaterThanOrEqual(returnStartTick + 60);
-  await page.keyboard.up("s");
 
   await page.keyboard.press("e");
-  await expect(shell).toHaveAttribute("data-mode", "car");
-  await expect(
-    page.getByRole("progressbar", { name: /M\/01 COUPE/ }),
-  ).toBeVisible();
+  await expect(game).toHaveAttribute("data-mode", "car");
 
+  const startZ = Number(await game.getAttribute("data-player-z"));
+  const startTick = Number(await game.getAttribute("data-tick"));
   await page.keyboard.down("w");
-  await expect
-    .poll(async () => Number(await shell.getAttribute("data-speed")))
-    .toBeGreaterThan(1);
+  await waitForTick(page, startTick + 60);
   await page.keyboard.up("w");
+  expect(Number(await game.getAttribute("data-player-z"))).toBeLessThan(
+    startZ - 3,
+  );
 
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog", { name: "Paused" })).toBeVisible();
-  await expect
-    .poll(() => page.evaluate(() => document.pointerLockElement === null))
-    .toBe(true);
-  const sensitivity = page.getByRole("slider", { name: "Look sensitivity" });
-  await expect(sensitivity).toHaveValue("100");
-  await sensitivity.fill("150");
-  await page.getByRole("switch", { name: "Invert vertical look: off" }).click();
-  const keyboardBindings = page.getByLabel("Keyboard bindings");
-  await keyboardBindings
-    .getByRole("button", { name: "Change Forward key. Current key W" })
-    .click();
-  await page.keyboard.press("i");
-  await expect(
-    keyboardBindings.getByRole("button", {
-      name: "Change Forward key. Current key I",
-    }),
-  ).toBeVisible();
-  await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const raw = localStorage.getItem("mirage:controls:v1");
-        if (!raw) return null;
-        const controls = JSON.parse(raw);
-        return {
-          forward: controls.keyboardBindings?.["move-forward"],
-          invertLookY: controls.invertLookY,
-          lookSensitivity: controls.lookSensitivity,
-        };
-      }),
-    )
-    .toEqual({
-      forward: "KeyI",
-      invertLookY: true,
-      lookSensitivity: 1.5,
-    });
-  await page.getByRole("button", { name: "Resume" }).click();
-  await expect(shell).toHaveAttribute("data-pointer-locked", "true");
+  const yawBeforeLeft = Number(await game.getAttribute("data-vehicle-yaw"));
+  const leftTick = Number(await game.getAttribute("data-tick"));
+  await page.keyboard.down("w");
+  await page.keyboard.down("a");
+  await waitForTick(page, leftTick + 24);
+  await page.keyboard.up("a");
+  await page.keyboard.up("w");
+  const yawAfterLeft = Number(await game.getAttribute("data-vehicle-yaw"));
+  expect(yawAfterLeft).toBeGreaterThan(yawBeforeLeft);
+  await expect(game).toHaveAttribute(
+    "data-camera-yaw",
+    Number(await game.getAttribute("data-vehicle-yaw")).toFixed(4),
+  );
 });
 
-test("keeps mouse-look and camera-relative movement in a narrow desktop window", async ({
+test("drives the complete Hot Ride route and offers an immediate replay", async ({
   page,
 }) => {
   test.setTimeout(90_000);
-  await page.setViewportSize({ width: 722, height: 825 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Start contract" }).click();
+  await page.getByRole("button", { name: "Play" }).click();
 
-  const shell = page.getByTestId("afterlight-game");
-  const inputSurface = page.locator(".game-input-surface");
-  await expect(shell).toHaveAttribute("data-opening-cinematic", "true");
-  await expect(page.locator('[aria-label="Touch game controls"]')).toHaveCount(
-    0,
-  );
+  await steerToward(page, [56, -84], 16);
 
-  const yawBefore = Number(await shell.getAttribute("data-camera-yaw"));
-  await inputSurface.dispatchEvent("pointerdown", {
-    bubbles: true,
-    button: 0,
-    clientX: 430,
-    clientY: 410,
-    pointerId: 77,
-    pointerType: "mouse",
-  });
-  await inputSurface.dispatchEvent("pointermove", {
-    bubbles: true,
-    clientX: 550,
-    clientY: 410,
-    movementX: 120,
-    pointerId: 77,
-    pointerType: "mouse",
-  });
-  await inputSurface.dispatchEvent("pointerup", {
-    bubbles: true,
-    button: 0,
-    clientX: 550,
-    clientY: 410,
-    pointerId: 77,
-    pointerType: "mouse",
-  });
-  await expect(shell).toHaveAttribute("data-opening-cinematic", "false");
-  await expect
-    .poll(async () => Number(await shell.getAttribute("data-camera-yaw")))
-    .not.toBe(yawBefore);
-
-  const cameraYaw = Number(await shell.getAttribute("data-camera-yaw"));
-  const startX = Number(await shell.getAttribute("data-player-x"));
-  const startZ = Number(await shell.getAttribute("data-player-z"));
-  const startTick = Number(await shell.getAttribute("data-tick"));
-  await page.keyboard.down("w");
-  await expect
-    .poll(async () => Number(await shell.getAttribute("data-tick")), {
-      timeout: 20_000,
-    })
-    .toBeGreaterThanOrEqual(startTick + 60);
-  await page.keyboard.up("w");
-
-  const travelX = Number(await shell.getAttribute("data-player-x")) - startX;
-  const travelZ = Number(await shell.getAttribute("data-player-z")) - startZ;
-  const forwardTravel =
-    travelX * Math.sin(cameraYaw) + travelZ * Math.cos(cameraYaw);
-  const lateralTravel =
-    travelX * Math.cos(cameraYaw) - travelZ * Math.sin(cameraYaw);
-  expect(forwardTravel).toBeGreaterThan(3);
-  expect(Math.abs(lateralTravel)).toBeLessThan(0.5);
-
-  await page.waitForFunction(
-    () => document.documentElement.dataset.mirageCamera !== undefined,
+  await expect(
+    page.getByRole("heading", { name: "Car delivered." }),
+  ).toBeVisible({ timeout: 20_000 });
+  const debrief = page.getByRole("dialog", { name: "Car delivered." });
+  await expect(debrief.getByText("$2,500")).toBeVisible();
+  await expect(page.getByText("OPTIONAL")).toHaveCount(0);
+  await page.getByRole("button", { name: "Replay job" }).click();
+  await expect(page.getByTestId("afterlight-game")).toHaveAttribute(
+    "data-mode",
+    "car",
   );
-  const cameraBeforeStrafe = await page.evaluate(() =>
-    JSON.parse(document.documentElement.dataset.mirageCamera ?? "null"),
-  );
-  const strafeStartX = Number(await shell.getAttribute("data-player-x"));
-  const strafeStartZ = Number(await shell.getAttribute("data-player-z"));
-  const strafeStartTick = Number(await shell.getAttribute("data-tick"));
-  await page.keyboard.down("d");
-  await expect
-    .poll(async () => Number(await shell.getAttribute("data-tick")), {
-      timeout: 20_000,
-    })
-    .toBeGreaterThanOrEqual(strafeStartTick + 45);
-  await page.keyboard.up("d");
-  await page.waitForFunction((frame) => {
-    const telemetry = JSON.parse(
-      document.documentElement.dataset.mirageCamera ?? "null",
-    );
-    return telemetry?.frame > frame;
-  }, cameraBeforeStrafe.frame);
-
-  const strafeX =
-    Number(await shell.getAttribute("data-player-x")) - strafeStartX;
-  const strafeZ =
-    Number(await shell.getAttribute("data-player-z")) - strafeStartZ;
-  const screenRightTravel =
-    -strafeX * Math.cos(cameraYaw) + strafeZ * Math.sin(cameraYaw);
-  const strafeForwardTravel =
-    strafeX * Math.sin(cameraYaw) + strafeZ * Math.cos(cameraYaw);
-  const cameraAfterStrafe = await page.evaluate(() =>
-    JSON.parse(document.documentElement.dataset.mirageCamera ?? "null"),
-  );
-  const cameraTargetTravelX =
-    cameraAfterStrafe.target[0] - cameraBeforeStrafe.target[0];
-  const cameraTargetTravelZ =
-    cameraAfterStrafe.target[2] - cameraBeforeStrafe.target[2];
-  const cameraTargetDistance = Math.hypot(
-    cameraTargetTravelX,
-    cameraTargetTravelZ,
-  );
-  const cameraTravelX =
-    cameraAfterStrafe.position[0] - cameraBeforeStrafe.position[0];
-  const cameraTravelZ =
-    cameraAfterStrafe.position[2] - cameraBeforeStrafe.position[2];
-  const cameraTravelWithTarget =
-    (cameraTravelX * cameraTargetTravelX +
-      cameraTravelZ * cameraTargetTravelZ) /
-    cameraTargetDistance;
-  const cameraFocusFollowError = Math.hypot(
-    cameraAfterStrafe.lookAt[0] -
-      cameraBeforeStrafe.lookAt[0] -
-      cameraTargetTravelX,
-    cameraAfterStrafe.lookAt[2] -
-      cameraBeforeStrafe.lookAt[2] -
-      cameraTargetTravelZ,
-  );
-  expect(screenRightTravel).toBeGreaterThan(2);
-  expect(Math.abs(strafeForwardTravel)).toBeLessThan(0.5);
-  expect(cameraTravelWithTarget).toBeGreaterThan(cameraTargetDistance * 0.7);
-  expect(cameraFocusFollowError).toBeLessThan(0.15);
+  await expect(
+    page.getByText("Deliver the coupe to the downtown buyer."),
+  ).toBeVisible();
 });

@@ -58,6 +58,20 @@ export const STREET_TUNED_ARCADE_CAR_CONFIG: ArcadeCarConfig = Object.freeze({
   boostAcceleration: 24,
 });
 
+export const HOT_RIDE_ARCADE_CAR_CONFIG: ArcadeCarConfig = Object.freeze({
+  ...DEFAULT_ARCADE_CAR_CONFIG,
+  targetSpeed: 18,
+  boostSpeed: 24,
+  reverseSpeed: 8,
+  acceleration: 12,
+  boostAcceleration: 16,
+  brakeDeceleration: 38,
+  steeringRate: 1.4,
+  highSpeedSteeringAngle: 0.1,
+  lateralTraction: 9,
+  handbrakeTraction: 2.4,
+});
+
 export interface VehicleMotion {
   readonly forwardSpeed: number;
   readonly lateralSpeed: number;

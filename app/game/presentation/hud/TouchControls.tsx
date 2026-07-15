@@ -168,6 +168,7 @@ function HoldButton({
 
 export function TouchControls({
   mode,
+  drivingOnly = false,
   disabled = false,
   interactionAvailable = true,
   onMove,
@@ -195,55 +196,61 @@ export function TouchControls({
         label="Move"
         onChange={onMove}
       />
-      <ControlStick
-        className={styles.lookStick}
-        disabled={disabled}
-        icon={<Crosshair aria-hidden="true" size={17} />}
-        label="Look"
-        onChange={onLook}
-      />
+      {!drivingOnly ? (
+        <ControlStick
+          className={styles.lookStick}
+          disabled={disabled}
+          icon={<Crosshair aria-hidden="true" size={17} />}
+          label="Look"
+          onChange={onLook}
+        />
+      ) : null}
 
-      <div className={styles.touchActionGrid}>
-        <button
-          aria-label="Interact"
-          className={styles.touchAction}
-          data-action="interact"
-          disabled={disabled || !interactionAvailable}
-          onClick={onInteract}
-          title="Interact"
-          type="button"
-        >
-          <Hand aria-hidden="true" size={21} />
-        </button>
-        <button
-          aria-label={mode === "vehicle" ? "Exit vehicle" : "Enter vehicle"}
-          className={styles.touchAction}
-          data-action="vehicle"
-          disabled={disabled}
-          onClick={onEnterExit}
-          title={mode === "vehicle" ? "Exit vehicle" : "Enter vehicle"}
-          type="button"
-        >
-          {mode === "vehicle" ? (
-            <LogOut aria-hidden="true" size={21} />
-          ) : (
-            <CarFront aria-hidden="true" size={21} />
-          )}
-        </button>
-        <HoldButton
-          action="fire"
-          disabled={disabled}
-          icon={<Crosshair aria-hidden="true" size={22} />}
-          label="Fire"
-          onPressedChange={onFireChange}
-        />
-        <HoldButton
-          action="aim"
-          disabled={disabled}
-          icon={<Target aria-hidden="true" size={21} />}
-          label="Aim"
-          onPressedChange={onAimChange}
-        />
+      <div className={styles.touchActionGrid} data-driving-only={drivingOnly}>
+        {!drivingOnly ? (
+          <>
+            <button
+              aria-label="Interact"
+              className={styles.touchAction}
+              data-action="interact"
+              disabled={disabled || !interactionAvailable}
+              onClick={onInteract}
+              title="Interact"
+              type="button"
+            >
+              <Hand aria-hidden="true" size={21} />
+            </button>
+            <button
+              aria-label={mode === "vehicle" ? "Exit vehicle" : "Enter vehicle"}
+              className={styles.touchAction}
+              data-action="vehicle"
+              disabled={disabled}
+              onClick={onEnterExit}
+              title={mode === "vehicle" ? "Exit vehicle" : "Enter vehicle"}
+              type="button"
+            >
+              {mode === "vehicle" ? (
+                <LogOut aria-hidden="true" size={21} />
+              ) : (
+                <CarFront aria-hidden="true" size={21} />
+              )}
+            </button>
+            <HoldButton
+              action="fire"
+              disabled={disabled}
+              icon={<Crosshair aria-hidden="true" size={22} />}
+              label="Fire"
+              onPressedChange={onFireChange}
+            />
+            <HoldButton
+              action="aim"
+              disabled={disabled}
+              icon={<Target aria-hidden="true" size={21} />}
+              label="Aim"
+              onPressedChange={onAimChange}
+            />
+          </>
+        ) : null}
         <HoldButton
           action="sprint"
           disabled={disabled}

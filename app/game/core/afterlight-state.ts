@@ -51,6 +51,17 @@ export interface AfterlightCheckpointDefinition {
 export const AFTERLIGHT_CHECKPOINTS: Readonly<
   Record<string, AfterlightCheckpointDefinition>
 > = Object.freeze({
+  "afterlight:checkpoint:hot-ride": Object.freeze({
+    id: "afterlight:checkpoint:hot-ride",
+    pose: Object.freeze({
+      position: [56, 1.15, 40] as Vec3,
+      rotationY: 0,
+    }),
+    vehiclePose: Object.freeze({
+      position: [56, 0.72, 40] as Vec3,
+      rotationY: 0,
+    }),
+  }),
   [AFTERLIGHT_START_CHECKPOINT_ID]: Object.freeze({
     id: AFTERLIGHT_START_CHECKPOINT_ID,
     pose: Object.freeze({
@@ -121,6 +132,7 @@ export const AFTERLIGHT_CHECKPOINTS: Readonly<
 
 export const AFTERLIGHT_LANDMARKS = Object.freeze({
   boostYard: [61.3, 0.72, 51] as Vec3,
+  hotRideDrop: [56, 0.72, -84] as Vec3,
   missionIntercept: [70, 1.15, 42] as Vec3,
   courierRouteStart: [70, 0.72, 42] as Vec3,
   vaultReader: [14, 1.15, -42] as Vec3,
@@ -329,7 +341,24 @@ export function createInitialAfterlightState(
   );
   const hero = vehicles.get(AFTERLIGHT_ENTITY_IDS.heroCoupe);
   if (hero && checkpoint.vehiclePose) {
-    vehicles.set(hero.id, { ...hero, pose: checkpoint.vehiclePose });
+    vehicles.set(hero.id, {
+      ...hero,
+      pose: checkpoint.vehiclePose,
+      ...(definition.contract.startsInVehicle ? { occupiedBy: player.id } : {}),
+    });
+    if (definition.contract.startsInVehicle) {
+      actors.set(player.id, {
+        ...player,
+        pose: {
+          position: [
+            checkpoint.vehiclePose.position[0],
+            1.15,
+            checkpoint.vehiclePose.position[2],
+          ],
+          rotationY: checkpoint.vehiclePose.rotationY,
+        },
+      });
+    }
   }
   const heatLevel = Math.max(
     0,
