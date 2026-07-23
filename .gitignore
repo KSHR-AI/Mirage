@@ -8,17 +8,7 @@ tsconfig.tsbuildinfo
 .wrangler
 outputs
 work
-.agents
-.claude
-.cursor
-.cursorignore
 research
-skills-lock.json
-supabase/.temp
-
-.vercel
-
-.projects
 .env
 .env.*
 !.env.example

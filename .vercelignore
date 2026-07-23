@@ -1,8 +1,0 @@
-.env
-.env.*
-.projects
-.next
-node_modules
-research
-*.tsbuildinfo
-.DS_Store
