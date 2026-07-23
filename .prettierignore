@@ -1,6 +1,5 @@
 .next
 dist
 node_modules
-public/game-assets
 research
 pnpm-lock.yaml

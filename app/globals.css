@@ -1,7 +1,5 @@
 :root {
-  color-scheme: dark;
-  --paper: #fff8e8;
-  --lime: #d8ff55;
+  color-scheme: light dark;
 }
 
 * {
@@ -12,10 +10,9 @@ html,
 body {
   min-height: 100%;
   margin: 0;
-  background: #10191b;
-  color: var(--paper);
+  background: Canvas;
+  color: CanvasText;
   font-family:
-    Inter,
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -24,79 +21,17 @@ body {
     sans-serif;
 }
 
-body.mirage-active {
-  height: 100dvh;
-  overflow: hidden;
-  overscroll-behavior: none;
-}
-
-button,
-input,
-textarea {
-  font: inherit;
-}
-
-button {
-  letter-spacing: 0;
-}
-
-button:not(:disabled) {
-  cursor: pointer;
-}
-
-button:focus-visible {
-  outline: 2px solid var(--lime);
-  outline-offset: 3px;
-}
-
-.runtime-error {
+.blank-slate {
   display: grid;
   min-height: 100dvh;
-  align-content: space-between;
-  padding: clamp(24px, 5vw, 72px);
-  background: #10191b;
+  place-items: center;
+  padding: 24px;
 }
 
-.runtime-error__brand,
-.runtime-error__body {
-  display: grid;
-  gap: 8px;
-}
-
-.runtime-error__brand strong {
-  font-size: 24px;
-  text-transform: uppercase;
-}
-
-.runtime-error__brand span,
-.runtime-error__body p {
+.blank-slate p {
   margin: 0;
-  color: var(--lime);
-  font-size: 11px;
-  font-weight: 800;
+  color: color-mix(in srgb, CanvasText 45%, transparent);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-}
-
-.runtime-error__body {
-  max-width: 520px;
-  gap: 16px;
-}
-
-.runtime-error__body h1 {
-  margin: 0;
-  font-size: clamp(36px, 7vw, 72px);
-  line-height: 0.95;
-}
-
-.runtime-error__body button {
-  display: inline-flex;
-  width: fit-content;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 6px;
-  padding: 12px 16px;
-  background: var(--paper);
-  color: #10191b;
-  font-weight: 800;
 }

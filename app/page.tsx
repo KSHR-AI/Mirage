@@ -1,5 +1,7 @@
-import { MirageGame } from "./game/mirage/MirageGame";
-
 export default function Page() {
-  return <MirageGame />;
+  return (
+    <main className="blank-slate">
+      <p>Blank slate</p>
+    </main>
+  );
 }

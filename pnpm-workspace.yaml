@@ -3,6 +3,3 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   workerd: true
-minimumReleaseAgeExclude:
-  - lucide-react@1.24.0
-  - "@types/three@0.185.1"

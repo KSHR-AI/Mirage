@@ -1,14 +1,13 @@
 .next
+.vinext
 dist
 node_modules
 npm-debug.log*
 .DS_Store
 tsconfig.tsbuildinfo
-test-results
-playwright-report
-blob-report
-.artifacts
 .wrangler
+outputs
+work
 .agents
 .claude
 .cursor
