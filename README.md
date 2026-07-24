@@ -1,9 +1,9 @@
-# Hot Drop
+# Mirage: GTA in SF
 
-A compact 3D city getaway powered by Three.js and Rapier. Steal the marked car,
-collect a package across town, then reach the safehouse while the police
-response escalates. Bail out and steal traffic cars to trade speed, durability,
-and cargo protection—or cut your heat with an unseen switch.
+Mirage: GTA in SF is a compact 3D city getaway powered by Three.js and Rapier.
+Steal the marked car, collect a package across town, then reach the safehouse
+while the police response escalates. Bail out and steal traffic cars to trade
+speed, durability, and cargo protection—or cut your heat with an unseen switch.
 
 ## Play
 

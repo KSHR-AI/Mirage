@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 
-const title = "Hot Drop — A Bay City Getaway";
+const title = "Mirage: GTA in SF";
 const description =
-  "Drive a fully simulated 3D city, swap rides, protect the package, shed escalating police heat, and make the drop.";
+  "Drive a fully simulated 3D San Francisco, swap rides, protect the package, shed escalating police heat, and make the drop.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
@@ -39,8 +39,8 @@ export async function generateMetadata(): Promise<Metadata> {
         {
           url: "/og.png",
           width: 1731,
-          height: 909,
-          alt: "Hot Drop getaway car escaping police through a night city",
+          height: 908,
+          alt: "Mirage: GTA in SF getaway car escaping police at night",
         },
       ],
     },

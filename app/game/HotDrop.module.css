@@ -532,6 +532,16 @@
   color: var(--cream);
 }
 
+.intro h1.mirageTitle span {
+  font-size: clamp(62px, 9.5vw, 128px);
+}
+
+.intro h1.mirageTitle strong {
+  font-size: clamp(44px, 6.7vw, 88px);
+  letter-spacing: -0.03em;
+  line-height: 0.76;
+}
+
 .tagline {
   margin: 34px 0 22px;
   font-size: clamp(16px, 2vw, 24px);

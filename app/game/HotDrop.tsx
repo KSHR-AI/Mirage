@@ -257,7 +257,7 @@ export function HotDrop() {
       ref={shellRef}
       className={styles.shell}
       tabIndex={-1}
-      aria-label="Hot Drop game"
+      aria-label="Mirage: GTA in SF game"
     >
       <canvas
         ref={canvasRef}
@@ -269,9 +269,9 @@ export function HotDrop() {
 
       <header className={styles.topHud}>
         <div className={styles.brand}>
-          <span>Hot</span>
-          <strong>Drop</strong>
-          <small>Bay City · 02:17 AM</small>
+          <span>Mirage:</span>
+          <strong>GTA in SF</strong>
+          <small>San Francisco · 02:17 AM</small>
         </div>
 
         <div className={styles.objectivePanel}>
@@ -461,9 +461,9 @@ export function HotDrop() {
             <p className={styles.eyebrow}>
               One package. One city. No questions.
             </p>
-            <h1>
-              <span>Hot</span>
-              <strong>Drop</strong>
+            <h1 className={styles.mirageTitle}>
+              <span>Mirage:</span>
+              <strong>GTA in SF</strong>
             </h1>
             <p className={styles.tagline}>
               Steal it. Grab it. Lose them. Deliver.

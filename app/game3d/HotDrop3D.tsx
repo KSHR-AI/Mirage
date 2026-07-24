@@ -250,7 +250,7 @@ export function HotDrop3D() {
       ref={shellRef}
       className={baseStyles.shell}
       tabIndex={-1}
-      aria-label="Hot Drop 3D game"
+      aria-label="Mirage: GTA in SF 3D game"
     >
       <canvas
         ref={canvasRef}
@@ -261,9 +261,9 @@ export function HotDrop3D() {
 
       <header className={baseStyles.topHud}>
         <div className={baseStyles.brand}>
-          <span>Hot</span>
-          <strong>Drop</strong>
-          <small>Bay City · 3D build</small>
+          <span>Mirage:</span>
+          <strong>GTA in SF</strong>
+          <small>San Francisco · 3D build</small>
         </div>
         <div className={baseStyles.objectivePanel}>
           <span>Current move</span>
@@ -485,7 +485,7 @@ export function HotDrop3D() {
       {!runtimeReady && !runtimeError ? (
         <div className={styles.loading} role="status">
           <div>
-            <strong>Building Bay City</strong>
+            <strong>Building San Francisco</strong>
             <span>Starting the 3D world and physics simulation</span>
             <i aria-hidden="true" />
           </div>
@@ -510,9 +510,9 @@ export function HotDrop3D() {
             <p className={baseStyles.eyebrow}>
               One block. Full physics. No questions.
             </p>
-            <h1>
-              <span>Hot</span>
-              <strong>Drop</strong>
+            <h1 className={baseStyles.mirageTitle}>
+              <span>Mirage:</span>
+              <strong>GTA in SF</strong>
             </h1>
             <p className={baseStyles.tagline}>
               <span className={styles.dimensionNote}>Now in 3D.</span> Steal.
@@ -562,7 +562,7 @@ export function HotDrop3D() {
             </h2>
             <p>
               {mission.phase === "won"
-                ? "Bay City survived its first fully simulated handoff."
+                ? "San Francisco survived its first fully simulated handoff."
                 : "The city keeps moving. So should you."}
             </p>
             <div className={baseStyles.finalScore}>
@@ -623,7 +623,7 @@ function NavigationRadar({
       )} meters, ${direction.toLowerCase()}`}
     >
       <header className={styles.radarHeader}>
-        <span>Bay City GPS</span>
+        <span>SF GPS</span>
         <strong>{navigation.targetLabel}</strong>
         <b>{Math.round(navigation.targetDistance)}m</b>
       </header>
