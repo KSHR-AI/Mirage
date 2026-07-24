@@ -380,7 +380,8 @@ export class HotDropSimulation {
         profile.length / 2,
       )
         .setMass(profile.mass)
-        .setFriction(0.95)
+        .setFriction(0.02)
+        .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min)
         .setRestitution(0.04),
       body,
     );
@@ -531,6 +532,9 @@ export class HotDropSimulation {
     const lateralSpeed = velocity.x * right.x + velocity.z * right.z;
     const mass = body.mass();
 
+    body.resetForces(true);
+    body.resetTorques(true);
+
     let driveForce = 0;
     if (controls.throttle > 0 && forwardSpeed < profile.maxSpeed) {
       driveForce = controls.throttle * profile.engineForce;
@@ -570,17 +574,24 @@ export class HotDropSimulation {
       true,
     );
 
-    const steeringAuthority = clamp(Math.abs(forwardSpeed) / 5, 0.12, 1);
+    const steeringAuthority = clamp(Math.abs(forwardSpeed) / 3.5, 0, 1);
+    const speedRatio = clamp(Math.abs(forwardSpeed) / profile.maxSpeed, 0, 1);
     const direction = forwardSpeed >= 0 ? 1 : -1;
-    body.addTorque(
+    const targetYawRate =
+      -controls.steering *
+      profile.steeringRate *
+      steeringAuthority *
+      (1 - speedRatio * 0.25) *
+      direction *
+      (controls.handbrake ? 1.35 : 1);
+    const currentYawRate = body.angvel().y;
+    const steeringResponse =
+      controls.steering === 0 ? 18 : controls.handbrake ? 10 : 13;
+    const steeringBlend = 1 - Math.exp(-steeringResponse * FIXED_TIMESTEP);
+    body.setAngvel(
       {
         x: 0,
-        y:
-          -controls.steering *
-          profile.steeringTorque *
-          steeringAuthority *
-          direction *
-          (controls.handbrake ? 1.35 : 1),
+        y: currentYawRate + (targetYawRate - currentYawRate) * steeringBlend,
         z: 0,
       },
       true,

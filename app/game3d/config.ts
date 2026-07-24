@@ -14,7 +14,7 @@ export interface Vehicle3DProfile {
   brakeForce: number;
   maxSpeed: number;
   reverseSpeed: number;
-  steeringTorque: number;
+  steeringRate: number;
   grip: number;
   driftGrip: number;
   maxHealth: number;
@@ -35,7 +35,7 @@ export const VEHICLE_3D_PROFILES: Record<VehicleClass, Vehicle3DProfile> = {
     brakeForce: 14_000,
     maxSpeed: 34,
     reverseSpeed: 11,
-    steeringTorque: 5_600,
+    steeringRate: 1.9,
     grip: 9.5,
     driftGrip: 2.1,
     maxHealth: 72,
@@ -54,7 +54,7 @@ export const VEHICLE_3D_PROFILES: Record<VehicleClass, Vehicle3DProfile> = {
     brakeForce: 16_500,
     maxSpeed: 28,
     reverseSpeed: 10,
-    steeringTorque: 4_800,
+    steeringRate: 1.7,
     grip: 8.4,
     driftGrip: 1.8,
     maxHealth: 118,
@@ -73,7 +73,7 @@ export const VEHICLE_3D_PROFILES: Record<VehicleClass, Vehicle3DProfile> = {
     brakeForce: 18_000,
     maxSpeed: 22,
     reverseSpeed: 8,
-    steeringTorque: 4_100,
+    steeringRate: 1.45,
     grip: 7.7,
     driftGrip: 1.45,
     maxHealth: 155,
