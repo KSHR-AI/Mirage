@@ -1,0 +1,133 @@
+.modeSwitch,
+.engineBadge {
+  position: absolute;
+  z-index: 9;
+  border: 1px solid rgba(255, 242, 207, 0.28);
+  background: rgba(10, 15, 12, 0.74);
+  color: rgba(255, 242, 207, 0.62);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.modeSwitch {
+  top: 114px;
+  right: 28px;
+  padding: 7px 9px;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.modeSwitch:hover,
+.modeSwitch:focus-visible {
+  border-color: #cfff4e;
+  color: #fff2cf;
+  outline: none;
+}
+
+.engineBadge {
+  top: 114px;
+  left: 28px;
+  padding: 7px 9px;
+  color: #cfff4e;
+  pointer-events: none;
+}
+
+.loading,
+.runtimeError {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #0b100d;
+  color: #fff2cf;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.loading div,
+.runtimeError div {
+  display: grid;
+  max-width: 440px;
+  gap: 10px;
+  padding: 30px;
+}
+
+.loading strong,
+.runtimeError strong {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: clamp(36px, 7vw, 72px);
+  letter-spacing: 0.04em;
+}
+
+.loading span,
+.runtimeError span {
+  color: rgba(255, 242, 207, 0.58);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  line-height: 1.6;
+}
+
+.loading i {
+  width: 180px;
+  height: 5px;
+  margin: 8px auto 0;
+  overflow: hidden;
+  background: rgba(255, 242, 207, 0.12);
+}
+
+.loading i::after {
+  display: block;
+  width: 48%;
+  height: 100%;
+  background: #cfff4e;
+  animation: loadingSweep 900ms ease-in-out infinite alternate;
+  content: "";
+}
+
+.runtimeError strong {
+  color: #ff6945;
+}
+
+.dimensionNote {
+  color: #cfff4e;
+}
+
+@keyframes loadingSweep {
+  to {
+    transform: translateX(110%);
+  }
+}
+
+@media (max-width: 820px), (pointer: coarse) {
+  .modeSwitch {
+    top: 80px;
+    right: 16px;
+  }
+
+  .engineBadge {
+    top: 80px;
+    left: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .engineBadge {
+    display: none;
+  }
+
+  .modeSwitch {
+    top: 72px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading i::after {
+    animation: none;
+  }
+}
