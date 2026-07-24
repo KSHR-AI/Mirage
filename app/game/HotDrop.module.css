@@ -533,17 +533,20 @@
 }
 
 .intro h1.mirageTitle span {
-  font-size: clamp(62px, 9.5vw, 128px);
+  font-size: clamp(68px, 9.4vw, 118px);
+  letter-spacing: -0.035em;
+  line-height: 0.92;
 }
 
 .intro h1.mirageTitle strong {
-  font-size: clamp(44px, 6.7vw, 88px);
-  letter-spacing: -0.03em;
-  line-height: 0.76;
+  padding-left: 0.04em;
+  font-size: clamp(52px, 7.4vw, 92px);
+  letter-spacing: 0.005em;
+  line-height: 0.88;
 }
 
 .tagline {
-  margin: 34px 0 22px;
+  margin: 28px 0 22px;
   font-size: clamp(16px, 2vw, 24px);
   font-weight: 900;
   letter-spacing: 0.03em;
