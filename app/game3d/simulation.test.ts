@@ -123,6 +123,66 @@ describe("Hot Drop 3D physics integration", () => {
     expect(simulation.snapshot().mission.phase).toBe("won");
   });
 
+  it("routes police around city blocks and closes a cross-city pursuit", async () => {
+    const simulation = await createSimulation();
+    simulation.step({ ...idle, action: true });
+    simulation.step(idle);
+    const player = simulation.activeVehicle();
+    expect(player).not.toBeNull();
+    if (!player) return;
+
+    player.body.setTranslation(
+      { x: PACKAGE_POSITION.x, y: 1, z: PACKAGE_POSITION.z },
+      true,
+    );
+    simulation.step(idle);
+
+    const police = simulation.vehicles.filter(
+      (vehicle) => vehicle.role === "police",
+    );
+    expect(police).toHaveLength(2);
+    const pursuer = police[0];
+    for (const vehicle of simulation.vehicles) {
+      if (vehicle !== player && vehicle !== pursuer) {
+        vehicle.body.setEnabled(false);
+      }
+    }
+    for (const prop of simulation.props) prop.body.setEnabled(false);
+
+    player.body.setTranslation({ x: -45, y: 1, z: 35 }, true);
+    player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    pursuer.body.setTranslation({ x: 45, y: 0.95, z: -35 }, true);
+    pursuer.body.setRotation(
+      {
+        x: 0,
+        y: -Math.sin(Math.PI / 4),
+        z: 0,
+        w: Math.cos(Math.PI / 4),
+      },
+      true,
+    );
+    pursuer.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+
+    const distanceToPlayer = () => {
+      const playerPosition = player.body.translation();
+      const policePosition = pursuer.body.translation();
+      return Math.hypot(
+        playerPosition.x - policePosition.x,
+        playerPosition.z - policePosition.z,
+      );
+    };
+    const initialDistance = distanceToPlayer();
+    let nearestDistance = initialDistance;
+
+    for (let frame = 0; frame < 900; frame += 1) {
+      simulation.step(idle);
+      nearestDistance = Math.min(nearestDistance, distanceToPlayer());
+    }
+
+    expect(initialDistance).toBeGreaterThan(110);
+    expect(nearestDistance).toBeLessThan(15);
+  });
+
   it("tracks the active objective, heading, distance, and radar vehicles", async () => {
     const simulation = await createSimulation();
     const initialNavigation = simulation.snapshot().navigation;

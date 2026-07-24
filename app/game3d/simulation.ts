@@ -50,6 +50,7 @@ export interface VehicleEntity {
   previousSpeed: number;
   airborne: boolean;
   nearMissReady: boolean;
+  pursuitWaypoint: { x: number; z: number } | null;
 }
 
 export interface PropEntity {
@@ -473,6 +474,7 @@ export class HotDropSimulation {
       previousSpeed: 0,
       airborne: false,
       nearMissReady: true,
+      pursuitWaypoint: null,
     };
     this.vehicles.push(entity);
     return entity;
@@ -566,7 +568,35 @@ export class HotDropSimulation {
   }
 
   private pursuitControls(vehicle: VehicleEntity): VehicleControls {
-    return this.controlsToward(vehicle, this.playerPosition(), 1);
+    const player = this.playerPosition();
+    const playerVehicle = this.getActiveVehicle();
+    const velocity = playerVehicle?.body.linvel() ?? { x: 0, z: 0 };
+    const distance = distanceXZ(vehicle.body.translation(), player);
+    const lookAhead = clamp(distance / 45, 0.2, 0.85);
+    const predictedPlayer = {
+      x: clamp(player.x + velocity.x * lookAhead, -52, 52),
+      z: clamp(player.z + velocity.z * lookAhead, -42, 42),
+    };
+    let roadTarget = predictedPlayer;
+    if (distance >= 12) {
+      if (
+        !vehicle.pursuitWaypoint ||
+        distanceXZ(vehicle.body.translation(), vehicle.pursuitWaypoint) < 4.5
+      ) {
+        vehicle.pursuitWaypoint = pursuitWaypoint(
+          vehicle.body.translation(),
+          predictedPlayer,
+        );
+      }
+      roadTarget = vehicle.pursuitWaypoint;
+    } else {
+      vehicle.pursuitWaypoint = null;
+    }
+    const target = rampAvoidanceWaypoint(
+      vehicle.body.translation(),
+      roadTarget,
+    );
+    return this.controlsToward(vehicle, target, 1.12);
   }
 
   private controlsToward(
@@ -578,16 +608,43 @@ export class HotDropSimulation {
     const delta = { x: target.x - position.x, y: 0, z: target.z - position.z };
     const length = Math.hypot(delta.x, delta.z) || 1;
     const direction = { x: delta.x / length, y: 0, z: delta.z / length };
+    const forward = rotateVector(
+      { x: 0, y: 0, z: -1 },
+      vehicle.body.rotation(),
+    );
     const right = rotateVector({ x: 1, y: 0, z: 0 }, vehicle.body.rotation());
-    const steering = clamp(
-      direction.x * right.x + direction.z * right.z,
+    const forwardAlignment = direction.x * forward.x + direction.z * forward.z;
+    const lateralAlignment = direction.x * right.x + direction.z * right.z;
+    let steering = clamp(
+      Math.atan2(lateralAlignment, forwardAlignment) / (Math.PI / 2),
       -1,
       1,
     );
+    if (forwardAlignment < -0.85 && Math.abs(lateralAlignment) < 0.12) {
+      if (vehicle.role === "police") {
+        const road = nearestRoad(position);
+        const outward =
+          road.axis === "vertical"
+            ? { x: Math.sign(road.coordinate), z: 0 }
+            : { x: 0, z: Math.sign(road.coordinate) };
+        steering = outward.x * right.x + outward.z * right.z >= 0 ? 1 : -1;
+      } else {
+        steering =
+          vehicle.id.charCodeAt(vehicle.id.length - 1) % 2 === 0 ? 1 : -1;
+      }
+    }
     const speed = horizontalSpeed(vehicle.body.linvel());
-    const maxSpeed = VEHICLE_3D_PROFILES[vehicle.vehicleClass].maxSpeed;
+    const pursuitSpeed = vehicle.role === "police" ? 1.18 : 1;
+    const maxSpeed =
+      VEHICLE_3D_PROFILES[vehicle.vehicleClass].maxSpeed * pursuitSpeed;
+    let throttle = speed > maxSpeed * 0.78 ? 0.28 : throttleScale;
+    if (forwardAlignment < -0.25) {
+      throttle = Math.min(throttle, 0.32);
+    } else if (Math.abs(steering) > 0.72) {
+      throttle = Math.min(throttle, 0.68);
+    }
     return {
-      throttle: speed > maxSpeed * 0.78 ? 0.28 : throttleScale,
+      throttle,
       steering,
       handbrake: Math.abs(steering) > 0.76 && speed > 12,
     };
@@ -606,13 +663,17 @@ export class HotDropSimulation {
     const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z;
     const lateralSpeed = velocity.x * right.x + velocity.z * right.z;
     const mass = body.mass();
+    const pursuitAcceleration = vehicle.role === "police" ? 1.12 : 1;
+    const pursuitSpeed = vehicle.role === "police" ? 1.18 : 1;
+    const effectiveMaxSpeed = profile.maxSpeed * pursuitSpeed;
 
     body.resetForces(true);
     body.resetTorques(true);
 
     let driveForce = 0;
-    if (controls.throttle > 0 && forwardSpeed < profile.maxSpeed) {
-      driveForce = controls.throttle * profile.engineForce;
+    if (controls.throttle > 0 && forwardSpeed < effectiveMaxSpeed) {
+      driveForce =
+        controls.throttle * profile.engineForce * pursuitAcceleration;
     } else if (controls.throttle < 0) {
       driveForce =
         forwardSpeed > 1
@@ -649,8 +710,12 @@ export class HotDropSimulation {
       true,
     );
 
-    const steeringAuthority = clamp(Math.abs(forwardSpeed) / 3.5, 0, 1);
-    const speedRatio = clamp(Math.abs(forwardSpeed) / profile.maxSpeed, 0, 1);
+    const steeringAuthority = clamp(
+      Math.abs(forwardSpeed) / 3.5,
+      vehicle.role === "police" ? 0.28 : 0,
+      1,
+    );
+    const speedRatio = clamp(Math.abs(forwardSpeed) / effectiveMaxSpeed, 0, 1);
     const direction = forwardSpeed >= 0 ? 1 : -1;
     const targetYawRate =
       -controls.steering *
@@ -673,7 +738,7 @@ export class HotDropSimulation {
     );
 
     const maxHorizontalSpeed =
-      forwardSpeed < 0 ? profile.reverseSpeed : profile.maxSpeed;
+      forwardSpeed < 0 ? profile.reverseSpeed : effectiveMaxSpeed;
     const currentHorizontalSpeed = horizontalSpeed(velocity);
     if (currentHorizontalSpeed > maxHorizontalSpeed * 1.08) {
       const scale = (maxHorizontalSpeed * 1.08) / currentHorizontalSpeed;
@@ -816,16 +881,21 @@ export class HotDropSimulation {
     const player = this.playerPosition();
     for (let index = police.length; index < desired; index += 1) {
       const offset = spawnOffsets[index % spawnOffsets.length];
+      const spawn = snapToRoad({
+        x: clamp(player.x + offset.x, -52, 52),
+        z: clamp(player.z + offset.z, -42, 42),
+      });
+      const firstTarget = pursuitWaypoint(spawn, player);
       const id = `police-${this.nextPoliceId}`;
       this.nextPoliceId += 1;
       this.spawnVehicle(
         id,
         this.mission.state.heat >= 3 ? "sport" : "muscle",
         {
-          x: clamp(player.x + offset.x, -52, 52),
+          x: spawn.x,
           y: 0.95,
-          z: clamp(player.z + offset.z, -42, 42),
-          yaw: Math.atan2(-offset.x, -offset.z),
+          z: spawn.z,
+          yaw: yawToward(spawn, firstTarget),
         },
         "police",
         0xe9efe8,
@@ -932,6 +1002,148 @@ function distanceXZ(
   b: { x: number; z: number },
 ): number {
   return Math.hypot(a.x - b.x, a.z - b.z);
+}
+
+type RoadPosition =
+  | { axis: "vertical"; coordinate: number }
+  | { axis: "horizontal"; coordinate: number };
+
+const VERTICAL_ROADS = [-45, 45] as const;
+const HORIZONTAL_ROADS = [-35, 35] as const;
+
+function pursuitWaypoint(
+  pursuer: { x: number; z: number },
+  target: { x: number; z: number },
+): { x: number; z: number } {
+  if (distanceXZ(pursuer, target) < 12) return target;
+
+  const pursuerRoad = nearestRoad(pursuer);
+  const targetRoad = nearestRoad(target);
+
+  if (
+    pursuerRoad.axis === targetRoad.axis &&
+    pursuerRoad.coordinate === targetRoad.coordinate
+  ) {
+    return target;
+  }
+
+  if (pursuerRoad.axis !== targetRoad.axis) {
+    const intersection =
+      pursuerRoad.axis === "vertical"
+        ? { x: pursuerRoad.coordinate, z: targetRoad.coordinate }
+        : { x: targetRoad.coordinate, z: pursuerRoad.coordinate };
+    return distanceXZ(pursuer, intersection) > 4.5 ? intersection : target;
+  }
+
+  if (pursuerRoad.axis === "vertical") {
+    const connector = closestConnector(HORIZONTAL_ROADS, pursuer.z, target.z);
+    const firstIntersection = {
+      x: pursuerRoad.coordinate,
+      z: connector,
+    };
+    if (distanceXZ(pursuer, firstIntersection) > 4.5) {
+      return firstIntersection;
+    }
+    return { x: targetRoad.coordinate, z: connector };
+  }
+
+  const connector = closestConnector(VERTICAL_ROADS, pursuer.x, target.x);
+  const firstIntersection = {
+    x: connector,
+    z: pursuerRoad.coordinate,
+  };
+  if (distanceXZ(pursuer, firstIntersection) > 4.5) {
+    return firstIntersection;
+  }
+  return { x: connector, z: targetRoad.coordinate };
+}
+
+function rampAvoidanceWaypoint(
+  pursuer: { x: number; z: number },
+  target: { x: number; z: number },
+): { x: number; z: number } {
+  for (const ramp of RAMPS) {
+    if (ramp.tiltAxis === "x") {
+      const travel = Math.sign(target.z - pursuer.z);
+      const rampIsAhead =
+        travel !== 0 &&
+        (ramp.z - pursuer.z) * travel > 0 &&
+        (ramp.z - target.z) * travel < 0;
+      if (
+        rampIsAhead &&
+        Math.abs(ramp.z - pursuer.z) < 20 &&
+        Math.abs(ramp.x - pursuer.x) < 8
+      ) {
+        const side = pursuer.x <= ramp.x ? -1 : 1;
+        return {
+          x: ramp.x + side * 5.2,
+          z: ramp.z + travel * 6,
+        };
+      }
+    } else {
+      const travel = Math.sign(target.x - pursuer.x);
+      const rampIsAhead =
+        travel !== 0 &&
+        (ramp.x - pursuer.x) * travel > 0 &&
+        (ramp.x - target.x) * travel < 0;
+      if (
+        rampIsAhead &&
+        Math.abs(ramp.x - pursuer.x) < 20 &&
+        Math.abs(ramp.z - pursuer.z) < 8
+      ) {
+        const side = pursuer.z <= ramp.z ? -1 : 1;
+        return {
+          x: ramp.x + travel * 6,
+          z: ramp.z + side * 5.2,
+        };
+      }
+    }
+  }
+  return target;
+}
+
+function nearestRoad(position: { x: number; z: number }): RoadPosition {
+  const vertical = closestValue(VERTICAL_ROADS, position.x);
+  const horizontal = closestValue(HORIZONTAL_ROADS, position.z);
+  return Math.abs(position.x - vertical) <= Math.abs(position.z - horizontal)
+    ? { axis: "vertical", coordinate: vertical }
+    : { axis: "horizontal", coordinate: horizontal };
+}
+
+function snapToRoad(position: { x: number; z: number }): {
+  x: number;
+  z: number;
+} {
+  const road = nearestRoad(position);
+  return road.axis === "vertical"
+    ? { x: road.coordinate, z: clamp(position.z, -42, 42) }
+    : { x: clamp(position.x, -52, 52), z: road.coordinate };
+}
+
+function closestConnector(
+  connectors: readonly number[],
+  from: number,
+  to: number,
+): number {
+  return connectors.reduce((best, candidate) =>
+    Math.abs(from - candidate) + Math.abs(to - candidate) <
+    Math.abs(from - best) + Math.abs(to - best)
+      ? candidate
+      : best,
+  );
+}
+
+function closestValue(values: readonly number[], target: number): number {
+  return values.reduce((best, candidate) =>
+    Math.abs(target - candidate) < Math.abs(target - best) ? candidate : best,
+  );
+}
+
+function yawToward(
+  from: { x: number; z: number },
+  to: { x: number; z: number },
+): number {
+  return Math.atan2(-(to.x - from.x), -(to.z - from.z));
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
