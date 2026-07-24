@@ -8,6 +8,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { BenchmarkScorecard } from "../game/BenchmarkScorecard";
 import baseStyles from "../game/HotDrop.module.css";
 import {
   CITY_BUILDINGS,
@@ -520,15 +521,7 @@ export function HotDrop3D() {
               </span>{" "}
               You break it.
             </p>
-            <div className={baseStyles.missionBrief}>
-              <span>Current benchmark</span>
-              <strong>GTA in the browser · 3D build</strong>
-              <p>
-                Test an evolving 3D city where frontier coding models ship the
-                graphics, physics, driving, police AI, and mission systems one
-                iteration at a time.
-              </p>
-            </div>
+            <BenchmarkScorecard />
             <button className={baseStyles.startButton} onClick={beginRun}>
               <span>Start 3D run</span>
               <b>Enter</b>

@@ -27,6 +27,7 @@ import {
   type Point,
   type VehicleClass,
 } from "./engine";
+import { BenchmarkScorecard } from "./BenchmarkScorecard";
 
 const EMPTY_INPUT: GameInput = {
   up: false,
@@ -467,15 +468,7 @@ export function HotDrop() {
               Frontier models build it. You break it.
             </p>
 
-            <div className={styles.missionBrief}>
-              <span>Current benchmark</span>
-              <strong>GTA in the browser · 2D reference</strong>
-              <p>
-                Test the original browser-native city where frontier coding
-                models build the driving, missions, traffic, police AI, and
-                interface one iteration at a time.
-              </p>
-            </div>
+            <BenchmarkScorecard />
 
             <button className={styles.startButton} onClick={beginRun}>
               <span>Start run</span>

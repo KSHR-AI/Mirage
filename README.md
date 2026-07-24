@@ -17,6 +17,14 @@ deployment.
 - Translation of play-test feedback into precise, regression-tested changes.
 - End-to-end ownership from implementation through a deployed playable build.
 
+## Current scorecard
+
+- Active frontier model: `gpt-5.6-sol`
+- Benchmark saturation: **10%**
+
+Saturation is the share of the intended benchmark surface currently exercised
+and represented by a working, tested system in the playable build.
+
 The current vertical slice is powered by Three.js and Rapier. Steal the marked
 car, collect a package across town, then reach the safehouse while the police
 response escalates. Bail out and steal traffic cars to trade speed, durability,
