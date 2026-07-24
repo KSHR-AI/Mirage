@@ -458,24 +458,22 @@ export function HotDrop() {
       {!hasStarted ? (
         <section className={styles.intro}>
           <div className={styles.introCard}>
-            <p className={styles.eyebrow}>
-              One package. One city. No questions.
-            </p>
+            <p className={styles.eyebrow}>Mirage ML benchmark · 2D reference</p>
             <h1 className={styles.mirageTitle}>
               <span>Mirage:</span>
               <strong>GTA in SF</strong>
             </h1>
             <p className={styles.tagline}>
-              Steal it. Grab it. Lose them. Deliver.
+              Frontier models build it. You break it.
             </p>
 
             <div className={styles.missionBrief}>
-              <span>Tonight&apos;s run</span>
-              <strong>Cross-town courier</strong>
+              <span>Current benchmark</span>
+              <strong>GTA in the browser · 2D reference</strong>
               <p>
-                Take the marked ride, collect the package in East Market, then
-                switch cars out of police sight and cut back to the southside
-                safehouse before the city closes in.
+                Test the original browser-native city where frontier coding
+                models build the driving, missions, traffic, police AI, and
+                interface one iteration at a time.
               </p>
             </div>
 
@@ -485,9 +483,9 @@ export function HotDrop() {
             </button>
 
             <div className={styles.introTips}>
-              <span>Flash is fast</span>
-              <span>Bruiser hits hard</span>
-              <span>Lockbox protects cargo</span>
+              <span>Browser-native</span>
+              <span>Model-built systems</span>
+              <span>Live iteration loop</span>
             </div>
           </div>
           <div className={styles.introNumber} aria-hidden="true">

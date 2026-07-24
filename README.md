@@ -1,9 +1,26 @@
 # Mirage: GTA in SF
 
-Mirage: GTA in SF is a compact 3D city getaway powered by Three.js and Rapier.
-Steal the marked car, collect a package across town, then reach the safehouse
-while the police response escalates. Bail out and steal traffic cars to trade
-speed, durability, and cargo protection—or cut your heat with an unseen switch.
+Mirage is a living ML benchmark for frontier coding models. The task is
+deliberately ambitious and legible: design, implement, test, and continuously
+improve a GTA-inspired 3D game that runs entirely in the browser.
+
+The playable game is both the benchmark and its artifact. Each iteration asks a
+frontier coding model to turn qualitative feedback into a working system across
+graphics, physics, driving, police AI, missions, interface design, tests, and
+deployment.
+
+## What it benchmarks
+
+- Long-horizon work across an evolving, interconnected codebase.
+- Real-time 3D graphics and rigid-body physics under browser constraints.
+- Game-system design, control tuning, navigation, and adversarial police AI.
+- Translation of play-test feedback into precise, regression-tested changes.
+- End-to-end ownership from implementation through a deployed playable build.
+
+The current vertical slice is powered by Three.js and Rapier. Steal the marked
+car, collect a package across town, then reach the safehouse while the police
+response escalates. Bail out and steal traffic cars to trade speed, durability,
+and cargo protection—or cut your heat with an unseen switch.
 
 ## Play
 

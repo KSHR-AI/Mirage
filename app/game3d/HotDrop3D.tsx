@@ -508,23 +508,25 @@ export function HotDrop3D() {
         <section className={baseStyles.intro}>
           <div className={baseStyles.introCard}>
             <p className={baseStyles.eyebrow}>
-              One block. Full physics. No questions.
+              Mirage ML benchmark · frontier-coded
             </p>
             <h1 className={baseStyles.mirageTitle}>
               <span>Mirage:</span>
               <strong>GTA in SF</strong>
             </h1>
             <p className={baseStyles.tagline}>
-              <span className={styles.dimensionNote}>Now in 3D.</span> Steal.
-              Drift. Deliver.
+              <span className={styles.dimensionNote}>
+                Frontier models build it.
+              </span>{" "}
+              You break it.
             </p>
             <div className={baseStyles.missionBrief}>
-              <span>Tonight&apos;s run</span>
-              <strong>Cross-town courier · 3D vertical slice</strong>
+              <span>Current benchmark</span>
+              <strong>GTA in the browser · 3D build</strong>
               <p>
-                Steal the Bruiser, collect the package, hit the ramps, smash
-                through street props, and switch vehicles before the pursuing
-                units box you in.
+                Test an evolving 3D city where frontier coding models ship the
+                graphics, physics, driving, police AI, and mission systems one
+                iteration at a time.
               </p>
             </div>
             <button className={baseStyles.startButton} onClick={beginRun}>
@@ -532,9 +534,9 @@ export function HotDrop3D() {
               <b>Enter</b>
             </button>
             <div className={baseStyles.introTips}>
-              <span>Physics collisions</span>
-              <span>Third-person camera</span>
-              <span>Three vehicle classes</span>
+              <span>Browser-native 3D</span>
+              <span>Model-built systems</span>
+              <span>Live iteration loop</span>
             </div>
           </div>
           <div className={baseStyles.introNumber} aria-hidden="true">

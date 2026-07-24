@@ -4,7 +4,7 @@ import "./globals.css";
 
 const title = "Mirage: GTA in SF";
 const description =
-  "Drive a fully simulated 3D San Francisco, swap rides, protect the package, shed escalating police heat, and make the drop.";
+  "A living ML benchmark where frontier coding models iteratively build a GTA-inspired 3D game that runs entirely in the browser.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
