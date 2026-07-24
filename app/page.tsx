@@ -1,7 +1,5 @@
+import { HotDrop } from "./game/HotDrop";
+
 export default function Page() {
-  return (
-    <main className="blank-slate">
-      <p>Blank slate</p>
-    </main>
-  );
+  return <HotDrop />;
 }

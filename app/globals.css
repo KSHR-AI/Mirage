@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 }
 
 * {
@@ -8,30 +8,25 @@
 
 html,
 body {
+  width: 100%;
   min-height: 100%;
   margin: 0;
-  background: Canvas;
-  color: CanvasText;
+  overflow: hidden;
+  background: #111613;
+  color: #fff2cf;
   font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
+    Arial Narrow,
+    Arial,
+    Helvetica,
     sans-serif;
 }
 
-.blank-slate {
-  display: grid;
-  min-height: 100dvh;
-  place-items: center;
-  padding: 24px;
+button,
+input,
+textarea {
+  font: inherit;
 }
 
-.blank-slate p {
-  margin: 0;
-  color: color-mix(in srgb, CanvasText 45%, transparent);
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+button:not(:disabled) {
+  cursor: pointer;
 }

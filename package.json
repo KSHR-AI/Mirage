@@ -13,8 +13,9 @@
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
-    "format:check": "prettier --check .openai app build worker .github README.md eslint.config.mjs next.config.ts package.json pnpm-workspace.yaml tsconfig.json vite.config.ts",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm build"
+    "test": "vitest run",
+    "format:check": "prettier --check .openai app build worker .github README.md eslint.config.mjs next.config.ts package.json pnpm-workspace.yaml tsconfig.json vite.config.ts vitest.config.ts",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
     "next": "16.2.6",
@@ -35,6 +36,7 @@
     "typescript": "5.9.3",
     "vinext": "0.0.50",
     "vite": "8.0.13",
+    "vitest": "4.0.18",
     "wrangler": "4.92.0"
   }
 }
