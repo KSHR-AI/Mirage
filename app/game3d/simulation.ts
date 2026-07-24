@@ -51,6 +51,10 @@ export interface VehicleEntity {
   airborne: boolean;
   nearMissReady: boolean;
   pursuitWaypoint: { x: number; z: number } | null;
+  pursuitTargetAnchor: { x: number; z: number } | null;
+  pursuitStuckTimer: number;
+  pursuitReverseTimer: number;
+  pursuitSpeedScale: number;
 }
 
 export interface PropEntity {
@@ -475,6 +479,10 @@ export class HotDropSimulation {
       airborne: false,
       nearMissReady: true,
       pursuitWaypoint: null,
+      pursuitTargetAnchor: null,
+      pursuitStuckTimer: 0,
+      pursuitReverseTimer: 0,
+      pursuitSpeedScale: 1,
     };
     this.vehicles.push(entity);
     return entity;
@@ -571,32 +579,121 @@ export class HotDropSimulation {
     const player = this.playerPosition();
     const playerVehicle = this.getActiveVehicle();
     const velocity = playerVehicle?.body.linvel() ?? { x: 0, z: 0 };
-    const distance = distanceXZ(vehicle.body.translation(), player);
-    const lookAhead = clamp(distance / 45, 0.2, 0.85);
+    const position = vehicle.body.translation();
+    const distance = distanceXZ(position, player);
+    const lookAhead = clamp(distance / 40, 0.25, 1.1);
     const predictedPlayer = {
       x: clamp(player.x + velocity.x * lookAhead, -52, 52),
       z: clamp(player.z + velocity.z * lookAhead, -42, 42),
     };
+    vehicle.pursuitSpeedScale = 1.16 + clamp((distance - 14) / 65, 0, 0.2);
     let roadTarget = predictedPlayer;
-    if (distance >= 12) {
-      if (
+    if (distance >= 10) {
+      const targetMoved =
+        !vehicle.pursuitTargetAnchor ||
+        distanceXZ(vehicle.pursuitTargetAnchor, predictedPlayer) > 5;
+      const reachedWaypoint =
         !vehicle.pursuitWaypoint ||
-        distanceXZ(vehicle.body.translation(), vehicle.pursuitWaypoint) < 4.5
-      ) {
-        vehicle.pursuitWaypoint = pursuitWaypoint(
-          vehicle.body.translation(),
-          predictedPlayer,
-        );
+        distanceXZ(position, vehicle.pursuitWaypoint) < 5;
+      if (targetMoved || reachedWaypoint) {
+        vehicle.pursuitWaypoint = pursuitWaypoint(position, predictedPlayer);
+        vehicle.pursuitTargetAnchor = predictedPlayer;
       }
-      roadTarget = vehicle.pursuitWaypoint;
+      roadTarget = vehicle.pursuitWaypoint ?? predictedPlayer;
     } else {
       vehicle.pursuitWaypoint = null;
+      vehicle.pursuitTargetAnchor = null;
     }
-    const target = rampAvoidanceWaypoint(
-      vehicle.body.translation(),
-      roadTarget,
+
+    const speed = horizontalSpeed(vehicle.body.linvel());
+    const targetDelta = {
+      x: roadTarget.x - position.x,
+      z: roadTarget.z - position.z,
+    };
+    const targetLength = Math.hypot(targetDelta.x, targetDelta.z) || 1;
+    const forward = rotateVector(
+      { x: 0, y: 0, z: -1 },
+      vehicle.body.rotation(),
     );
-    return this.controlsToward(vehicle, target, 1.12);
+    const targetForwardAlignment =
+      (targetDelta.x * forward.x + targetDelta.z * forward.z) / targetLength;
+    if (distance > 8 && speed < 1.2 && targetForwardAlignment > 0.45) {
+      vehicle.pursuitStuckTimer += FIXED_TIMESTEP;
+    } else {
+      vehicle.pursuitStuckTimer = Math.max(
+        0,
+        vehicle.pursuitStuckTimer - FIXED_TIMESTEP * 2,
+      );
+    }
+    if (vehicle.pursuitStuckTimer > 1.4) {
+      vehicle.pursuitStuckTimer = 0;
+      vehicle.pursuitReverseTimer = 0.82;
+      vehicle.pursuitWaypoint = null;
+    }
+    if (vehicle.pursuitReverseTimer > 0) {
+      vehicle.pursuitReverseTimer = Math.max(
+        0,
+        vehicle.pursuitReverseTimer - FIXED_TIMESTEP,
+      );
+      return {
+        throttle: -0.9,
+        steering: policeOrdinal(vehicle.id) % 2 === 0 ? 1 : -1,
+        handbrake: false,
+      };
+    }
+
+    const target = rampAvoidanceWaypoint(position, roadTarget);
+    const controls = this.controlsToward(vehicle, target, 1.15);
+    const avoidance = this.pursuitAvoidance(vehicle);
+    return {
+      throttle:
+        Math.abs(avoidance) > 0.58
+          ? Math.min(controls.throttle, 0.72)
+          : controls.throttle,
+      steering: clamp(controls.steering + avoidance * 0.78, -1, 1),
+      handbrake:
+        controls.handbrake ||
+        (Math.abs(controls.steering + avoidance) > 0.82 && speed > 13),
+    };
+  }
+
+  private pursuitAvoidance(vehicle: VehicleEntity): number {
+    const position = vehicle.body.translation();
+    const rotation = vehicle.body.rotation();
+    const forward = rotateVector({ x: 0, y: 0, z: -1 }, rotation);
+    const right = rotateVector({ x: 1, y: 0, z: 0 }, rotation);
+    let avoidance = 0;
+
+    for (const candidate of this.vehicles) {
+      if (
+        candidate === vehicle ||
+        candidate.id === this.activeVehicleId ||
+        !candidate.body.isEnabled()
+      ) {
+        continue;
+      }
+      const other = candidate.body.translation();
+      const deltaX = other.x - position.x;
+      const deltaZ = other.z - position.z;
+      const forwardGap = deltaX * forward.x + deltaZ * forward.z;
+      const lateralGap = deltaX * right.x + deltaZ * right.z;
+      if (forwardGap <= 0.5 || forwardGap >= 9 || Math.abs(lateralGap) >= 3.4) {
+        continue;
+      }
+
+      const side =
+        Math.abs(lateralGap) < 0.3
+          ? policeOrdinal(vehicle.id) % 2 === 0
+            ? 1
+            : -1
+          : lateralGap > 0
+            ? -1
+            : 1;
+      const urgency = (1 - forwardGap / 9) * (1 - Math.abs(lateralGap) / 3.4);
+      avoidance += side * urgency;
+    }
+
+    return clamp(avoidance, -1, 1);
   }
 
   private controlsToward(
@@ -634,7 +731,8 @@ export class HotDropSimulation {
       }
     }
     const speed = horizontalSpeed(vehicle.body.linvel());
-    const pursuitSpeed = vehicle.role === "police" ? 1.18 : 1;
+    const pursuitSpeed =
+      vehicle.role === "police" ? vehicle.pursuitSpeedScale : 1;
     const maxSpeed =
       VEHICLE_3D_PROFILES[vehicle.vehicleClass].maxSpeed * pursuitSpeed;
     let throttle = speed > maxSpeed * 0.78 ? 0.28 : throttleScale;
@@ -663,8 +761,9 @@ export class HotDropSimulation {
     const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z;
     const lateralSpeed = velocity.x * right.x + velocity.z * right.z;
     const mass = body.mass();
-    const pursuitAcceleration = vehicle.role === "police" ? 1.12 : 1;
-    const pursuitSpeed = vehicle.role === "police" ? 1.18 : 1;
+    const pursuitAcceleration = vehicle.role === "police" ? 1.18 : 1;
+    const pursuitSpeed =
+      vehicle.role === "police" ? vehicle.pursuitSpeedScale : 1;
     const effectiveMaxSpeed = profile.maxSpeed * pursuitSpeed;
 
     body.resetForces(true);
@@ -1144,6 +1243,11 @@ function yawToward(
   to: { x: number; z: number },
 ): number {
   return Math.atan2(-(to.x - from.x), -(to.z - from.z));
+}
+
+function policeOrdinal(id: string): number {
+  const ordinal = Number.parseInt(id.slice(id.lastIndexOf("-") + 1), 10);
+  return Number.isFinite(ordinal) ? ordinal : 0;
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
