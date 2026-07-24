@@ -6,6 +6,75 @@ export const ROAD_Y = [300, 900, 1500] as const;
 
 export type Phase = "findCar" | "pickup" | "deliver" | "won" | "busted";
 export type PlayerMode = "foot" | "car";
+export type VehicleClass = "sport" | "muscle" | "van";
+
+export interface VehicleProfile {
+  label: string;
+  trait: string;
+  acceleration: number;
+  brakePower: number;
+  topSpeed: number;
+  reverseSpeed: number;
+  turnRate: number;
+  handbrakeTurnRate: number;
+  maxHealth: number;
+  damageMultiplier: number;
+  packageDamageMultiplier: number;
+  radius: number;
+  bodyLength: number;
+  bodyWidth: number;
+}
+
+export const VEHICLE_PROFILES: Record<VehicleClass, VehicleProfile> = {
+  sport: {
+    label: "Flash",
+    trait: "Fast · fragile",
+    acceleration: 375,
+    brakePower: 455,
+    topSpeed: 430,
+    reverseSpeed: 155,
+    turnRate: 2.8,
+    handbrakeTurnRate: 3.75,
+    maxHealth: 72,
+    damageMultiplier: 1.28,
+    packageDamageMultiplier: 1.15,
+    radius: 22,
+    bodyLength: 53,
+    bodyWidth: 25,
+  },
+  muscle: {
+    label: "Bruiser",
+    trait: "Strong · heavy",
+    acceleration: 315,
+    brakePower: 420,
+    topSpeed: 365,
+    reverseSpeed: 145,
+    turnRate: 2.05,
+    handbrakeTurnRate: 3.05,
+    maxHealth: 118,
+    damageMultiplier: 0.82,
+    packageDamageMultiplier: 0.78,
+    radius: 25,
+    bodyLength: 59,
+    bodyWidth: 30,
+  },
+  van: {
+    label: "Lockbox",
+    trait: "Armored · protective",
+    acceleration: 235,
+    brakePower: 350,
+    topSpeed: 295,
+    reverseSpeed: 120,
+    turnRate: 1.58,
+    handbrakeTurnRate: 2.35,
+    maxHealth: 155,
+    damageMultiplier: 0.62,
+    packageDamageMultiplier: 0.38,
+    radius: 28,
+    bodyLength: 65,
+    bodyWidth: 34,
+  },
+};
 
 export interface Point {
   x: number;
@@ -34,7 +103,10 @@ export interface Car extends Point {
   angle: number;
   speed: number;
   health: number;
+  maxHealth: number;
   radius: number;
+  vehicleClass: VehicleClass;
+  color: string;
 }
 
 export interface PoliceCar extends Point {
@@ -49,12 +121,15 @@ export interface TrafficCar extends Point {
   id: number;
   angle: number;
   speed: number;
+  health: number;
+  maxHealth: number;
   radius: number;
-  route: number;
+  route: number | null;
   target: number;
   nearMissReady: boolean;
   contactCooldown: number;
   color: string;
+  vehicleClass: VehicleClass;
 }
 
 export interface Breakable extends Point {
@@ -75,6 +150,15 @@ export interface RunStats {
   jumps: number;
   destroyed: number;
   escapes: number;
+  vehicleSwaps: number;
+  cleanSwaps: number;
+}
+
+export interface NearbyVehicle {
+  source: "current" | "traffic";
+  id: number | null;
+  distance: number;
+  vehicleClass: VehicleClass;
 }
 
 export interface GameState {
@@ -91,6 +175,7 @@ export interface GameState {
   score: number;
   heat: number;
   maxHeatReached: number;
+  packageHealth: number;
   timeLeft: number;
   elapsed: number;
   deliveryElapsed: number;
@@ -103,6 +188,7 @@ export interface GameState {
   calloutDetail: string;
   calloutTimer: number;
   resultReason: string;
+  nextVehicleId: number;
   stats: RunStats;
 }
 
@@ -204,13 +290,16 @@ const TRAFFIC_ROUTES: Point[][] = [
   ],
 ];
 
-const TRAFFIC_COLORS = [
-  "#58c9d6",
-  "#f4bd50",
-  "#b54f5f",
-  "#e8e2cf",
-  "#7dbf83",
-  "#a985d6",
+const TRAFFIC_STYLES: Array<{
+  vehicleClass: VehicleClass;
+  color: string;
+}> = [
+  { vehicleClass: "sport", color: "#58c9d6" },
+  { vehicleClass: "muscle", color: "#f4bd50" },
+  { vehicleClass: "van", color: "#b54f5f" },
+  { vehicleClass: "sport", color: "#e8e2cf" },
+  { vehicleClass: "van", color: "#7dbf83" },
+  { vehicleClass: "muscle", color: "#a985d6" },
 ];
 
 const INITIAL_BREAKABLES: Breakable[] = [
@@ -255,6 +344,8 @@ function createTraffic(): TrafficCar[] {
 
   return placements.map((placement, index) => {
     const target = TRAFFIC_ROUTES[placement.route][placement.target];
+    const style = TRAFFIC_STYLES[index % TRAFFIC_STYLES.length];
+    const profile = VEHICLE_PROFILES[style.vehicleClass];
     return {
       id: index,
       x: placement.x,
@@ -263,15 +354,20 @@ function createTraffic(): TrafficCar[] {
       target: placement.target,
       angle: Math.atan2(target.y - placement.y, target.x - placement.x),
       speed: 118 + (index % 4) * 11,
-      radius: 21,
+      health: profile.maxHealth,
+      maxHealth: profile.maxHealth,
+      radius: profile.radius,
       nearMissReady: true,
       contactCooldown: 0,
-      color: TRAFFIC_COLORS[index % TRAFFIC_COLORS.length],
+      color: style.color,
+      vehicleClass: style.vehicleClass,
     };
   });
 }
 
 export function createGameState(): GameState {
+  const startingProfile = VEHICLE_PROFILES.muscle;
+
   return {
     phase: "findCar",
     mode: "foot",
@@ -281,8 +377,11 @@ export function createGameState(): GameState {
       y: 560,
       angle: -Math.PI / 2,
       speed: 0,
-      health: 100,
-      radius: 24,
+      health: startingProfile.maxHealth,
+      maxHealth: startingProfile.maxHealth,
+      radius: startingProfile.radius,
+      vehicleClass: "muscle",
+      color: "#f06842",
     },
     packagePosition: { x: 2100, y: 300 },
     deliveryPosition: { x: 300, y: 1500 },
@@ -293,6 +392,7 @@ export function createGameState(): GameState {
     score: 0,
     heat: 0,
     maxHeatReached: 0,
+    packageHealth: 100,
     timeLeft: 150,
     elapsed: 0,
     deliveryElapsed: 0,
@@ -305,11 +405,14 @@ export function createGameState(): GameState {
     calloutDetail: "Get close and press E",
     calloutTimer: 3.4,
     resultReason: "",
+    nextVehicleId: 100,
     stats: {
       nearMisses: 0,
       jumps: 0,
       destroyed: 0,
       escapes: 0,
+      vehicleSwaps: 0,
+      cleanSwaps: 0,
     },
   };
 }
@@ -331,6 +434,44 @@ export function objectiveForPhase(phase: Phase): string {
     case "busted":
       return "Run over";
   }
+}
+
+export function getNearbyVehicle(
+  state: GameState,
+  maxDistance = 82,
+): NearbyVehicle | null {
+  if (state.mode !== "foot") return null;
+
+  const currentDistance = distance(state.foot, state.car);
+  let nearest: NearbyVehicle | null =
+    state.car.health > 0 && currentDistance <= maxDistance
+      ? {
+          source: "current",
+          id: null,
+          distance: currentDistance,
+          vehicleClass: state.car.vehicleClass,
+        }
+      : null;
+
+  for (const traffic of state.traffic) {
+    if (traffic.health <= 0) continue;
+    const trafficDistance = distance(state.foot, traffic);
+    if (
+      trafficDistance > maxDistance ||
+      (nearest && trafficDistance >= nearest.distance)
+    ) {
+      continue;
+    }
+
+    nearest = {
+      source: "traffic",
+      id: traffic.id,
+      distance: trafficDistance,
+      vehicleClass: traffic.vehicleClass,
+    };
+  }
+
+  return nearest;
 }
 
 export function stepGame(
@@ -359,48 +500,67 @@ export function stepGame(
 
   if (state.mode === "foot") {
     updateFoot(state, input, dt);
-    if (actionPressed && distance(state.foot, state.car) < 82) {
-      state.mode = "car";
-      state.phase = "pickup";
-      state.score += 100;
-      setCallout(state, "RIDE ACQUIRED", "Package marked across town");
+    if (actionPressed) {
+      const nearbyVehicle = getNearbyVehicle(state);
+      if (nearbyVehicle?.source === "current") {
+        enterCurrentVehicle(state);
+      } else if (
+        nearbyVehicle?.source === "traffic" &&
+        nearbyVehicle.id !== null
+      ) {
+        stealTrafficVehicle(state, nearbyVehicle.id);
+      }
     }
   } else {
     updatePlayerCar(state, input, dt);
-    updateBreakables(state);
-    updateRamps(state, dt);
-    updateTrafficContacts(state, dt);
-
-    if (
-      state.phase === "pickup" &&
-      distance(state.car, state.packagePosition) < 64
-    ) {
-      state.phase = "deliver";
-      state.heat = 1;
-      state.maxHeatReached = 1;
-      state.score += 500;
-      state.deliveryElapsed = 0;
-      syncPolice(state);
-      setCallout(
-        state,
-        "PACKAGE SECURED",
-        "Lose the heat. Reach the safehouse.",
-      );
+    if (actionPressed) {
+      if (Math.abs(state.car.speed) <= 42) {
+        exitCurrentVehicle(state);
+      } else {
+        setCallout(state, "TOO FAST", "Slow below 20 MPH to bail out", 1.1);
+      }
     }
 
-    if (state.phase === "deliver") {
-      state.deliveryElapsed += dt;
-      updateHeat(state);
-      updatePolice(state, dt);
+    if (state.mode === "car") {
+      updateBreakables(state);
+      updateRamps(state, dt);
+      updateTrafficContacts(state, dt);
 
-      if (distance(state.car, state.deliveryPosition) < 76) {
-        state.phase = "won";
-        state.score += 2000 + Math.floor(state.timeLeft * 20);
-        state.car.speed *= 0.35;
-        state.callout = "DROP COMPLETE";
-        state.calloutDetail = "Clean work";
-        state.calloutTimer = 99;
+      if (
+        state.phase === "pickup" &&
+        distance(state.car, state.packagePosition) < 64
+      ) {
+        state.phase = "deliver";
+        state.heat = 1;
+        state.maxHeatReached = 1;
+        state.score += 500;
+        state.deliveryElapsed = 0;
+        syncPolice(state);
+        setCallout(
+          state,
+          "PACKAGE SECURED",
+          "Swap unseen to cut heat. Keep the cargo intact.",
+        );
       }
+    }
+  }
+
+  if (state.phase === "deliver") {
+    state.deliveryElapsed += dt;
+    updateHeat(state);
+    updatePolice(state, dt);
+
+    if (
+      state.mode === "car" &&
+      distance(state.car, state.deliveryPosition) < 76
+    ) {
+      state.phase = "won";
+      const packageBonus = Math.floor(state.packageHealth * 10);
+      state.score += 2000 + Math.floor(state.timeLeft * 20) + packageBonus;
+      state.car.speed *= 0.35;
+      state.callout = "DROP COMPLETE";
+      state.calloutDetail = `${Math.ceil(state.packageHealth)}% cargo · +${packageBonus}`;
+      state.calloutTimer = 99;
     }
   }
 
@@ -410,9 +570,163 @@ export function stepGame(
 
   if (state.timeLeft <= 0) {
     endRun(state, "TIME UP");
-  } else if (state.car.health <= 0) {
+  } else if (state.packageHealth <= 0) {
+    endRun(state, "PACKAGE LOST");
+  } else if (state.mode === "car" && state.car.health <= 0) {
     endRun(state, "RIDE WRECKED");
   }
+}
+
+function enterCurrentVehicle(state: GameState): void {
+  state.mode = "car";
+  state.car.speed = 0;
+  const profile = VEHICLE_PROFILES[state.car.vehicleClass];
+
+  if (state.phase === "findCar") {
+    state.phase = "pickup";
+    state.score += 100;
+    setCallout(state, "RIDE ACQUIRED", `${profile.label} · package marked`);
+  } else {
+    setCallout(state, "BACK IN", `${profile.label} · ${profile.trait}`, 1.1);
+  }
+}
+
+function exitCurrentVehicle(state: GameState): void {
+  const profile = VEHICLE_PROFILES[state.car.vehicleClass];
+  const sideAngle = state.car.angle + Math.PI / 2;
+  const candidates = [
+    {
+      x: state.car.x + Math.cos(sideAngle) * (state.car.radius + 25),
+      y: state.car.y + Math.sin(sideAngle) * (state.car.radius + 25),
+    },
+    {
+      x: state.car.x - Math.cos(sideAngle) * (state.car.radius + 25),
+      y: state.car.y - Math.sin(sideAngle) * (state.car.radius + 25),
+    },
+    {
+      x: state.car.x - Math.cos(state.car.angle) * (state.car.radius + 28),
+      y: state.car.y - Math.sin(state.car.angle) * (state.car.radius + 28),
+    },
+  ];
+  const exitPoint = candidates.find(
+    (candidate) =>
+      candidate.x > 14 &&
+      candidate.x < WORLD_WIDTH - 14 &&
+      candidate.y > 14 &&
+      candidate.y < WORLD_HEIGHT - 14 &&
+      !hitsAnyBuilding(candidate.x, candidate.y, 13),
+  ) ?? { x: state.car.x, y: state.car.y };
+
+  state.car.speed = 0;
+  state.foot = exitPoint;
+  state.mode = "foot";
+  state.arrestProgress = 0;
+  setCallout(
+    state,
+    "ON FOOT",
+    `Find a new ride or re-enter the ${profile.label}`,
+    1.4,
+  );
+}
+
+function stealTrafficVehicle(state: GameState, vehicleId: number): void {
+  const vehicleIndex = state.traffic.findIndex(
+    (vehicle) => vehicle.id === vehicleId,
+  );
+  if (vehicleIndex < 0) return;
+
+  const witnessed = state.phase === "deliver" && isVehicleSwapWitnessed(state);
+  const stolen = state.traffic[vehicleIndex];
+  const abandoned: TrafficCar = {
+    id: state.nextVehicleId,
+    x: state.car.x,
+    y: state.car.y,
+    angle: state.car.angle,
+    speed: 0,
+    health: state.car.health,
+    maxHealth: state.car.maxHealth,
+    radius: state.car.radius,
+    route: null,
+    target: 0,
+    nearMissReady: true,
+    contactCooldown: 0.45,
+    color: state.car.color,
+    vehicleClass: state.car.vehicleClass,
+  };
+
+  state.nextVehicleId += 1;
+  state.traffic.splice(vehicleIndex, 1);
+  state.traffic.push(abandoned);
+  state.car = {
+    x: stolen.x,
+    y: stolen.y,
+    angle: stolen.angle,
+    speed: stolen.speed * 0.18,
+    health: stolen.health,
+    maxHealth: stolen.maxHealth,
+    radius: stolen.radius,
+    color: stolen.color,
+    vehicleClass: stolen.vehicleClass,
+  };
+  state.mode = "car";
+  state.stats.vehicleSwaps += 1;
+  const profile = VEHICLE_PROFILES[stolen.vehicleClass];
+
+  if (state.phase === "findCar") {
+    state.phase = "pickup";
+    state.score += 100;
+    setCallout(state, `${profile.label.toUpperCase()} BOOSTED`, profile.trait);
+    return;
+  }
+
+  if (state.phase !== "deliver") {
+    setCallout(state, `${profile.label.toUpperCase()} BOOSTED`, profile.trait);
+    return;
+  }
+
+  if (witnessed) {
+    state.heat = Math.min(3, state.heat + 1);
+    state.maxHeatReached = Math.max(state.maxHeatReached, state.heat);
+    syncPolice(state);
+    setCallout(
+      state,
+      "SWAP SPOTTED",
+      `${profile.label} acquired · heat increased`,
+      1.7,
+    );
+  } else {
+    state.heat = Math.max(0, state.heat - 1);
+    syncPolice(state);
+    state.escapeProgress = 0;
+    state.score += 350;
+    state.stats.cleanSwaps += 1;
+    setCallout(
+      state,
+      "CLEAN SWITCH",
+      `${profile.label} acquired · heat down · +350`,
+      1.7,
+    );
+  }
+}
+
+function isVehicleSwapWitnessed(state: GameState): boolean {
+  return state.cops.some(
+    (cop) => distance(cop, state.foot) < 430 && hasClearSight(cop, state.foot),
+  );
+}
+
+function hasClearSight(from: Point, to: Point): boolean {
+  const totalDistance = distance(from, to);
+  const steps = Math.max(1, Math.ceil(totalDistance / 28));
+
+  for (let step = 1; step < steps; step += 1) {
+    const progress = step / steps;
+    const x = from.x + (to.x - from.x) * progress;
+    const y = from.y + (to.y - from.y) * progress;
+    if (hitsAnyBuilding(x, y, 2)) return false;
+  }
+
+  return true;
 }
 
 function updateFoot(state: GameState, input: GameInput, dt: number): void {
@@ -433,15 +747,19 @@ function updateFoot(state: GameState, input: GameInput, dt: number): void {
 
 function updatePlayerCar(state: GameState, input: GameInput, dt: number): void {
   const car = state.car;
+  const profile = VEHICLE_PROFILES[car.vehicleClass];
   const throttle = Number(input.up) - Number(input.down);
   const steering = Number(input.right) - Number(input.left);
   const previous = { x: car.x, y: car.y };
   const speedBeforeImpact = Math.abs(car.speed);
 
   if (throttle > 0) {
-    car.speed += 310 * dt;
+    car.speed += profile.acceleration * dt;
   } else if (throttle < 0) {
-    car.speed -= car.speed > 20 ? 420 * dt : 190 * dt;
+    car.speed -=
+      car.speed > 20
+        ? profile.brakePower * dt
+        : profile.acceleration * 0.62 * dt;
   } else {
     car.speed *= Math.pow(0.985, dt * 60);
   }
@@ -450,13 +768,15 @@ function updatePlayerCar(state: GameState, input: GameInput, dt: number): void {
     car.speed *= Math.pow(0.966, dt * 60);
   }
 
-  const topSpeed = input.handbrake ? 325 : 370;
-  car.speed = clamp(car.speed, -145, topSpeed);
+  const topSpeed = input.handbrake ? profile.topSpeed * 0.88 : profile.topSpeed;
+  car.speed = clamp(car.speed, -profile.reverseSpeed, topSpeed);
   if (Math.abs(car.speed) < 2) car.speed = 0;
 
   const steerAuthority = clamp(Math.abs(car.speed) / 125, 0.14, 1);
   const direction = car.speed >= 0 ? 1 : -1;
-  const turnRate = input.handbrake ? 3.25 : 2.35;
+  const turnRate = input.handbrake
+    ? profile.handbrakeTurnRate
+    : profile.turnRate;
   car.angle += steering * turnRate * steerAuthority * direction * dt;
 
   car.x += Math.cos(car.angle) * car.speed * dt;
@@ -471,14 +791,31 @@ function updatePlayerCar(state: GameState, input: GameInput, dt: number): void {
     car.x = previous.x;
     car.y = previous.y;
     car.speed *= -0.24;
-    const damage = clamp((speedBeforeImpact - 70) * 0.055, 2, 16);
-    car.health = Math.max(0, car.health - damage);
+    const rawDamage = clamp((speedBeforeImpact - 70) * 0.055, 2, 16);
+    applyVehicleDamage(state, rawDamage);
     state.impactFlash = 0.2;
     setCallout(
       state,
       "HARD HIT",
-      `Ride integrity ${Math.ceil(car.health)}%`,
+      `${VEHICLE_PROFILES[car.vehicleClass].label} integrity ${Math.ceil(
+        (car.health / car.maxHealth) * 100,
+      )}%`,
       1.2,
+    );
+  }
+}
+
+function applyVehicleDamage(state: GameState, rawDamage: number): void {
+  const profile = VEHICLE_PROFILES[state.car.vehicleClass];
+  state.car.health = Math.max(
+    0,
+    state.car.health - rawDamage * profile.damageMultiplier,
+  );
+
+  if (state.phase === "deliver") {
+    state.packageHealth = Math.max(
+      0,
+      state.packageHealth - rawDamage * profile.packageDamageMultiplier * 0.58,
     );
   }
 }
@@ -526,6 +863,12 @@ function updateRamps(state: GameState, dt: number): void {
 
 function updateTraffic(state: GameState, dt: number): void {
   for (const car of state.traffic) {
+    if (car.route === null) {
+      car.speed = 0;
+      car.contactCooldown = Math.max(0, car.contactCooldown - dt);
+      continue;
+    }
+
     const route = TRAFFIC_ROUTES[car.route];
     const target = route[car.target];
     const targetAngle = Math.atan2(target.y - car.y, target.x - car.x);
@@ -566,9 +909,9 @@ function updateTrafficContacts(state: GameState, dt: number): void {
       traffic.contactCooldown <= 0
     ) {
       traffic.contactCooldown = 0.75;
-      state.car.health = Math.max(
-        0,
-        state.car.health - clamp(Math.abs(state.car.speed) * 0.035, 3, 13),
+      applyVehicleDamage(
+        state,
+        clamp(Math.abs(state.car.speed) * 0.035, 3, 13),
       );
       state.car.speed *= 0.58;
       state.impactFlash = 0.18;
@@ -576,7 +919,10 @@ function updateTrafficContacts(state: GameState, dt: number): void {
   }
 
   if (state.car.health > 0) {
-    state.car.health = Math.min(100, state.car.health + dt * 0.14);
+    state.car.health = Math.min(
+      state.car.maxHealth,
+      state.car.health + dt * 0.14,
+    );
   }
 }
 
@@ -600,12 +946,14 @@ function updateHeat(state: GameState): void {
 
 function updatePolice(state: GameState, dt: number): void {
   let nearest = Number.POSITIVE_INFINITY;
+  const player = state.mode === "car" ? state.car : state.foot;
+  const playerRadius = state.mode === "car" ? state.car.radius : 13;
 
   for (const cop of state.cops) {
     cop.contactCooldown = Math.max(0, cop.contactCooldown - dt);
-    const targetAngle = Math.atan2(state.car.y - cop.y, state.car.x - cop.x);
+    const targetAngle = Math.atan2(player.y - cop.y, player.x - cop.x);
     const difference = normalizeAngle(targetAngle - cop.angle);
-    const gap = distance(cop, state.car);
+    const gap = distance(cop, player);
     nearest = Math.min(nearest, gap);
 
     const turnSpeed = 2.1 + state.heat * 0.28;
@@ -627,18 +975,21 @@ function updatePolice(state: GameState, dt: number): void {
     clampToWorld(cop, cop.radius);
 
     if (
+      state.mode === "car" &&
       state.jumpTimer <= 0 &&
-      gap < state.car.radius + cop.radius + 4 &&
+      gap < playerRadius + cop.radius + 4 &&
       cop.contactCooldown <= 0
     ) {
       cop.contactCooldown = 0.65;
-      state.car.health = Math.max(0, state.car.health - 7 - state.heat * 1.5);
+      applyVehicleDamage(state, 7 + state.heat * 1.5);
       state.car.speed *= 0.72;
       state.impactFlash = 0.22;
     }
   }
 
-  if (nearest < 58 && Math.abs(state.car.speed) < 48) {
+  const vulnerable = state.mode === "foot" || Math.abs(state.car.speed) < 48;
+  const arrestDistance = state.mode === "foot" ? 48 : 58;
+  if (nearest < arrestDistance && vulnerable) {
     state.arrestProgress += dt;
     if (state.arrestProgress > 2.35) {
       endRun(state, "BUSTED");
@@ -672,17 +1023,22 @@ function syncPolice(state: GameState): void {
     { x: 450, y: -190 },
   ];
   const desired = state.heat * 2;
+  const player = state.mode === "car" ? state.car : state.foot;
+
+  if (state.cops.length > desired) {
+    state.cops.length = desired;
+  }
 
   while (state.cops.length < desired) {
     const id = state.cops.length;
     const offset = spawnOffsets[id % spawnOffsets.length];
-    const x = clamp(state.car.x + offset.x, 40, WORLD_WIDTH - 40);
-    const y = clamp(state.car.y + offset.y, 40, WORLD_HEIGHT - 40);
+    const x = clamp(player.x + offset.x, 40, WORLD_WIDTH - 40);
+    const y = clamp(player.y + offset.y, 40, WORLD_HEIGHT - 40);
     state.cops.push({
       id,
       x,
       y,
-      angle: Math.atan2(state.car.y - y, state.car.x - x),
+      angle: Math.atan2(player.y - y, player.x - x),
       speed: 150 + id * 7,
       radius: 25,
       contactCooldown: 0,

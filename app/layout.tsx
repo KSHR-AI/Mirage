@@ -4,7 +4,7 @@ import "./globals.css";
 
 const title = "Hot Drop — A Bay City Getaway";
 const description =
-  "Steal a ride, grab the package, lose the heat, and make the drop in a fast browser getaway.";
+  "Steal and swap rides, protect the package, shed escalating police heat, and make the drop in a fast browser getaway.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();

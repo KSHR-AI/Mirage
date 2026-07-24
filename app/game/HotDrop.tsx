@@ -14,16 +14,18 @@ import {
   ROAD_WIDTH,
   ROAD_X,
   ROAD_Y,
+  VEHICLE_PROFILES,
   WORLD_HEIGHT,
   WORLD_WIDTH,
   createGameState,
-  distance,
+  getNearbyVehicle,
   objectiveForPhase,
   stepGame,
   type GameInput,
   type GameState,
   type Phase,
   type Point,
+  type VehicleClass,
 } from "./engine";
 
 const EMPTY_INPUT: GameInput = {
@@ -44,17 +46,36 @@ interface HudState {
   timeLeft: number;
   speed: number;
   health: number;
+  healthPercent: number;
+  packageHealth: number;
+  vehicleClass: VehicleClass;
+  vehicleLabel: string;
+  vehicleTrait: string;
+  interaction: string;
   arrestProgress: number;
   escapeProgress: number;
   callout: string;
   calloutDetail: string;
   calloutTimer: number;
   resultReason: string;
-  carDistance: number;
   stats: GameState["stats"];
 }
 
 function snapshotGame(state: GameState): HudState {
+  const profile = VEHICLE_PROFILES[state.car.vehicleClass];
+  const nearbyVehicle = getNearbyVehicle(state);
+  let interaction = "";
+
+  if (state.mode === "car" && Math.abs(state.car.speed) <= 42) {
+    interaction = `Exit ${profile.label}`;
+  } else if (nearbyVehicle) {
+    const nearbyProfile = VEHICLE_PROFILES[nearbyVehicle.vehicleClass];
+    interaction =
+      nearbyVehicle.source === "current"
+        ? `Re-enter ${nearbyProfile.label}`
+        : `Steal ${nearbyProfile.label}`;
+  }
+
   return {
     phase: state.phase,
     mode: state.mode,
@@ -64,13 +85,18 @@ function snapshotGame(state: GameState): HudState {
     timeLeft: state.timeLeft,
     speed: Math.round(Math.abs(state.car.speed) * 0.48),
     health: state.car.health,
+    healthPercent: (state.car.health / state.car.maxHealth) * 100,
+    packageHealth: state.packageHealth,
+    vehicleClass: state.car.vehicleClass,
+    vehicleLabel: profile.label,
+    vehicleTrait: profile.trait,
+    interaction,
     arrestProgress: state.arrestProgress,
     escapeProgress: state.escapeProgress,
     callout: state.callout,
     calloutDetail: state.calloutDetail,
     calloutTimer: state.calloutTimer,
     resultReason: state.resultReason,
-    carDistance: distance(state.foot, state.car),
     stats: { ...state.stats },
   };
 }
@@ -115,6 +141,16 @@ export function HotDrop() {
     };
 
     const handleKey = (event: KeyboardEvent, pressed: boolean) => {
+      if (
+        !hasStarted &&
+        pressed &&
+        (event.code === "Enter" || event.code === "Space")
+      ) {
+        event.preventDefault();
+        beginRun();
+        return;
+      }
+
       const control = keyMap[event.code];
       if (!control) return;
       event.preventDefault();
@@ -142,7 +178,7 @@ export function HotDrop() {
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", clearInput);
     };
-  }, [beginRun]);
+  }, [beginRun, hasStarted]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -214,11 +250,7 @@ export function HotDrop() {
   };
 
   const terminal = hud.phase === "won" || hud.phase === "busted";
-  const canSteal =
-    hasStarted &&
-    hud.phase === "findCar" &&
-    hud.mode === "foot" &&
-    hud.carDistance < 82;
+  const canInteract = hasStarted && !terminal && Boolean(hud.interaction);
 
   return (
     <main
@@ -274,6 +306,14 @@ export function HotDrop() {
       </div>
 
       <section className={styles.vehicleHud} aria-label="Vehicle status">
+        <div
+          className={styles.vehicleIdentity}
+          data-vehicle-class={hud.vehicleClass}
+        >
+          <span>{hud.mode === "car" ? "Current ride" : "Parked ride"}</span>
+          <strong>{hud.vehicleLabel}</strong>
+          <small>{hud.vehicleTrait}</small>
+        </div>
         <div className={styles.speed}>
           <strong>{hud.mode === "car" ? hud.speed : "—"}</strong>
           <span>MPH</span>
@@ -281,16 +321,31 @@ export function HotDrop() {
         <div className={styles.health}>
           <div>
             <span>Ride integrity</span>
-            <b>{Math.ceil(hud.health)}%</b>
+            <b>{Math.ceil(hud.healthPercent)}%</b>
           </div>
           <div className={styles.healthTrack}>
             <i
               style={{
-                transform: `scaleX(${Math.max(0, hud.health) / 100})`,
+                transform: `scaleX(${Math.max(0, hud.healthPercent) / 100})`,
               }}
             />
           </div>
         </div>
+        {hud.phase === "deliver" || hud.phase === "won" ? (
+          <div className={styles.packageStatus}>
+            <div>
+              <span>Package</span>
+              <b>{Math.ceil(hud.packageHealth)}%</b>
+            </div>
+            <div className={styles.healthTrack}>
+              <i
+                style={{
+                  transform: `scaleX(${Math.max(0, hud.packageHealth) / 100})`,
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {hud.arrestProgress > 0 && !terminal ? (
@@ -327,10 +382,10 @@ export function HotDrop() {
         </div>
       ) : null}
 
-      {canSteal ? (
+      {canInteract ? (
         <div className={styles.interact}>
           <kbd>E</kbd>
-          <span>Steal ride</span>
+          <span>{hud.interaction}</span>
         </div>
       ) : null}
 
@@ -419,7 +474,8 @@ export function HotDrop() {
               <strong>Cross-town courier</strong>
               <p>
                 Take the marked ride, collect the package in East Market, then
-                cut back to the southside safehouse before the city closes in.
+                switch cars out of police sight and cut back to the southside
+                safehouse before the city closes in.
               </p>
             </div>
 
@@ -429,9 +485,9 @@ export function HotDrop() {
             </button>
 
             <div className={styles.introTips}>
-              <span>Near misses pay</span>
-              <span>Alleys break sight</span>
-              <span>Ramps build score</span>
+              <span>Flash is fast</span>
+              <span>Bruiser hits hard</span>
+              <span>Lockbox protects cargo</span>
             </div>
           </div>
           <div className={styles.introNumber} aria-hidden="true">
@@ -483,6 +539,14 @@ export function HotDrop() {
                 <strong>{hud.stats.escapes}</strong>
                 <span>Heat lost</span>
               </div>
+              <div>
+                <strong>{hud.stats.vehicleSwaps}</strong>
+                <span>Cars stolen</span>
+              </div>
+              <div>
+                <strong>{hud.stats.cleanSwaps}</strong>
+                <span>Clean switches</span>
+              </div>
             </div>
 
             <button className={styles.startButton} onClick={beginRun}>
@@ -501,6 +565,8 @@ export function HotDrop() {
         data-heat={hud.heat}
         data-score={hud.score}
         data-health={Math.round(hud.health)}
+        data-package-health={Math.round(hud.packageHealth)}
+        data-vehicle-class={hud.vehicleClass}
       >
         {hud.objective}
       </output>
@@ -598,9 +664,9 @@ function drawGame(
 
   if (game.mode === "foot") {
     drawPlayerOnFoot(context, game.foot, time);
-    drawCar(context, game.car, "#f06842", "player", time);
+    drawCar(context, game.car, game.car.color, "player", time);
   } else {
-    drawCar(context, game.car, "#f06842", "player", time, game.jumpTimer);
+    drawCar(context, game.car, game.car.color, "player", time, game.jumpTimer);
   }
 
   context.restore();
@@ -920,12 +986,22 @@ function drawRamps(context: CanvasRenderingContext2D, game: GameState) {
 
 function drawCar(
   context: CanvasRenderingContext2D,
-  car: Point & { angle: number; speed?: number },
+  car: Point & {
+    angle: number;
+    speed?: number;
+    vehicleClass?: VehicleClass;
+  },
   color: string,
   kind: "player" | "police" | "traffic",
   time: number,
   jumpTimer = 0,
 ) {
+  const profile = car.vehicleClass ? VEHICLE_PROFILES[car.vehicleClass] : null;
+  const bodyLength = kind === "police" ? 56 : (profile?.bodyLength ?? 56);
+  const bodyWidth = kind === "police" ? 28 : (profile?.bodyWidth ?? 28);
+  const halfLength = bodyLength / 2;
+  const halfWidth = bodyWidth / 2;
+  const wheelX = halfLength - 13;
   const jumpProgress =
     jumpTimer > 0
       ? Math.sin(Math.min(1, Math.max(0, 1 - jumpTimer / 0.84)) * Math.PI)
@@ -938,7 +1014,7 @@ function drawCar(
   context.globalAlpha = jumpTimer > 0 ? 0.3 : 0.38;
   context.fillStyle = "#101310";
   context.beginPath();
-  context.roundRect(-27, -14, 54, 28, 7);
+  context.roundRect(-halfLength + 1, -halfWidth, bodyLength + 2, bodyWidth, 7);
   context.fill();
   context.restore();
 
@@ -948,21 +1024,27 @@ function drawCar(
   context.scale(scale, scale);
 
   context.fillStyle = "#151817";
-  context.fillRect(-20, -17, 10, 4);
-  context.fillRect(11, -17, 10, 4);
-  context.fillRect(-20, 13, 10, 4);
-  context.fillRect(11, 13, 10, 4);
+  context.fillRect(-wheelX, -halfWidth - 3, 10, 4);
+  context.fillRect(wheelX - 10, -halfWidth - 3, 10, 4);
+  context.fillRect(-wheelX, halfWidth - 1, 10, 4);
+  context.fillRect(wheelX - 10, halfWidth - 1, 10, 4);
 
   context.fillStyle = color;
   context.beginPath();
-  context.roundRect(-28, -14, 56, 28, 8);
+  context.roundRect(
+    -halfLength,
+    -halfWidth,
+    bodyLength,
+    bodyWidth,
+    car.vehicleClass === "van" ? 5 : 8,
+  );
   context.fill();
 
   if (kind === "police") {
     context.fillStyle = "#1c2422";
-    context.fillRect(-7, -14, 17, 28);
+    context.fillRect(-7, -halfWidth, 17, bodyWidth);
     context.fillStyle = Math.sin(time * 0.018) > 0 ? "#ff4138" : "#418dff";
-    context.fillRect(-3, -16, 9, 4);
+    context.fillRect(-3, -halfWidth - 2, 9, 4);
     context.fillStyle = "#161b1a";
     context.font = "900 8px Arial";
     context.textAlign = "center";
@@ -970,23 +1052,42 @@ function drawCar(
   } else {
     context.fillStyle = kind === "player" ? "#27322f" : "#263230";
     context.beginPath();
-    context.roundRect(-8, -11, 22, 22, 4);
+    const cabinStart = car.vehicleClass === "van" ? -12 : -8;
+    const cabinLength = car.vehicleClass === "van" ? 32 : 22;
+    context.roundRect(
+      cabinStart,
+      -halfWidth + 3,
+      cabinLength,
+      bodyWidth - 6,
+      4,
+    );
     context.fill();
     context.fillStyle = "rgba(174, 222, 218, 0.7)";
-    context.fillRect(-5, -9, 7, 18);
+    context.fillRect(cabinStart + 3, -halfWidth + 5, 7, bodyWidth - 10);
+    if (car.vehicleClass) {
+      context.fillStyle = "rgba(255, 244, 207, 0.82)";
+      context.font = "900 8px Arial";
+      context.textAlign = "center";
+      context.fillText(car.vehicleClass[0].toUpperCase(), 9, 3);
+    }
   }
 
   context.fillStyle = "#ffe3a2";
-  context.fillRect(23, -10, 4, 7);
-  context.fillRect(23, 4, 4, 7);
+  context.fillRect(halfLength - 5, -halfWidth + 4, 4, 7);
+  context.fillRect(halfLength - 5, halfWidth - 11, 4, 7);
   context.fillStyle = "#d84036";
-  context.fillRect(-27, -10, 4, 6);
-  context.fillRect(-27, 4, 4, 6);
+  context.fillRect(-halfLength + 1, -halfWidth + 4, 4, 6);
+  context.fillRect(-halfLength + 1, halfWidth - 10, 4, 6);
 
   if (kind === "player") {
     context.strokeStyle = "#fff5d5";
     context.lineWidth = 2;
-    context.strokeRect(-29, -15, 58, 30);
+    context.strokeRect(
+      -halfLength - 1,
+      -halfWidth - 1,
+      bodyLength + 2,
+      bodyWidth + 2,
+    );
   }
   context.restore();
 }

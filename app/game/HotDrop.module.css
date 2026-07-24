@@ -205,6 +205,37 @@
   pointer-events: none;
 }
 
+.vehicleIdentity {
+  display: grid;
+  min-width: 104px;
+  gap: 1px;
+  border-left: 3px solid var(--orange);
+  padding-left: 10px;
+  text-transform: uppercase;
+}
+
+.vehicleIdentity[data-vehicle-class="sport"] {
+  border-color: #58c9d6;
+}
+
+.vehicleIdentity[data-vehicle-class="van"] {
+  border-color: var(--acid);
+}
+
+.vehicleIdentity span,
+.vehicleIdentity small {
+  color: var(--muted);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.vehicleIdentity strong {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: 19px;
+  letter-spacing: 0.05em;
+}
+
 .speed {
   display: grid;
   min-width: 82px;
@@ -227,21 +258,32 @@
   letter-spacing: 0.22em;
 }
 
-.health {
+.health,
+.packageStatus {
   display: grid;
   width: 180px;
   gap: 6px;
 }
 
-.health > div:first-child {
+.packageStatus {
+  width: 120px;
+}
+
+.health > div:first-child,
+.packageStatus > div:first-child {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.health b {
+.health b,
+.packageStatus b {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+}
+
+.packageStatus .healthTrack i {
+  background: var(--gold);
 }
 
 .healthTrack,
@@ -645,7 +687,7 @@
 
 .statGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1px;
   margin-top: 17px;
   background: rgba(255, 242, 207, 0.14);
@@ -788,6 +830,18 @@
     width: 120px;
   }
 
+  .vehicleIdentity {
+    min-width: 80px;
+  }
+
+  .vehicleIdentity small {
+    display: none;
+  }
+
+  .packageStatus {
+    width: 96px;
+  }
+
   .desktopControls {
     display: none;
   }
@@ -903,6 +957,24 @@
 
   .vehicleHud {
     bottom: 105px;
+    gap: 8px;
+  }
+
+  .vehicleIdentity {
+    min-width: 68px;
+    padding-left: 7px;
+  }
+
+  .vehicleIdentity strong {
+    font-size: 15px;
+  }
+
+  .health {
+    width: 86px;
+  }
+
+  .packageStatus {
+    width: 76px;
   }
 
   .missionBrief p {
