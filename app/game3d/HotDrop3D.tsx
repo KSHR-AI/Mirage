@@ -5,10 +5,20 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import baseStyles from "../game/HotDrop.module.css";
-import { VEHICLE_3D_PROFILES, FIXED_TIMESTEP } from "./config";
+import {
+  CITY_BUILDINGS,
+  FIXED_TIMESTEP,
+  FOOT_START,
+  ROAD_SEGMENTS,
+  STARTER_POSITION,
+  VEHICLE_3D_PROFILES,
+  WORLD_DEPTH,
+  WORLD_WIDTH,
+} from "./config";
 import { createMissionState, objectiveForMission } from "./gameplay";
 import styles from "./HotDrop3D.module.css";
 import { HotDropPresentation } from "./presentation";
@@ -29,9 +39,30 @@ const EMPTY_INPUT: Game3DInput = {
 
 const initialMission = createMissionState();
 const initialProfile = VEHICLE_3D_PROFILES.muscle;
+const initialTargetDistance = Math.hypot(
+  STARTER_POSITION.x - FOOT_START.x,
+  STARTER_POSITION.z - FOOT_START.z,
+);
 const INITIAL_SNAPSHOT: SimulationSnapshot = {
   mission: initialMission,
   objective: objectiveForMission(initialMission.phase),
+  navigation: {
+    playerX: FOOT_START.x,
+    playerZ: FOOT_START.z,
+    headingDegrees: 0,
+    targetX: STARTER_POSITION.x,
+    targetZ: STARTER_POSITION.z,
+    targetLabel: "Ride",
+    targetDistance: initialTargetDistance,
+    relativeBearingDegrees:
+      (Math.atan2(
+        STARTER_POSITION.x - FOOT_START.x,
+        -(STARTER_POSITION.z - FOOT_START.z),
+      ) *
+        180) /
+      Math.PI,
+    vehicles: [],
+  },
   speedMph: 0,
   interaction: "",
   vehicleLabel: initialProfile.label,
@@ -237,7 +268,17 @@ export function HotDrop3D() {
         <div className={baseStyles.objectivePanel}>
           <span>Current move</span>
           <strong>{snapshot.objective}</strong>
-          <div className={baseStyles.objectiveRule} />
+          <div className={styles.objectiveCue}>
+            <i
+              style={{
+                transform: `rotate(${snapshot.navigation.relativeBearingDegrees}deg)`,
+              }}
+            />
+            <b>
+              {navigationHint(snapshot.navigation.relativeBearingDegrees)} ·{" "}
+              {Math.round(snapshot.navigation.targetDistance)}m
+            </b>
+          </div>
         </div>
         <div className={baseStyles.scorePanel}>
           <div>
@@ -276,6 +317,8 @@ export function HotDrop3D() {
       <a className={styles.modeSwitch} href="?mode=2d">
         2D reference
       </a>
+
+      {!terminal ? <NavigationRadar navigation={snapshot.navigation} /> : null}
 
       <section className={baseStyles.vehicleHud} aria-label="Vehicle status">
         <div
@@ -371,7 +414,9 @@ export function HotDrop3D() {
         </div>
       ) : null}
 
-      <div className={baseStyles.desktopControls}>
+      <div
+        className={`${baseStyles.desktopControls} ${styles.controlsWithRadar}`}
+      >
         <span>
           <kbd>WASD</kbd> move
         </span>
@@ -553,10 +598,89 @@ export function HotDrop3D() {
         data-police-count={snapshot.policeCount}
         data-player-y={snapshot.playerY.toFixed(2)}
         data-drifting={snapshot.drifting}
+        data-target-distance={Math.round(snapshot.navigation.targetDistance)}
+        data-target-bearing={Math.round(
+          snapshot.navigation.relativeBearingDegrees,
+        )}
       >
         {snapshot.objective}
       </output>
     </main>
+  );
+}
+
+function NavigationRadar({
+  navigation,
+}: {
+  navigation: SimulationSnapshot["navigation"];
+}) {
+  const direction = navigationHint(navigation.relativeBearingDegrees);
+  return (
+    <section
+      className={styles.radar}
+      aria-label={`Navigation to ${navigation.targetLabel}: ${Math.round(
+        navigation.targetDistance,
+      )} meters, ${direction.toLowerCase()}`}
+    >
+      <header className={styles.radarHeader}>
+        <span>Bay City GPS</span>
+        <strong>{navigation.targetLabel}</strong>
+        <b>{Math.round(navigation.targetDistance)}m</b>
+      </header>
+      <div className={styles.radarMap} aria-hidden="true">
+        {ROAD_SEGMENTS.map((road, index) => (
+          <i
+            key={`road-${index}`}
+            className={styles.radarRoad}
+            style={radarRectStyle(road.x, road.z, road.width, road.depth)}
+          />
+        ))}
+        {CITY_BUILDINGS.map((building) => (
+          <i
+            key={building.id}
+            className={styles.radarBuilding}
+            style={radarRectStyle(
+              building.x,
+              building.z,
+              building.width,
+              building.depth,
+            )}
+          />
+        ))}
+        {navigation.vehicles.map((vehicle) => (
+          <i
+            key={vehicle.id}
+            className={`${styles.radarVehicle} ${
+              vehicle.role === "police"
+                ? styles.radarPolice
+                : vehicle.role === "traffic"
+                  ? styles.radarTraffic
+                  : styles.radarParked
+            }`}
+            style={radarPointStyle(vehicle.x, vehicle.z)}
+          />
+        ))}
+        <i
+          className={styles.radarTarget}
+          style={radarPointStyle(navigation.targetX, navigation.targetZ)}
+        />
+        <i
+          className={styles.radarPlayer}
+          style={{
+            ...radarPointStyle(navigation.playerX, navigation.playerZ),
+            transform: `translate(-50%, -50%) rotate(${navigation.headingDegrees}deg)`,
+          }}
+        />
+      </div>
+      <footer className={styles.radarDirection}>
+        <i
+          style={{
+            transform: `rotate(${navigation.relativeBearingDegrees}deg)`,
+          }}
+        />
+        <span>{direction}</span>
+      </footer>
+    </section>
   );
 }
 
@@ -609,4 +733,37 @@ function formatTime(seconds: number): string {
   const minutes = Math.floor(safeSeconds / 60);
   const remainder = safeSeconds % 60;
   return `${minutes}:${remainder.toString().padStart(2, "0")}`;
+}
+
+function radarPointStyle(x: number, z: number): CSSProperties {
+  return {
+    left: `${((x + WORLD_WIDTH / 2) / WORLD_WIDTH) * 100}%`,
+    top: `${((z + WORLD_DEPTH / 2) / WORLD_DEPTH) * 100}%`,
+  };
+}
+
+function radarRectStyle(
+  x: number,
+  z: number,
+  width: number,
+  depth: number,
+): CSSProperties {
+  return {
+    ...radarPointStyle(x, z),
+    width: `${(width / WORLD_WIDTH) * 100}%`,
+    height: `${(depth / WORLD_DEPTH) * 100}%`,
+  };
+}
+
+function navigationHint(relativeBearingDegrees: number): string {
+  const angle = normalizeDisplayAngle(relativeBearingDegrees);
+  const magnitude = Math.abs(angle);
+  if (magnitude < 15) return "Straight";
+  if (magnitude > 155) return "Turn around";
+  if (magnitude < 55) return angle > 0 ? "Bear right" : "Bear left";
+  return angle > 0 ? "Turn right" : "Turn left";
+}
+
+function normalizeDisplayAngle(degrees: number): number {
+  return ((((degrees + 180) % 360) + 360) % 360) - 180;
 }

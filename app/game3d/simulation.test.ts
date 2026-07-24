@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { DELIVERY_POSITION, PACKAGE_POSITION } from "./config";
+import {
+  DELIVERY_POSITION,
+  FOOT_START,
+  PACKAGE_POSITION,
+  STARTER_POSITION,
+} from "./config";
 import { HotDropSimulation, type Game3DInput } from "./simulation";
 
 const idle: Game3DInput = {
@@ -116,6 +121,66 @@ describe("Hot Drop 3D physics integration", () => {
     simulation.step(idle);
 
     expect(simulation.snapshot().mission.phase).toBe("won");
+  });
+
+  it("tracks the active objective, heading, distance, and radar vehicles", async () => {
+    const simulation = await createSimulation();
+    const initialNavigation = simulation.snapshot().navigation;
+    expect(initialNavigation.targetLabel).toBe("Ride");
+    expect(initialNavigation.targetX).toBeCloseTo(STARTER_POSITION.x);
+    expect(initialNavigation.targetZ).toBeCloseTo(STARTER_POSITION.z);
+    expect(initialNavigation.targetDistance).toBeCloseTo(
+      Math.hypot(
+        STARTER_POSITION.x - FOOT_START.x,
+        STARTER_POSITION.z - FOOT_START.z,
+      ),
+    );
+    expect(
+      initialNavigation.vehicles.some((vehicle) => vehicle.id === "starter"),
+    ).toBe(true);
+
+    simulation.step({ ...idle, action: true });
+    simulation.step(idle);
+    const vehicle = simulation.activeVehicle();
+    expect(vehicle).not.toBeNull();
+    if (!vehicle) return;
+
+    const pickupNavigation = simulation.snapshot().navigation;
+    expect(pickupNavigation.targetLabel).toBe("Pickup");
+    expect(pickupNavigation.targetX).toBe(PACKAGE_POSITION.x);
+    expect(pickupNavigation.targetZ).toBe(PACKAGE_POSITION.z);
+    expect(
+      pickupNavigation.vehicles.some((candidate) => candidate.id === "starter"),
+    ).toBe(false);
+
+    vehicle.body.setRotation(
+      {
+        x: 0,
+        y: -Math.sin(Math.PI / 4),
+        z: 0,
+        w: Math.cos(Math.PI / 4),
+      },
+      true,
+    );
+    const eastboundNavigation = simulation.snapshot().navigation;
+    expect(eastboundNavigation.headingDegrees).toBeCloseTo(90);
+    expect(eastboundNavigation.relativeBearingDegrees).toBeLessThan(0);
+    expect(eastboundNavigation.relativeBearingDegrees).toBeGreaterThan(-60);
+
+    vehicle.body.setTranslation(
+      { x: PACKAGE_POSITION.x, y: 1, z: PACKAGE_POSITION.z },
+      true,
+    );
+    simulation.step(idle);
+    const deliveryNavigation = simulation.snapshot().navigation;
+    expect(deliveryNavigation.targetLabel).toBe("Safehouse");
+    expect(deliveryNavigation.targetX).toBe(DELIVERY_POSITION.x);
+    expect(deliveryNavigation.targetZ).toBe(DELIVERY_POSITION.z);
+    expect(
+      deliveryNavigation.vehicles.filter(
+        (candidate) => candidate.role === "police",
+      ),
+    ).toHaveLength(2);
   });
 
   it("launches a vehicle from a physical ramp and simulates breakable props", async () => {

@@ -98,9 +98,230 @@
   color: #cfff4e;
 }
 
+.objectiveCue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 9px auto 0;
+  color: #cfff4e;
+}
+
+.objectiveCue i,
+.radarDirection i {
+  position: relative;
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(207, 255, 78, 0.42);
+  border-radius: 50%;
+  transition: transform 100ms linear;
+}
+
+.objectiveCue i::after,
+.radarDirection i::after {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-right: 4px solid transparent;
+  border-bottom: 9px solid #cfff4e;
+  border-left: 4px solid transparent;
+  content: "";
+  filter: drop-shadow(0 0 5px rgba(207, 255, 78, 0.7));
+  transform: translateX(-50%);
+}
+
+.objectiveCue b {
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.radar {
+  position: absolute;
+  z-index: 6;
+  right: 28px;
+  bottom: 28px;
+  display: grid;
+  width: 184px;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid rgba(255, 242, 207, 0.3);
+  pointer-events: none;
+  background: rgba(9, 14, 11, 0.84);
+  box-shadow:
+    5px 5px 0 rgba(9, 14, 11, 0.42),
+    inset 0 0 28px rgba(207, 255, 78, 0.035);
+  color: #fff2cf;
+  text-transform: uppercase;
+}
+
+.radarHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  column-gap: 8px;
+}
+
+.radarHeader span {
+  grid-column: 1 / -1;
+  color: rgba(255, 242, 207, 0.5);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+}
+
+.radarHeader strong {
+  overflow: hidden;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.radarHeader b {
+  color: #cfff4e;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.radarMap {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1.2;
+  border: 1px solid rgba(255, 242, 207, 0.2);
+  background:
+    linear-gradient(rgba(255, 242, 207, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 242, 207, 0.025) 1px, transparent 1px),
+    #111914;
+  background-size: 16.66% 20%;
+}
+
+.radarRoad,
+.radarBuilding,
+.radarVehicle,
+.radarTarget,
+.radarPlayer {
+  position: absolute;
+  display: block;
+  transform: translate(-50%, -50%);
+}
+
+.radarRoad {
+  background: rgba(255, 242, 207, 0.14);
+}
+
+.radarRoad::after {
+  position: absolute;
+  inset: 48% 0 auto;
+  border-top: 1px dashed rgba(255, 242, 207, 0.23);
+  content: "";
+}
+
+.radarBuilding {
+  border: 1px solid rgba(255, 242, 207, 0.1);
+  background: rgba(5, 9, 7, 0.9);
+}
+
+.radarVehicle {
+  z-index: 2;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+
+.radarTraffic {
+  background: #58c9d6;
+}
+
+.radarParked {
+  border: 1px solid rgba(255, 242, 207, 0.58);
+  background: #172019;
+}
+
+.radarPolice {
+  background: #ff6945;
+  box-shadow: 0 0 7px rgba(255, 105, 69, 0.9);
+  animation: policePing 700ms ease-in-out infinite alternate;
+}
+
+.radarTarget {
+  z-index: 3;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #cfff4e;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px rgba(207, 255, 78, 0.12),
+    0 0 10px rgba(207, 255, 78, 0.75);
+  animation: targetPing 850ms ease-in-out infinite alternate;
+}
+
+.radarPlayer {
+  z-index: 4;
+  width: 11px;
+  height: 14px;
+  background: #fff2cf;
+  clip-path: polygon(50% 0, 100% 100%, 50% 72%, 0 100%);
+  filter: drop-shadow(0 0 4px rgba(255, 242, 207, 0.9));
+  transform-origin: center;
+  transition:
+    top 70ms linear,
+    left 70ms linear,
+    transform 70ms linear;
+}
+
+.radarDirection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #cfff4e;
+}
+
+.radarDirection i {
+  width: 25px;
+  height: 25px;
+}
+
+.radarDirection i::after {
+  top: 4px;
+  border-right-width: 5px;
+  border-bottom-width: 11px;
+  border-left-width: 5px;
+}
+
+.radarDirection span {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+}
+
+.controlsWithRadar {
+  bottom: 224px;
+}
+
 @keyframes loadingSweep {
   to {
     transform: translateX(110%);
+  }
+}
+
+@keyframes targetPing {
+  to {
+    box-shadow:
+      0 0 0 6px rgba(207, 255, 78, 0.03),
+      0 0 15px rgba(207, 255, 78, 0.9);
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+@keyframes policePing {
+  to {
+    opacity: 0.42;
   }
 }
 
@@ -114,6 +335,40 @@
     top: 80px;
     left: 16px;
   }
+
+  .radar {
+    top: 116px;
+    right: 16px;
+    bottom: auto;
+    width: 142px;
+    gap: 5px;
+    padding: 7px;
+  }
+
+  .radarHeader span {
+    display: none;
+  }
+
+  .radarHeader strong,
+  .radarHeader b {
+    font-size: 8px;
+  }
+
+  .radarDirection i {
+    width: 20px;
+    height: 20px;
+  }
+
+  .radarDirection i::after {
+    top: 3px;
+    border-right-width: 4px;
+    border-bottom-width: 9px;
+    border-left-width: 4px;
+  }
+
+  .radarDirection span {
+    font-size: 7px;
+  }
 }
 
 @media (max-width: 520px) {
@@ -124,10 +379,40 @@
   .modeSwitch {
     top: 72px;
   }
+
+  .radar {
+    top: 104px;
+    right: 12px;
+    width: 126px;
+  }
+
+  .objectiveCue {
+    gap: 5px;
+    margin-top: 5px;
+  }
+
+  .objectiveCue i {
+    width: 16px;
+    height: 16px;
+  }
+
+  .objectiveCue i::after {
+    top: 2px;
+    border-right-width: 3px;
+    border-bottom-width: 8px;
+    border-left-width: 3px;
+  }
+
+  .objectiveCue b {
+    font-size: 7px;
+    letter-spacing: 0.07em;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .loading i::after {
+  .loading i::after,
+  .radarPolice,
+  .radarTarget {
     animation: none;
   }
 }

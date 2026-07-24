@@ -62,6 +62,7 @@ export interface PropEntity {
 export interface SimulationSnapshot {
   mission: MissionState;
   objective: string;
+  navigation: NavigationSnapshot;
   speedMph: number;
   interaction: string;
   vehicleLabel: string;
@@ -71,6 +72,23 @@ export interface SimulationSnapshot {
   policeCount: number;
   playerY: number;
   drifting: boolean;
+}
+
+export interface NavigationSnapshot {
+  playerX: number;
+  playerZ: number;
+  headingDegrees: number;
+  targetX: number;
+  targetZ: number;
+  targetLabel: string;
+  targetDistance: number;
+  relativeBearingDegrees: number;
+  vehicles: Array<{
+    id: string;
+    role: VehicleRole;
+    x: number;
+    z: number;
+  }>;
 }
 
 interface VehicleControls {
@@ -213,8 +231,8 @@ export class HotDropSimulation {
 
   snapshot(): SimulationSnapshot {
     const state = this.mission.state;
-    const vehicle =
-      this.getActiveVehicle() ?? this.getVehicle(this.lastVehicleId);
+    const activeVehicle = this.getActiveVehicle();
+    const vehicle = activeVehicle ?? this.getVehicle(this.lastVehicleId);
     const profile =
       VEHICLE_3D_PROFILES[vehicle?.vehicleClass ?? state.currentVehicleClass];
     const speed = vehicle ? horizontalSpeed(vehicle.body.linvel()) : 0;
@@ -232,6 +250,7 @@ export class HotDropSimulation {
         stats: { ...state.stats },
       },
       objective: objectiveForMission(state.phase),
+      navigation: this.navigationSnapshot(activeVehicle),
       speedMph: Math.round(speed * 2.237),
       interaction: this.interactionPrompt(),
       vehicleLabel: profile.label,
@@ -314,6 +333,62 @@ export class HotDropSimulation {
           .setRotation(rotation)
           .setFriction(1.1),
       );
+    }
+  }
+
+  private navigationSnapshot(
+    activeVehicle: VehicleEntity | null,
+  ): NavigationSnapshot {
+    const player = this.playerPosition();
+    const target = this.navigationTarget();
+    const rotation = activeVehicle?.body.rotation();
+    const headingDegrees = rotation
+      ? -(2 * Math.atan2(rotation.y, rotation.w) * 180) / Math.PI
+      : 0;
+    const targetBearingDegrees =
+      (Math.atan2(target.x - player.x, -(target.z - player.z)) * 180) / Math.PI;
+
+    return {
+      playerX: player.x,
+      playerZ: player.z,
+      headingDegrees: normalizeDegrees(headingDegrees),
+      targetX: target.x,
+      targetZ: target.z,
+      targetLabel: target.label,
+      targetDistance: distanceXZ(player, target),
+      relativeBearingDegrees: normalizeDegrees(
+        targetBearingDegrees - headingDegrees,
+      ),
+      vehicles: this.vehicles
+        .filter((vehicle) => vehicle !== activeVehicle)
+        .map((vehicle) => {
+          const position = vehicle.body.translation();
+          return {
+            id: vehicle.id,
+            role: vehicle.role,
+            x: position.x,
+            z: position.z,
+          };
+        }),
+    };
+  }
+
+  private navigationTarget(): { x: number; z: number; label: string } {
+    switch (this.mission.state.phase) {
+      case "findCar": {
+        const starter = this.getVehicle("starter");
+        const position = starter?.body.translation() ?? STARTER_POSITION;
+        return { x: position.x, z: position.z, label: "Ride" };
+      }
+      case "pickup":
+        return { ...PACKAGE_POSITION, label: "Pickup" };
+      case "deliver":
+        return { ...DELIVERY_POSITION, label: "Safehouse" };
+      case "won":
+      case "busted": {
+        const player = this.playerPosition();
+        return { x: player.x, z: player.z, label: "Run complete" };
+      }
     }
   }
 
@@ -861,4 +936,8 @@ function distanceXZ(
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
+}
+
+function normalizeDegrees(degrees: number): number {
+  return ((((degrees + 180) % 360) + 360) % 360) - 180;
 }
