@@ -1,0 +1,468 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/KSHR-AI/Mirage/blob/main/benchmark/submission.schema.json",
+  "title": "Mirage benchmark build submission",
+  "description": "Reproducibility and provenance record for one independently produced playable build.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "run_id",
+    "title",
+    "submitted_by",
+    "model",
+    "prompt",
+    "agent_setup",
+    "source",
+    "budgets",
+    "execution",
+    "artifact",
+    "dependencies",
+    "assets",
+    "tests",
+    "known_failures",
+    "attestation"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "minLength": 6,
+      "maxLength": 100
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 120
+    },
+    "submitted_by": {
+      "type": "string",
+      "minLength": 2
+    },
+    "model": {
+      "$ref": "#/$defs/model"
+    },
+    "prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "verbatim"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^benchmark/prompts/[a-z0-9][a-z0-9-]*\\.md$"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verbatim": {
+          "const": true
+        }
+      }
+    },
+    "agent_setup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "harness",
+        "orchestrator",
+        "agent_count",
+        "subagent_count",
+        "roles",
+        "tools",
+        "sandbox",
+        "network_access",
+        "secrets_available"
+      ],
+      "properties": {
+        "harness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version"],
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "version": {
+              "$ref": "#/$defs/nonEmptyString"
+            }
+          }
+        },
+        "orchestrator": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "agent_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "subagent_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "model_snapshot",
+              "reasoning_level",
+              "responsibility"
+            ],
+            "properties": {
+              "name": {
+                "$ref": "#/$defs/nonEmptyString"
+              },
+              "model_snapshot": {
+                "$ref": "#/$defs/nonEmptyString"
+              },
+              "reasoning_level": {
+                "$ref": "#/$defs/nonEmptyString"
+              },
+              "responsibility": {
+                "$ref": "#/$defs/nonEmptyString"
+              }
+            }
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "version", "permissions"],
+            "properties": {
+              "name": {
+                "$ref": "#/$defs/nonEmptyString"
+              },
+              "version": {
+                "type": ["string", "null"]
+              },
+              "permissions": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/nonEmptyString"
+                }
+              }
+            }
+          }
+        },
+        "sandbox": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "network_access": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "secrets_available": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "base_commit", "result_commit", "branch"],
+      "properties": {
+        "repository": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "base_commit": {
+          "$ref": "#/$defs/gitCommit"
+        },
+        "result_commit": {
+          "$ref": "#/$defs/gitCommit"
+        },
+        "branch": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wall_clock_limit_seconds",
+        "wall_clock_used_seconds",
+        "token_limit",
+        "tokens_used",
+        "cost_limit_usd",
+        "cost_actual_usd"
+      ],
+      "properties": {
+        "wall_clock_limit_seconds": {
+          "$ref": "#/$defs/nullableNonNegativeNumber"
+        },
+        "wall_clock_used_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "token_limit": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "tokens_used": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "cost_limit_usd": {
+          "$ref": "#/$defs/nullableNonNegativeNumber"
+        },
+        "cost_actual_usd": {
+          "$ref": "#/$defs/nullableNonNegativeNumber"
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "started_at",
+        "completed_at",
+        "retry_count",
+        "human_interventions",
+        "failed_trials"
+      ],
+      "properties": {
+        "started_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "completed_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "retry_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "human_interventions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/disclosedEvent"
+          }
+        },
+        "failed_trials": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/disclosedEvent"
+          }
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route",
+        "playable_url",
+        "deployment_provider",
+        "build_commit"
+      ],
+      "properties": {
+        "route": {
+          "type": "string",
+          "pattern": "^/play/[a-z0-9][a-z0-9-]*$"
+        },
+        "playable_url": {
+          "type": "string",
+          "pattern": "^https://"
+        },
+        "deployment_provider": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "build_commit": {
+          "$ref": "#/$defs/gitCommit"
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "version", "source", "license", "added_for_run"],
+        "properties": {
+          "name": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "version": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "source": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "license": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "added_for_run": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "source", "license", "attribution", "generated"],
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "source": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "license": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "attribution": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "generated": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["command", "result", "evidence"],
+        "properties": {
+          "command": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "result": {
+            "enum": ["pass", "fail", "not-run"]
+          },
+          "evidence": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        }
+      }
+    },
+    "known_failures": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/nonEmptyString"
+      }
+    },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["complete_and_accurate", "redistribution_rights_confirmed"],
+      "properties": {
+        "complete_and_accurate": {
+          "const": true
+        },
+        "redistribution_rights_confirmed": {
+          "const": true
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gitCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "dateTime": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$"
+    },
+    "nullableNonNegativeInteger": {
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "nullableNonNegativeNumber": {
+      "type": ["number", "null"],
+      "minimum": 0
+    },
+    "disclosedEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["at", "kind", "description", "impact"],
+      "properties": {
+        "at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "kind": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "description": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "impact": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "family",
+        "snapshot",
+        "reasoning_level",
+        "sampling"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "family": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "reasoning_level": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "sampling": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["temperature", "top_p", "seed", "other"],
+          "properties": {
+            "temperature": {
+              "type": ["number", "null"],
+              "minimum": 0
+            },
+            "top_p": {
+              "type": ["number", "null"],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "seed": {
+              "type": ["integer", "null"]
+            },
+            "other": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  }
+}

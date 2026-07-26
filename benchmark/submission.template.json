@@ -1,0 +1,108 @@
+{
+  "$schema": "./submission.schema.json",
+  "schema_version": "1.0.0",
+  "run_id": "provider-model-yyyymmdd-r01",
+  "title": "Short human-readable build name",
+  "submitted_by": "@github-handle",
+  "model": {
+    "provider": "provider",
+    "family": "model family",
+    "snapshot": "exact immutable model snapshot or version",
+    "reasoning_level": "declared reasoning or inference-effort setting",
+    "sampling": {
+      "temperature": null,
+      "top_p": null,
+      "seed": null,
+      "other": {}
+    }
+  },
+  "prompt": {
+    "path": "benchmark/prompts/provider-model-yyyymmdd-r01.md",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "verbatim": true
+  },
+  "agent_setup": {
+    "harness": {
+      "name": "agent harness",
+      "version": "exact version or commit"
+    },
+    "orchestrator": "single-agent, coordinator, or other topology",
+    "agent_count": 1,
+    "subagent_count": 0,
+    "roles": [
+      {
+        "name": "primary",
+        "model_snapshot": "exact immutable model snapshot or version",
+        "reasoning_level": "declared reasoning or inference-effort setting",
+        "responsibility": "complete run"
+      }
+    ],
+    "tools": [
+      {
+        "name": "shell",
+        "version": null,
+        "permissions": ["read repository", "write repository", "run tests"]
+      }
+    ],
+    "sandbox": "Describe filesystem/process isolation and writable paths.",
+    "network_access": "Describe allowed hosts and whether browsing was available.",
+    "secrets_available": []
+  },
+  "source": {
+    "repository": "https://github.com/KSHR-AI/Mirage",
+    "base_commit": "0000000000000000000000000000000000000000",
+    "result_commit": "0000000000000000000000000000000000000000",
+    "branch": "contributor/run-branch"
+  },
+  "budgets": {
+    "wall_clock_limit_seconds": null,
+    "wall_clock_used_seconds": 0,
+    "token_limit": null,
+    "tokens_used": null,
+    "cost_limit_usd": null,
+    "cost_actual_usd": null
+  },
+  "execution": {
+    "started_at": "2026-01-01T00:00:00Z",
+    "completed_at": "2026-01-01T00:00:00Z",
+    "retry_count": 0,
+    "human_interventions": [],
+    "failed_trials": []
+  },
+  "artifact": {
+    "route": "/play/provider-model-yyyymmdd-r01",
+    "playable_url": "https://example.com/play/provider-model-yyyymmdd-r01",
+    "deployment_provider": "provider",
+    "build_commit": "0000000000000000000000000000000000000000"
+  },
+  "dependencies": [
+    {
+      "name": "package-or-service",
+      "version": "exact version",
+      "source": "https://example.com",
+      "license": "SPDX identifier or service terms URL",
+      "added_for_run": true
+    }
+  ],
+  "assets": [
+    {
+      "path": "public/example.asset",
+      "source": "https://example.com/source",
+      "license": "SPDX identifier or source terms URL",
+      "attribution": "Required credit or none",
+      "generated": false
+    }
+  ],
+  "tests": [
+    {
+      "command": "pnpm check",
+      "result": "pass",
+      "evidence": "Durable log URL or concise observed result"
+    }
+  ],
+  "known_failures": [],
+  "attestation": {
+    "complete_and_accurate": true,
+    "redistribution_rights_confirmed": true
+  }
+}
