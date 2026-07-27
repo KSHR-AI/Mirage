@@ -50,7 +50,7 @@ export class HotDropPresentation {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.12;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.scene.background = new THREE.Color(0x101613);
     this.scene.fog = new THREE.FogExp2(0x111713, 0.0085);
 
