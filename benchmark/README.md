@@ -46,3 +46,8 @@ Each manifest records:
 The static registry is intentionally pull-request driven. This keeps the first
 public version auditable without introducing accounts, a database, or a
 write-enabled submission API.
+
+Run `pnpm catalog:generate` after adding a task or submission manifest. Commit
+the generated catalog and run `pnpm check`; CI rejects stale catalogs. All
+submitted code and assets must be Apache-2.0-compatible or carry explicit,
+reviewed licensing and attribution.

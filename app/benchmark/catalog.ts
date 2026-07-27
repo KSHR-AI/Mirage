@@ -1,15 +1,7 @@
-const taskDocuments = import.meta.glob("../../benchmark/tasks/*.json", {
-  eager: true,
-  import: "default",
-}) as Record<string, unknown>;
+import generatedCatalog from "./catalog.generated.json";
 
-const submissionDocuments = import.meta.glob(
-  "../../benchmark/submissions/*.json",
-  {
-    eager: true,
-    import: "default",
-  },
-) as Record<string, unknown>;
+const taskDocuments = generatedCatalog.tasks as unknown[];
+const submissionDocuments = generatedCatalog.submissions as unknown[];
 
 export type RunStatus = "playable" | "degraded" | "unplayable";
 export type CaptureStatus = "published" | "partial" | "not-recorded";
@@ -211,13 +203,13 @@ export function hasPublishedSetup(run: BenchmarkRun) {
   );
 }
 
-const discoveredTasks = Object.values(taskDocuments).map(parseTask);
+const discoveredTasks = taskDocuments.map(parseTask);
 if (discoveredTasks.length !== 1) {
   throw new Error("The benchmark catalog must contain exactly one active task");
 }
 
 const benchmarkTask = discoveredTasks[0];
-const discoveredRuns = Object.values(submissionDocuments).map((document) =>
+const discoveredRuns = submissionDocuments.map((document) =>
   Object.freeze(parseRun(document)),
 );
 

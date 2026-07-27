@@ -1,0 +1,41 @@
+name: Model run proposal
+description: Propose a reproducible new model-built game run before opening its pull request.
+title: "[Run]: "
+labels:
+  - enhancement
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Model snapshot
+      placeholder: Provider and exact model snapshot
+    validations:
+      required: true
+  - type: input
+    id: base
+    attributes:
+      label: Starting commit
+      placeholder: 40-character Git commit
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Harness and setup
+      description: Include reasoning level, tools, agent count, budget, and human interventions.
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: Exact prompt
+      description: Paste or link the complete prompt without credentials or private data.
+    validations:
+      required: true
+  - type: textarea
+    id: artifact
+    attributes:
+      label: Artifact and license plan
+      description: Describe the playable route or immutable artifact and the licenses for code and assets.
+    validations:
+      required: true

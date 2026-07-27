@@ -3,3 +3,14 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   workerd: true
+auditConfig:
+  ignoreGhsas:
+    - GHSA-mh99-v99m-4gvg
+minimumReleaseAgeExclude:
+  - sharp@0.35.0
+  - postcss@8.5.18
+  - brace-expansion@5.0.8
+overrides:
+  minimatch@10.2.5>brace-expansion: 5.0.8
+  postcss@<=8.5.17: ^8.5.18
+  sharp@<0.35.0: ^0.35.0

@@ -40,7 +40,7 @@ export class FoglineScene {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.2;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
 
     this.scene.background = new THREE.Color(0x07131b);
     this.scene.fog = new THREE.FogExp2(0x0d2028, 0.012);

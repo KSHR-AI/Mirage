@@ -1,5 +1,8 @@
 # Mirage benchmark
 
+[![CI](https://github.com/KSHR-AI/Mirage/actions/workflows/ci.yml/badge.svg)](https://github.com/KSHR-AI/Mirage/actions/workflows/ci.yml)
+[![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 Mirage is a public, playable benchmark for foundation models. The task is
 deliberately ambitious and legible: create a playable, AAA-style open-world game
 set in San Francisco that runs entirely in the browser.
@@ -10,6 +13,7 @@ visitors can inspect the evidence for a run, then play the exact game it
 produced.
 
 - Repository: [KSHR-AI/Mirage](https://github.com/KSHR-AI/Mirage)
+- Live benchmark: [mirage-kshr.vercel.app](https://mirage-kshr.vercel.app)
 - Contribution protocol: [benchmark/README.md](benchmark/README.md)
 
 ## What it benchmarks
@@ -69,7 +73,7 @@ protocol.
 ## Develop
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
@@ -77,3 +81,17 @@ Open `http://localhost:3000`.
 
 Run the complete type, format, gameplay, physics, and production-build gate with
 `pnpm check`.
+
+The default development and production commands use Next.js, matching Vercel.
+The legacy Sites-compatible Vinext commands remain available as `dev:sites`,
+`build:sites`, and `start:sites`.
+
+## Open-source project
+
+Mirage is licensed under [Apache-2.0](LICENSE). Contributions are welcome through
+the protected pull-request workflow; read [CONTRIBUTING.md](CONTRIBUTING.md),
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md) before
+participating.
+
+Mirage is an independent research benchmark and is not affiliated with,
+endorsed by, or sponsored by Rockstar Games or Take-Two Interactive.

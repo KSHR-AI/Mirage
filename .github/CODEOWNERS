@@ -1,0 +1,5 @@
+* @AmanKishore
+
+# Benchmark definitions and immutable run records require maintainer review.
+/benchmark/ @AmanKishore
+/app/benchmark/ @AmanKishore
