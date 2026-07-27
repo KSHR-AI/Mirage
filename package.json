@@ -1,8 +1,8 @@
 {
-  "name": "mirage-benchmark",
+  "name": "mirage-model-demos",
   "version": "0.1.0",
   "private": true,
-  "description": "A public, playable benchmark for foundation models building GTA-inspired browser games set in San Francisco.",
+  "description": "A gallery of playable browser games built end-to-end by coding models.",
   "license": "Apache-2.0",
   "homepage": "https://mirage-kshr.vercel.app",
   "repository": {
@@ -13,7 +13,7 @@
     "url": "https://github.com/KSHR-AI/Mirage/issues"
   },
   "keywords": [
-    "benchmark",
+    "model-demos",
     "browser-game",
     "coding-agents",
     "foundation-models",
@@ -25,8 +25,8 @@
     "node": "24.x"
   },
   "scripts": {
-    "catalog:generate": "node scripts/generate-benchmark-catalog.mjs",
-    "catalog:check": "node scripts/generate-benchmark-catalog.mjs --check",
+    "catalog:generate": "node scripts/generate-demo-catalog.mjs",
+    "catalog:check": "node scripts/generate-demo-catalog.mjs --check",
     "predev": "pnpm catalog:generate",
     "dev": "next dev",
     "prebuild": "pnpm catalog:generate",
@@ -39,7 +39,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "audit:security": "pnpm audit --audit-level=high --ignore GHSA-mh99-v99m-4gvg",
-    "format:check": "prettier --check .openai app benchmark build scripts worker .github README.md CODE_OF_CONDUCT.md CONTRIBUTING.md SECURITY.md eslint.config.mjs next.config.ts package.json pnpm-workspace.yaml tsconfig.json vercel.json vite.config.ts vitest.config.ts",
+    "format:check": "prettier --check .openai app build demos scripts worker .github README.md CODE_OF_CONDUCT.md CONTRIBUTING.md SECURITY.md eslint.config.mjs next.config.ts package.json pnpm-workspace.yaml tsconfig.json vercel.json vite.config.ts vitest.config.ts",
     "check": "pnpm catalog:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm audit:security && pnpm build"
   },
   "dependencies": {

@@ -6,5 +6,5 @@ export default async function FoglinePursuitPage({
   searchParams: Promise<{ embed?: string | string[] }>;
 }) {
   const { embed } = await searchParams;
-  return <FoglinePursuit autoStart={embed === "benchmark"} />;
+  return <FoglinePursuit autoStart={embed === "gallery"} />;
 }

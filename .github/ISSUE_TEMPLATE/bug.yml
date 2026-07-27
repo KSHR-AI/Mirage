@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem in the benchmark site or a playable run.
+description: Report a reproducible problem in the demo gallery or a playable game.
 title: "[Bug]: "
 labels:
   - bug
@@ -9,7 +9,7 @@ body:
     attributes:
       label: Affected surface
       options:
-        - Benchmark lobby
+        - Demo gallery
         - Fogline Pursuit
         - Legacy Hot Drop
         - Contribution tooling
@@ -45,7 +45,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Browser, operating system, input device, viewport, and commit or run ID.
+      description: Browser, operating system, input device, viewport, and commit or demo ID.
     validations:
       required: true
   - type: textarea

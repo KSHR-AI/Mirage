@@ -1,25 +1,19 @@
 {
   "id": "legacy-hot-drop",
-  "taskId": "mirage-gta-sf-v1",
+  "title": "Hot Drop",
+  "tagline": "A fast 3D midnight courier chase",
+  "description": "Steal a ride, collect the package, lose the police, and reach the drop before time runs out in a compact browser-native city.",
   "model": "gpt-5.6-sol",
   "builtOn": "2026-07-24",
   "commit": "507d32ec1edbdf22ca09f4194824fb8575b81cab",
   "playUrl": "/play/legacy-hot-drop",
   "sourceUrl": "https://github.com/KSHR-AI/Mirage/tree/507d32ec1edbdf22ca09f4194824fb8575b81cab",
-  "status": "playable",
-  "progress": {
-    "percent": 10,
-    "basis": "submitter-estimate",
-    "note": "A vibes-based progress estimate supplied by the run submitter; it is not a benchmark score."
-  },
-  "comparisonEligible": false,
-  "previewImage": "/benchmark/legacy-hot-drop-cover.png",
+  "previewImage": "/demos/legacy-hot-drop-cover.png",
   "provenance": {
     "prompt": {
       "status": "not-recorded",
       "text": null,
-      "digest": null,
-      "note": "This build predates the reproducible-run protocol, so its verbatim prompt was not captured."
+      "note": "This early build did not preserve its verbatim build brief."
     },
     "setup": {
       "status": "partial",
@@ -43,26 +37,13 @@
       "packageLock": "pnpm-lock.yaml",
       "thirdPartyAssets": null,
       "licenseStatus": "review-required"
-    },
-    "manifestUrl": null,
-    "submissionPrUrl": null
-  },
-  "capabilities": [
-    {
-      "label": "Driving physics",
-      "status": "verified"
-    },
-    {
-      "label": "Police pursuit",
-      "status": "verified"
-    },
-    {
-      "label": "Mission loop",
-      "status": "verified"
-    },
-    {
-      "label": "Objective navigation",
-      "status": "verified"
     }
+  },
+  "features": [
+    "3D driving",
+    "Vehicle switching",
+    "Police pursuit",
+    "Mission loop",
+    "Objective navigation"
   ]
 }

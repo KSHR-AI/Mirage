@@ -7,7 +7,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { BENCHMARK_TASK } from "../benchmark/catalog";
+import { DEMO_COLLECTION } from "../gallery/catalog";
 import styles from "./HotDrop.module.css";
 import {
   BUILDINGS,
@@ -28,7 +28,6 @@ import {
   type Point,
   type VehicleClass,
 } from "./engine";
-import { BenchmarkScorecard } from "./BenchmarkScorecard";
 
 const EMPTY_INPUT: GameInput = {
   up: false,
@@ -260,7 +259,7 @@ export function HotDrop() {
       className={styles.shell}
       data-fullscreen-game
       tabIndex={-1}
-      aria-label={`${BENCHMARK_TASK.brandName}: ${BENCHMARK_TASK.gameTitle} game`}
+      aria-label={`${DEMO_COLLECTION.brandName}: ${DEMO_COLLECTION.gameTitle} game`}
     >
       <canvas
         ref={canvasRef}
@@ -272,9 +271,9 @@ export function HotDrop() {
 
       <header className={styles.topHud}>
         <div className={styles.brand}>
-          <span>{BENCHMARK_TASK.brandName}:</span>
-          <strong>{BENCHMARK_TASK.gameTitle}</strong>
-          <small>{BENCHMARK_TASK.locationLabel} · 02:17 AM</small>
+          <span>{DEMO_COLLECTION.brandName}:</span>
+          <strong>{DEMO_COLLECTION.gameTitle}</strong>
+          <small>{DEMO_COLLECTION.locationLabel} · 02:17 AM</small>
         </div>
 
         <div className={styles.objectivePanel}>
@@ -462,18 +461,15 @@ export function HotDrop() {
         <section className={styles.intro}>
           <div className={styles.introCard}>
             <p className={styles.eyebrow}>
-              {BENCHMARK_TASK.brandName}{" "}
-              {BENCHMARK_TASK.surfaceLabel.toLowerCase()} · 2D reference
+              {DEMO_COLLECTION.brandName} model-built demo · 2D edition
             </p>
             <h1 className={styles.mirageTitle}>
-              <span>{BENCHMARK_TASK.brandName}:</span>
-              <strong>{BENCHMARK_TASK.gameTitle}</strong>
+              <span>{DEMO_COLLECTION.brandName}:</span>
+              <strong>{DEMO_COLLECTION.gameTitle}</strong>
             </h1>
             <p className={styles.tagline}>
               Frontier models build it. You break it.
             </p>
-
-            <BenchmarkScorecard />
 
             <button className={styles.startButton} onClick={beginRun}>
               <span>Start run</span>

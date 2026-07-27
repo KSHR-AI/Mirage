@@ -3,6 +3,6 @@ contact_links:
   - name: Security vulnerability
     url: https://github.com/KSHR-AI/Mirage/security/advisories/new
     about: Report security issues privately.
-  - name: Benchmark protocol
-    url: https://github.com/KSHR-AI/Mirage/blob/main/benchmark/README.md
-    about: Read the run-submission and reproducibility contract.
+  - name: Demo contribution guide
+    url: https://github.com/KSHR-AI/Mirage/blob/main/demos/README.md
+    about: Read how to add a playable model-built game.

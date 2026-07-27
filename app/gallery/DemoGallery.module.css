@@ -90,7 +90,7 @@
   text-transform: uppercase;
 }
 
-.benchmarkWord {
+.collectionWord {
   color: var(--soft-ink);
   font-size: 8px;
   font-weight: 600;
@@ -105,6 +105,60 @@
   bottom: 62px;
   left: clamp(18px, 3vw, 44px);
   outline: none;
+}
+
+.heroCopy {
+  position: absolute;
+  z-index: 3;
+  top: clamp(84px, 12vh, 132px);
+  left: clamp(22px, 5vw, 76px);
+  width: min(580px, calc(100% - 44px));
+  text-wrap: balance;
+}
+
+.heroCopy > span {
+  color: var(--mint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.heroCopy h1 {
+  max-width: 11ch;
+  margin: 9px 0 8px;
+  color: var(--ink);
+  font-family: "Barlow Condensed", Impact, sans-serif;
+  font-size: clamp(46px, 7vw, 92px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 0.88;
+  text-transform: uppercase;
+}
+
+.heroCopy p {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--soft-ink);
+  font-size: clamp(12px, 1.3vw, 16px);
+  line-height: 1.5;
+}
+
+.featureList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.featureList li {
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: var(--soft-ink);
+  font-size: 9px;
 }
 
 .runStatus {
@@ -912,6 +966,28 @@
 }
 
 @media (max-width: 760px) {
+  .imageVeil {
+    background: rgba(5, 10, 9, 0.48);
+  }
+
+  .heroCopy {
+    top: 84px;
+    left: 18px;
+    width: calc(100% - 36px);
+  }
+
+  .heroCopy > span {
+    display: none;
+  }
+
+  .heroCopy h1 {
+    font-size: clamp(40px, 14vw, 62px);
+  }
+
+  .heroCopy p {
+    display: none;
+  }
+
   .masthead {
     top: 16px;
     width: calc(100% - 32px);
@@ -919,6 +995,12 @@
 
   .mastRule {
     max-width: 52px;
+  }
+
+  .collectionWord {
+    font-size: 7px;
+    letter-spacing: 0.24em;
+    white-space: nowrap;
   }
 
   .runDeck {

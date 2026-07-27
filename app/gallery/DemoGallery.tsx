@@ -9,7 +9,6 @@ import {
   CheckCircle,
   Copy,
   DownloadSimple,
-  Gauge,
   GithubLogo,
   LinkSimple,
   PaperPlaneTilt,
@@ -28,25 +27,25 @@ import {
   type RefObject,
 } from "react";
 import {
-  BENCHMARK_RUNS,
-  BENCHMARK_TASK,
+  DEMO_COLLECTION,
+  DEMOS,
   hasPublishedPrompt,
   hasPublishedSetup,
-  type BenchmarkRun,
+  type DemoRecord,
 } from "./catalog";
-import styles from "./BenchmarkHub.module.css";
+import styles from "./DemoGallery.module.css";
 
-const REPOSITORY_URL = BENCHMARK_TASK.repositoryUrl;
-const CONTRIBUTION_URL = `${REPOSITORY_URL.replace(/\/$/, "")}/blob/main/${BENCHMARK_TASK.contribution.guidePath.replace(/^\//, "")}`;
+const REPOSITORY_URL = DEMO_COLLECTION.repositoryUrl;
+const CONTRIBUTION_URL = `${REPOSITORY_URL.replace(/\/$/, "")}/blob/main/${DEMO_COLLECTION.contribution.guidePath.replace(/^\//, "")}`;
 const DRAWER_FOCUSABLE =
   'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-type BenchmarkHubProps = {
-  runs?: readonly BenchmarkRun[];
+type DemoGalleryProps = {
+  demos?: readonly DemoRecord[];
 };
 
-export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
-  const [selectedRunId, setSelectedRunId] = useState(runs[0].id);
+export function DemoGallery({ demos = DEMOS }: DemoGalleryProps) {
+  const [selectedDemoId, setSelectedDemoId] = useState(demos[0].id);
   const [detailOpen, setDetailOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -56,18 +55,18 @@ export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const gameFrameRef = useRef<HTMLIFrameElement>(null);
 
-  const selectedRun = useMemo(
-    () => runs.find((run) => run.id === selectedRunId) ?? runs[0],
-    [runs, selectedRunId],
+  const selectedDemo = useMemo(
+    () => demos.find((demo) => demo.id === selectedDemoId) ?? demos[0],
+    [demos, selectedDemoId],
   );
-  const selectedIndex = runs.findIndex((run) => run.id === selectedRun.id);
-  const neighboringRuns = getNeighboringRuns(runs, selectedIndex);
-  const manifestDownload = useMemo(
+  const selectedIndex = demos.findIndex((demo) => demo.id === selectedDemo.id);
+  const neighboringDemos = getNeighboringDemos(demos, selectedIndex);
+  const recordDownload = useMemo(
     () =>
       `data:application/json;charset=utf-8,${encodeURIComponent(
-        JSON.stringify(selectedRun, null, 2),
+        JSON.stringify(selectedDemo, null, 2),
       )}`,
-    [selectedRun],
+    [selectedDemo],
   );
 
   const closeDetail = useCallback(() => {
@@ -84,12 +83,13 @@ export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
 
   const moveSelection = useCallback(
     (direction: -1 | 1) => {
-      if (runs.length < 2) return;
-      const nextIndex = (selectedIndex + direction + runs.length) % runs.length;
-      setSelectedRunId(runs[nextIndex].id);
+      if (demos.length < 2) return;
+      const nextIndex =
+        (selectedIndex + direction + demos.length) % demos.length;
+      setSelectedDemoId(demos[nextIndex].id);
       setFeedback("");
     },
-    [runs, selectedIndex],
+    [demos, selectedIndex],
   );
 
   const beginPlay = useCallback(() => {
@@ -100,14 +100,13 @@ export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
   useEffect(() => {
     if (!detailOpen) return;
     requestAnimationFrame(() => closeRef.current?.focus());
-  }, [detailOpen, selectedRun.id]);
+  }, [detailOpen, selectedDemo.id]);
 
   useEffect(() => {
     if (!isPlaying) return;
-    const focusFrame = () => gameFrameRef.current?.focus();
-    const frame = requestAnimationFrame(focusFrame);
+    const frame = requestAnimationFrame(() => gameFrameRef.current?.focus());
     return () => cancelAnimationFrame(frame);
-  }, [isPlaying, selectedRun.id]);
+  }, [isPlaying, selectedDemo.id]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -154,10 +153,10 @@ export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
       <main className={styles.playingShell} data-fullscreen-game>
         <iframe
           ref={gameFrameRef}
-          key={selectedRun.id}
+          key={selectedDemo.id}
           className={styles.liveGame}
-          src={withEmbedMode(selectedRun.playUrl)}
-          title={`${selectedRun.model} playable benchmark artifact`}
+          src={withEmbedMode(selectedDemo.playUrl)}
+          title={`${selectedDemo.title}, a playable model-built demo`}
           sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-fullscreen"
           allow="fullscreen; gamepad"
           allowFullScreen
@@ -167,12 +166,14 @@ export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
         <div className={styles.playBar}>
           <button type="button" onClick={() => setIsPlaying(false)}>
             <ArrowLeft aria-hidden="true" weight="bold" />
-            Back to builds
+            Back to demos
           </button>
           <span>
-            <strong>{selectedRun.model}</strong>
+            <strong>{selectedDemo.title}</strong>
+            <i aria-hidden="true" />
+            {selectedDemo.model}
           </span>
-          <a href={selectedRun.playUrl} target="_blank" rel="noreferrer">
+          <a href={selectedDemo.playUrl} target="_blank" rel="noreferrer">
             Open full screen
             <ArrowSquareOut aria-hidden="true" />
           </a>
@@ -188,15 +189,14 @@ export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
     >
       <section
         className={styles.stage}
-        aria-label={`${BENCHMARK_TASK.brandName} ${BENCHMARK_TASK.surfaceLabel} build lobby`}
+        aria-label={`${DEMO_COLLECTION.brandName} playable model demo gallery`}
         inert={detailOpen ? true : undefined}
       >
-        {/* The benchmark manifest owns these static/public paths; Vinext's
-            image optimizer is not available in the local Worker runtime. */}
+        {/* Demo records own these static or public paths. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           className={styles.heroImage}
-          src={selectedRun.previewImage}
+          src={selectedDemo.previewImage}
           alt=""
           aria-hidden="true"
         />
@@ -208,79 +208,75 @@ export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
           <Link
             href="/"
             className={styles.wordmark}
-            aria-label={`${BENCHMARK_TASK.brandName} home`}
+            aria-label={`${DEMO_COLLECTION.brandName} home`}
           >
-            {BENCHMARK_TASK.brandName}
+            {DEMO_COLLECTION.brandName}
           </Link>
-          <span className={styles.benchmarkWord}>
-            {BENCHMARK_TASK.surfaceLabel}
+          <span className={styles.collectionWord}>
+            {DEMO_COLLECTION.surfaceLabel}
           </span>
           <span className={styles.mastRule} aria-hidden="true" />
         </header>
 
+        <div className={styles.heroCopy}>
+          <span>Playable model-built game</span>
+          <h1>{selectedDemo.title}</h1>
+          <p>{selectedDemo.description}</p>
+        </div>
+
         <section
           ref={deckRef}
-          id="run-deck"
+          id="demo-deck"
           className={styles.runDeck}
-          aria-label="Playable benchmark builds"
+          aria-label="Playable model demos"
           tabIndex={-1}
         >
-          <output className={styles.runStatus} aria-live="polite">
-            <Gauge aria-hidden="true" weight="fill" />
-            <span>{selectedRun.progress.percent}% submitter estimate</span>
-            <i aria-hidden="true" />
-            <span>{capitalize(selectedRun.status)}</span>
-            <i aria-hidden="true" />
-            <span>
-              {selectedRun.comparisonEligible ? "Ranked" : "Unranked"}
-            </span>
-          </output>
-
           <div className={styles.deckRow}>
             <button
               className={styles.deckArrow}
               type="button"
-              aria-label="Previous build"
-              disabled={runs.length < 2}
+              aria-label="Previous demo"
+              disabled={demos.length < 2}
               onClick={() => moveSelection(-1)}
             >
               <CaretLeft aria-hidden="true" weight="bold" />
             </button>
 
             <div className={styles.cards}>
-              {neighboringRuns.previous ? (
-                <SideRunCard
-                  run={neighboringRuns.previous}
-                  onSelect={setSelectedRunId}
+              {neighboringDemos.previous ? (
+                <SideDemoCard
+                  demo={neighboringDemos.previous}
+                  onSelect={setSelectedDemoId}
                 />
               ) : (
-                <OpenRunSlot position="previous" />
+                <OpenDemoSlot position="previous" />
               )}
 
               <article
                 className={styles.selectedCard}
                 aria-current="true"
-                data-run-id={selectedRun.id}
+                data-demo-id={selectedDemo.id}
               >
                 <div className={styles.cardHeading}>
-                  <strong>{selectedRun.model}</strong>
-                  <time dateTime={selectedRun.builtOn}>
-                    Built {formatDate(selectedRun.builtOn)}
+                  <strong>{selectedDemo.model}</strong>
+                  <span>{selectedDemo.title}</span>
+                  <time dateTime={selectedDemo.builtOn}>
+                    Built {formatDate(selectedDemo.builtOn)}
                   </time>
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={selectedRun.previewImage}
-                  alt={`${selectedRun.model} preview`}
+                  src={selectedDemo.previewImage}
+                  alt={`${selectedDemo.title} preview`}
                 />
-                <p>Independently built · Playable game</p>
+                <p>{selectedDemo.tagline}</p>
                 <button
                   className={styles.playButton}
                   type="button"
                   onClick={beginPlay}
                 >
                   <Play aria-hidden="true" weight="fill" />
-                  Play selected build
+                  Play demo
                   <ArrowRight aria-hidden="true" weight="bold" />
                 </button>
                 <button
@@ -291,26 +287,26 @@ export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
                   aria-expanded={detailOpen}
                   onClick={openDetail}
                 >
-                  Prompt &amp; setup
+                  How it was made
                   <ArrowRight aria-hidden="true" weight="bold" />
                 </button>
               </article>
 
-              {neighboringRuns.next ? (
-                <SideRunCard
-                  run={neighboringRuns.next}
-                  onSelect={setSelectedRunId}
+              {neighboringDemos.next ? (
+                <SideDemoCard
+                  demo={neighboringDemos.next}
+                  onSelect={setSelectedDemoId}
                 />
               ) : (
-                <OpenRunSlot position="next" />
+                <OpenDemoSlot position="next" />
               )}
             </div>
 
             <button
               className={styles.deckArrow}
               type="button"
-              aria-label="Next build"
-              disabled={runs.length < 2}
+              aria-label="Next demo"
+              disabled={demos.length < 2}
               onClick={() => moveSelection(1)}
             >
               <CaretRight aria-hidden="true" weight="bold" />
@@ -321,10 +317,10 @@ export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
         <footer className={styles.stageFooter}>
           <button type="button" onClick={() => deckRef.current?.focus()}>
             <LinkSimple aria-hidden="true" weight="bold" />
-            Compare models
+            Browse demos
           </button>
-          <time dateTime={BENCHMARK_TASK.updatedOn}>
-            {formatDate(BENCHMARK_TASK.updatedOn)}
+          <time dateTime={DEMO_COLLECTION.updatedOn}>
+            Updated {formatDate(DEMO_COLLECTION.updatedOn)}
           </time>
           <nav aria-label="Project links">
             <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">
@@ -333,19 +329,19 @@ export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
             </a>
             <a href={CONTRIBUTION_URL} target="_blank" rel="noreferrer">
               <PaperPlaneTilt aria-hidden="true" weight="bold" />
-              {BENCHMARK_TASK.contribution.navAction}
+              {DEMO_COLLECTION.contribution.navAction}
             </a>
           </nav>
         </footer>
       </section>
 
       {detailOpen ? (
-        <RunDetailDrawer
+        <DemoDetailDrawer
           ref={drawerRef}
           closeRef={closeRef}
-          run={selectedRun}
+          demo={selectedDemo}
           feedback={feedback}
-          manifestDownload={manifestDownload}
+          recordDownload={recordDownload}
           onClose={closeDetail}
           onCopy={copyText}
         />
@@ -354,29 +350,29 @@ export function BenchmarkHub({ runs = BENCHMARK_RUNS }: BenchmarkHubProps) {
   );
 }
 
-type RunDetailDrawerProps = {
+type DemoDetailDrawerProps = {
   ref: RefObject<HTMLElement | null>;
   closeRef: RefObject<HTMLButtonElement | null>;
-  run: BenchmarkRun;
+  demo: DemoRecord;
   feedback: string;
-  manifestDownload: string;
+  recordDownload: string;
   onClose: () => void;
   onCopy: (label: string, value: string | null) => Promise<void>;
 };
 
-function RunDetailDrawer({
+function DemoDetailDrawer({
   ref,
   closeRef,
-  run,
+  demo,
   feedback,
-  manifestDownload,
+  recordDownload,
   onClose,
   onCopy,
-}: RunDetailDrawerProps) {
-  const promptPublished = hasPublishedPrompt(run);
-  const setupPublished = hasPublishedSetup(run);
-  const sourcePinned = /^[0-9a-f]{40}$/.test(run.commit);
-  const setupText = formatSetupForCopy(run);
+}: DemoDetailDrawerProps) {
+  const promptPublished = hasPublishedPrompt(demo);
+  const setupPublished = hasPublishedSetup(demo);
+  const sourcePinned = /^[0-9a-f]{40}$/.test(demo.commit);
+  const setupText = formatSetupForCopy(demo);
 
   const trapFocus = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.key !== "Tab") return;
@@ -401,15 +397,15 @@ function RunDetailDrawer({
       className={styles.drawer}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="run-detail-title"
+      aria-labelledby="demo-detail-title"
       onKeyDown={trapFocus}
     >
       <header className={styles.drawerHeader}>
-        <h2 id="run-detail-title">Reproduce this run</h2>
+        <h2 id="demo-detail-title">How this demo was made</h2>
         <button
           ref={closeRef}
           type="button"
-          aria-label="Close run details"
+          aria-label="Close demo details"
           onClick={onClose}
         >
           <X aria-hidden="true" />
@@ -419,120 +415,113 @@ function RunDetailDrawer({
       <div className={styles.drawerStatus}>
         <EvidenceStatus
           published={promptPublished}
-          label={promptPublished ? "Prompt published" : "Prompt missing"}
+          label={promptPublished ? "Brief available" : "Brief not recorded"}
         />
         <EvidenceStatus
           published={setupPublished}
-          label={setupPublished ? "Setup published" : "Setup partial"}
+          label={setupPublished ? "Setup available" : "Setup partial"}
         />
-        <EvidenceStatus published={sourcePinned} label="Source pinned" />
+        <EvidenceStatus published={sourcePinned} label="Source linked" />
       </div>
 
       <div className={styles.drawerScroll}>
-        <DetailSection title="Prompt">
-          {run.provenance.prompt.text ? (
+        <DetailSection title="About">
+          <p>{demo.description}</p>
+          <ul className={styles.featureList}>
+            {demo.features.map((feature) => (
+              <li key={feature}>{feature}</li>
+            ))}
+          </ul>
+        </DetailSection>
+
+        <DetailSection title="Build brief">
+          {demo.provenance.prompt.text ? (
             <>
-              <blockquote>{run.provenance.prompt.text}</blockquote>
+              <blockquote>{demo.provenance.prompt.text}</blockquote>
               <button
                 className={styles.textLink}
                 type="button"
                 onClick={() =>
-                  void onCopy("Prompt", run.provenance.prompt.text)
+                  void onCopy("Build brief", demo.provenance.prompt.text)
                 }
               >
-                Copy full prompt
+                Copy build brief
                 <Copy aria-hidden="true" />
               </button>
             </>
           ) : (
             <div className={styles.missingEvidence}>
               <WarningCircle aria-hidden="true" weight="fill" />
-              <p>{run.provenance.prompt.note}</p>
+              <p>{demo.provenance.prompt.note}</p>
             </div>
           )}
         </DetailSection>
 
-        <DetailSection title="Setup">
+        <DetailSection title="Build setup">
           <DetailList
             rows={[
-              ["Model", run.model],
-              ["Model snapshot", run.provenance.setup.modelSnapshot],
-              ["Reasoning", run.provenance.setup.reasoning],
-              ["Harness", run.provenance.setup.harness],
+              ["Model", demo.model],
+              ["Model snapshot", demo.provenance.setup.modelSnapshot],
+              ["Reasoning", demo.provenance.setup.reasoning],
+              ["Agent", demo.provenance.setup.harness],
               [
                 "Tools",
-                run.provenance.setup.tools.length
-                  ? run.provenance.setup.tools.join(", ")
+                demo.provenance.setup.tools.length
+                  ? demo.provenance.setup.tools.join(", ")
                   : null,
               ],
-              ["Agent count", run.provenance.setup.agentCount],
-              ["Subagent count", run.provenance.setup.subagentCount],
-              ["Base commit", shortCommit(run.provenance.setup.baseCommit)],
-              ["Result commit", shortCommit(run.provenance.setup.resultCommit)],
+              ["Agent count", demo.provenance.setup.agentCount],
+              ["Subagent count", demo.provenance.setup.subagentCount],
+              [
+                "Starting commit",
+                shortCommit(demo.provenance.setup.baseCommit),
+              ],
+              ["Demo commit", shortCommit(demo.provenance.setup.resultCommit)],
             ]}
           />
         </DetailSection>
 
-        <DetailSection title="Run">
+        <DetailSection title="Build record">
           <DetailList
             rows={[
               [
-                "Wall time",
-                formatDuration(run.provenance.execution.wallTimeSeconds),
+                "Build time",
+                formatDuration(demo.provenance.execution.wallTimeSeconds),
               ],
-              [
-                "Tokens (total)",
-                formatNumber(run.provenance.execution.totalTokens),
-              ],
-              ["Cost (USD)", formatCost(run.provenance.execution.costUsd)],
-              ["Retries", run.provenance.execution.retries],
+              ["Tokens", formatNumber(demo.provenance.execution.totalTokens)],
+              ["Cost (USD)", formatCost(demo.provenance.execution.costUsd)],
+              ["Retries", demo.provenance.execution.retries],
               [
                 "Human interventions",
-                run.provenance.execution.humanInterventions,
+                demo.provenance.execution.humanInterventions,
               ],
             ]}
           />
         </DetailSection>
 
-        <DetailSection title="Dependencies & assets">
+        <DetailSection title="Source & assets">
           <DetailList
             rows={[
-              ["Package lock", run.provenance.dependencies.packageLock],
+              ["Package lock", demo.provenance.dependencies.packageLock],
               [
                 "Third-party assets",
-                run.provenance.dependencies.thirdPartyAssets,
+                demo.provenance.dependencies.thirdPartyAssets,
               ],
               [
                 "License status",
-                run.provenance.dependencies.licenseStatus === "verified"
+                demo.provenance.dependencies.licenseStatus === "verified"
                   ? "Verified"
                   : "Review required",
               ],
             ]}
           />
-        </DetailSection>
-
-        <DetailSection title="Verification">
-          <DetailList
-            rows={[
-              [
-                "Progress estimate",
-                `${run.progress.percent}% · Submitter reported`,
-              ],
-              ["Estimate basis", run.progress.note],
-              [
-                "Ranking",
-                run.comparisonEligible ? "Comparable" : "Not yet comparable",
-              ],
-            ]}
-          />
           <a
             className={styles.textLink}
-            href={run.playUrl}
+            href={demo.playUrl}
             target="_blank"
             rel="noreferrer"
           >
-            Open playable artifact
+            Open playable demo
             <ArrowSquareOut aria-hidden="true" />
           </a>
         </DetailSection>
@@ -541,32 +530,32 @@ function RunDetailDrawer({
       <div className={styles.drawerActions}>
         <button
           type="button"
-          disabled={!run.provenance.prompt.text}
-          onClick={() => void onCopy("Prompt", run.provenance.prompt.text)}
+          disabled={!demo.provenance.prompt.text}
+          onClick={() =>
+            void onCopy("Build brief", demo.provenance.prompt.text)
+          }
         >
           <Copy aria-hidden="true" />
-          Copy prompt
+          Copy brief
         </button>
         <button
           type="button"
           onClick={() => void onCopy("Available setup", setupText)}
         >
           <Copy aria-hidden="true" />
-          Copy available setup
+          Copy setup
         </button>
-        <a href={manifestDownload} download={`${run.id}.json`}>
+        <a href={recordDownload} download={`${demo.id}.json`}>
           <DownloadSimple aria-hidden="true" />
-          Download manifest
+          Download record
         </a>
         <a
           className={styles.primaryDrawerAction}
-          href={run.provenance.submissionPrUrl ?? run.sourceUrl}
+          href={demo.sourceUrl}
           target="_blank"
           rel="noreferrer"
         >
-          {run.provenance.submissionPrUrl
-            ? "View submission PR"
-            : "View source history"}
+          View source
           <ArrowSquareOut aria-hidden="true" />
         </a>
         <p className={styles.copyFeedback} role="status" aria-live="polite">
@@ -630,33 +619,34 @@ function EvidenceStatus({
   );
 }
 
-function SideRunCard({
-  run,
+function SideDemoCard({
+  demo,
   onSelect,
 }: {
-  run: BenchmarkRun;
+  demo: DemoRecord;
   onSelect: (id: string) => void;
 }) {
   return (
     <button
       className={styles.sideCard}
       type="button"
-      onClick={() => onSelect(run.id)}
-      aria-label={`Select ${run.model}`}
+      onClick={() => onSelect(demo.id)}
+      aria-label={`Select ${demo.title}`}
     >
       <span className={styles.cardHeading}>
-        <strong>{run.model}</strong>
-        <time dateTime={run.builtOn}>Built {formatDate(run.builtOn)}</time>
+        <strong>{demo.model}</strong>
+        <span>{demo.title}</span>
+        <time dateTime={demo.builtOn}>Built {formatDate(demo.builtOn)}</time>
       </span>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={run.previewImage} alt="" />
-      <small>Independently built · {capitalize(run.status)} game</small>
+      <img src={demo.previewImage} alt="" />
+      <small>{demo.tagline}</small>
     </button>
   );
 }
 
-function OpenRunSlot({ position }: { position: "previous" | "next" }) {
-  const contribution = BENCHMARK_TASK.contribution;
+function OpenDemoSlot({ position }: { position: "previous" | "next" }) {
+  const contribution = DEMO_COLLECTION.contribution;
 
   return (
     <a
@@ -664,7 +654,7 @@ function OpenRunSlot({ position }: { position: "previous" | "next" }) {
       href={CONTRIBUTION_URL}
       target="_blank"
       rel="noreferrer"
-      aria-label={`${position === "previous" ? "Previous" : "Next"} benchmark run slot is open; ${contribution.slotAction}`}
+      aria-label={`${position === "previous" ? "Previous" : "Next"} demo slot is open; ${contribution.slotAction}`}
     >
       <PaperPlaneTilt aria-hidden="true" weight="bold" />
       <span>{contribution.slotLabel}</span>
@@ -674,20 +664,20 @@ function OpenRunSlot({ position }: { position: "previous" | "next" }) {
   );
 }
 
-function getNeighboringRuns(
-  runs: readonly BenchmarkRun[],
+function getNeighboringDemos(
+  demos: readonly DemoRecord[],
   selectedIndex: number,
 ) {
-  if (runs.length === 1) return { previous: null, next: null };
-  if (runs.length === 2) {
+  if (demos.length === 1) return { previous: null, next: null };
+  if (demos.length === 2) {
     return {
-      previous: runs[(selectedIndex + 1) % runs.length],
+      previous: demos[(selectedIndex + 1) % demos.length],
       next: null,
     };
   }
   return {
-    previous: runs[(selectedIndex - 1 + runs.length) % runs.length],
-    next: runs[(selectedIndex + 1) % runs.length],
+    previous: demos[(selectedIndex - 1 + demos.length) % demos.length],
+    next: demos[(selectedIndex + 1) % demos.length],
   };
 }
 
@@ -720,27 +710,24 @@ function formatDuration(seconds: number | null) {
   return `${hours}h ${minutes}m ${remainder}s`;
 }
 
-function formatSetupForCopy(run: BenchmarkRun) {
-  const setup = run.provenance.setup;
+function formatSetupForCopy(demo: DemoRecord) {
+  const setup = demo.provenance.setup;
   return [
-    `Model: ${run.model}`,
+    `Demo: ${demo.title}`,
+    `Model: ${demo.model}`,
     `Model snapshot: ${setup.modelSnapshot ?? "Not recorded"}`,
     `Reasoning: ${setup.reasoning ?? "Not recorded"}`,
-    `Harness: ${setup.harness ?? "Not recorded"}`,
+    `Agent: ${setup.harness ?? "Not recorded"}`,
     `Tools: ${setup.tools.length ? setup.tools.join(", ") : "Not recorded"}`,
     `Agent count: ${setup.agentCount ?? "Not recorded"}`,
     `Subagent count: ${setup.subagentCount ?? "Not recorded"}`,
-    `Base commit: ${setup.baseCommit ?? "Not recorded"}`,
-    `Result commit: ${setup.resultCommit}`,
+    `Starting commit: ${setup.baseCommit ?? "Not recorded"}`,
+    `Demo commit: ${setup.resultCommit}`,
   ].join("\n");
 }
 
 function withEmbedMode(playUrl: string) {
-  return `${playUrl}${playUrl.includes("?") ? "&" : "?"}embed=benchmark`;
-}
-
-function capitalize(value: string) {
-  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+  return `${playUrl}${playUrl.includes("?") ? "&" : "?"}embed=gallery`;
 }
 
 function isFormControl(target: EventTarget | null) {

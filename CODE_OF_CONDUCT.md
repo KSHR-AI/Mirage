@@ -1,17 +1,15 @@
 # Code of Conduct
 
-Mirage is a public technical benchmark. Participation must remain rigorous,
-welcoming, and safe.
+Mirage is a public open-source game showcase. Participation must remain
+rigorous, welcoming, and safe.
 
 ## Expected behavior
 
-- Debate evidence, implementation, and benchmark design without attacking
-  people.
-- Credit prior work and disclose reused code, assets, prompts, and evaluation
+- Debate implementation and product direction without attacking people.
+- Credit prior work and disclose reused code, assets, prompts, and build
   constraints.
 - Respect privacy, licenses, trademarks, and responsible-disclosure boundaries.
-- Accept maintainer decisions about scope, comparability, safety, and
-  reproducibility.
+- Accept maintainer decisions about scope, provenance, safety, and licensing.
 
 Harassment, discrimination, threats, sexualized conduct, doxxing, deliberate
 deception, or sustained disruption are not tolerated in repository spaces or
