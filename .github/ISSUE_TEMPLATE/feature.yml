@@ -1,5 +1,5 @@
-name: Benchmark or product proposal
-description: Propose a scoped improvement to the benchmark, evaluator, site, or gameplay.
+name: Product or gameplay proposal
+description: Propose a scoped improvement to the gallery, a demo, or the project.
 title: "[Proposal]: "
 labels:
   - enhancement
@@ -19,10 +19,10 @@ body:
     validations:
       required: true
   - type: textarea
-    id: benchmark
+    id: provenance
     attributes:
-      label: Benchmark integrity
-      description: Explain effects on comparability, provenance, frozen tasks, budgets, or evaluator behavior.
+      label: Demo provenance
+      description: Explain effects on the recorded model, source, prompt, setup, or asset licenses.
     validations:
       required: true
   - type: textarea

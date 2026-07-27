@@ -9,12 +9,12 @@
 - [ ] The Vercel preview renders without console or runtime errors.
 - [ ] New code and assets have compatible licenses and attribution.
 
-## Benchmark integrity
+## Demo record
 
-- [ ] No existing run manifest or artifact was mutated.
-- [ ] Prompt, setup, source, and limitations are recorded for a new run.
-- [ ] Progress is labeled as a submitter estimate, not an evaluator score.
-- [ ] Comparability claims use the frozen task and evaluator contract.
+- [ ] A materially new build uses a new demo ID.
+- [ ] Model, setup, source, and limitations are recorded.
+- [ ] The build brief is included when available.
+- [ ] The description makes no unsupported performance claims.
 
 ## Risk and rollback
 

@@ -13,6 +13,6 @@ export default async function LegacyHotDropPage({
   return mode === "2d" ? (
     <HotDrop />
   ) : (
-    <HotDrop3D autoStart={embed === "benchmark"} />
+    <HotDrop3D autoStart={embed === "gallery"} />
   );
 }

@@ -8,11 +8,11 @@ import "@fontsource/barlow-condensed/800.css";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
-import { BENCHMARK_TASK } from "./benchmark/catalog";
+import { DEMO_COLLECTION } from "./gallery/catalog";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { metadata } = BENCHMARK_TASK;
+  const { metadata } = DEMO_COLLECTION;
   const requestHeaders = await headers();
   const forwardedHost = requestHeaders
     .get("x-forwarded-host")

@@ -1,14 +1,14 @@
-name: Model run proposal
-description: Propose a reproducible new model-built game run before opening its pull request.
-title: "[Run]: "
+name: Model-built demo proposal
+description: Propose a new playable model-built game before opening its pull request.
+title: "[Demo]: "
 labels:
   - enhancement
 body:
   - type: input
     id: model
     attributes:
-      label: Model snapshot
-      placeholder: Provider and exact model snapshot
+      label: Model
+      placeholder: Provider and exact model identifier when available
     validations:
       required: true
   - type: input
@@ -21,8 +21,8 @@ body:
   - type: textarea
     id: setup
     attributes:
-      label: Harness and setup
-      description: Include reasoning level, tools, agent count, budget, and human interventions.
+      label: Agent and setup
+      description: Include the agent, reasoning level, tools, agent count, and known human interventions.
     validations:
       required: true
   - type: textarea

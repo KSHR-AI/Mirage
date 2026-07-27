@@ -7,7 +7,7 @@ const repositoryRoot = process.cwd();
 const outputPath = path.join(
   repositoryRoot,
   "app",
-  "benchmark",
+  "gallery",
   "catalog.generated.json",
 );
 
@@ -34,18 +34,17 @@ async function readJsonDirectory(relativeDirectory) {
 }
 
 const catalog = {
-  tasks: await readJsonDirectory("benchmark/tasks"),
-  submissions: await readJsonDirectory("benchmark/submissions"),
+  collection: JSON.parse(
+    await readFile(
+      path.join(repositoryRoot, "demos", "collection.json"),
+      "utf8",
+    ),
+  ),
+  demos: await readJsonDirectory("demos/entries"),
 };
 
-if (catalog.tasks.length !== 1) {
-  throw new Error(
-    `Expected exactly one benchmark task, found ${catalog.tasks.length}.`,
-  );
-}
-
-if (catalog.submissions.length === 0) {
-  throw new Error("Expected at least one benchmark submission.");
+if (catalog.demos.length === 0) {
+  throw new Error("Expected at least one demo record.");
 }
 
 const generatedSource = await format(JSON.stringify(catalog), {
@@ -63,7 +62,7 @@ if (process.argv.includes("--check")) {
 
   if (committedSource !== generatedSource) {
     console.error(
-      "The generated benchmark catalog is stale. Run `pnpm catalog:generate`.",
+      "The generated demo catalog is stale. Run `pnpm catalog:generate`.",
     );
     process.exitCode = 1;
   }

@@ -8,8 +8,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { BENCHMARK_TASK } from "../benchmark/catalog";
-import { BenchmarkScorecard } from "../game/BenchmarkScorecard";
+import { DEMO_COLLECTION } from "../gallery/catalog";
 import baseStyles from "../game/HotDrop.module.css";
 import {
   CITY_BUILDINGS,
@@ -258,7 +257,7 @@ export function HotDrop3D({ autoStart = false }: { autoStart?: boolean } = {}) {
       className={baseStyles.shell}
       data-fullscreen-game
       tabIndex={-1}
-      aria-label={`${BENCHMARK_TASK.brandName}: ${BENCHMARK_TASK.gameTitle} 3D game`}
+      aria-label={`${DEMO_COLLECTION.brandName}: ${DEMO_COLLECTION.gameTitle} 3D game`}
     >
       <canvas
         ref={canvasRef}
@@ -269,9 +268,9 @@ export function HotDrop3D({ autoStart = false }: { autoStart?: boolean } = {}) {
 
       <header className={baseStyles.topHud}>
         <div className={baseStyles.brand}>
-          <span>{BENCHMARK_TASK.brandName}:</span>
-          <strong>{BENCHMARK_TASK.gameTitle}</strong>
-          <small>{BENCHMARK_TASK.locationLabel} · 3D build</small>
+          <span>{DEMO_COLLECTION.brandName}:</span>
+          <strong>{DEMO_COLLECTION.gameTitle}</strong>
+          <small>{DEMO_COLLECTION.locationLabel} · 3D build</small>
         </div>
         <div className={baseStyles.objectivePanel}>
           <span>Current move</span>
@@ -516,12 +515,11 @@ export function HotDrop3D({ autoStart = false }: { autoStart?: boolean } = {}) {
         <section className={baseStyles.intro}>
           <div className={baseStyles.introCard}>
             <p className={baseStyles.eyebrow}>
-              {BENCHMARK_TASK.brandName}{" "}
-              {BENCHMARK_TASK.surfaceLabel.toLowerCase()} · frontier-coded
+              {DEMO_COLLECTION.brandName} model-built demo · 3D edition
             </p>
             <h1 className={baseStyles.mirageTitle}>
-              <span>{BENCHMARK_TASK.brandName}:</span>
-              <strong>{BENCHMARK_TASK.gameTitle}</strong>
+              <span>{DEMO_COLLECTION.brandName}:</span>
+              <strong>{DEMO_COLLECTION.gameTitle}</strong>
             </h1>
             <p className={baseStyles.tagline}>
               <span className={styles.dimensionNote}>
@@ -529,7 +527,6 @@ export function HotDrop3D({ autoStart = false }: { autoStart?: boolean } = {}) {
               </span>{" "}
               You break it.
             </p>
-            <BenchmarkScorecard />
             <button className={baseStyles.startButton} onClick={beginRun}>
               <span>Start 3D run</span>
               <b>Enter</b>

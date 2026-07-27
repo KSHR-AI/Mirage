@@ -2,9 +2,9 @@
 
 ## Supported versions
 
-Security fixes target the current `main` branch and production deployment. Old
-benchmark run artifacts remain immutable; a vulnerable artifact may be marked
-degraded or unplayable while its historical record is preserved.
+Security fixes target the current `main` branch and production deployment. An
+older demo with a security defect may be disabled while its source record is
+preserved.
 
 ## Reporting a vulnerability
 

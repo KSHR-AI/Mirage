@@ -1,0 +1,29 @@
+{
+  "id": "mirage-model-games",
+  "brandName": "Mirage",
+  "surfaceLabel": "Model-built games",
+  "gameTitle": "GTA in SF",
+  "locationLabel": "San Francisco",
+  "title": "See what coding models can build.",
+  "summary": "A collection of playable browser games built end-to-end by coding models. Pick a demo, play it, and inspect how it was made.",
+  "updatedOn": "2026-07-27",
+  "featuredDemoId": "fogline-pursuit-001",
+  "repositoryUrl": "https://github.com/KSHR-AI/Mirage",
+  "contribution": {
+    "guidePath": "demos/README.md",
+    "slotLabel": "Add a demo",
+    "slotDescription": "Built something playable with a coding model?",
+    "slotAction": "Show the result",
+    "navAction": "Add a demo"
+  },
+  "metadata": {
+    "title": "Mirage — Playable games built by coding models",
+    "description": "Play complete browser-game demos built by coding models, then inspect each build brief, setup, and source.",
+    "shareImage": {
+      "path": "/og.png",
+      "width": 1731,
+      "height": 908,
+      "alt": "Mirage playable model-built game gallery"
+    }
+  }
+}
