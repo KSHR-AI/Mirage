@@ -12,3 +12,4 @@ research
 .env
 .env.*
 !.env.example
+.codex-artifacts

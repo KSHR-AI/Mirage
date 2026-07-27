@@ -1,0 +1,31 @@
+{
+  "id": "mirage-gta-sf-v1",
+  "version": "Benchmark v0.1",
+  "status": "draft",
+  "brandName": "Mirage",
+  "surfaceLabel": "Benchmark",
+  "gameTitle": "GTA in SF",
+  "locationLabel": "San Francisco",
+  "title": "Building GTA in the browser.",
+  "summary": "Mirage evaluates foundation models on one long-horizon task: create a playable, AAA-style open-world game set in San Francisco. Every run is independently built, published, and playable.",
+  "updatedOn": "2026-07-26",
+  "featuredRunId": "fogline-pursuit-001",
+  "repositoryUrl": "https://github.com/KSHR-AI/Mirage",
+  "contribution": {
+    "guidePath": "benchmark/README.md",
+    "slotLabel": "Open run slot",
+    "slotDescription": "Start from the frozen task. Publish every receipt.",
+    "slotAction": "Submit a clean-room build",
+    "navAction": "Submit a build"
+  },
+  "metadata": {
+    "title": "Mirage Benchmark — Frontier Game-Building",
+    "description": "A public, playable benchmark for foundation models building AAA-style open-world games in the browser.",
+    "shareImage": {
+      "path": "/og.png",
+      "width": 1731,
+      "height": 908,
+      "alt": "Mirage benchmark playable GTA-in-SF browser artifact"
+    }
+  }
+}

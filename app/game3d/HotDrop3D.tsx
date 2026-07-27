@@ -8,6 +8,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { BENCHMARK_TASK } from "../benchmark/catalog";
 import { BenchmarkScorecard } from "../game/BenchmarkScorecard";
 import baseStyles from "../game/HotDrop.module.css";
 import {
@@ -75,7 +76,7 @@ const INITIAL_SNAPSHOT: SimulationSnapshot = {
   drifting: false,
 };
 
-export function HotDrop3D() {
+export function HotDrop3D({ autoStart = false }: { autoStart?: boolean } = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const shellRef = useRef<HTMLElement>(null);
   const inputRef = useRef<Game3DInput>({ ...EMPTY_INPUT });
@@ -104,6 +105,11 @@ export function HotDrop3D() {
     setSnapshot(INITIAL_SNAPSHOT);
     setRunNumber((current) => current + 1);
   }, []);
+
+  useEffect(() => {
+    if (!autoStart || !runtimeReady || hasStartedRef.current) return;
+    beginRun();
+  }, [autoStart, beginRun, runtimeReady]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -250,8 +256,9 @@ export function HotDrop3D() {
     <main
       ref={shellRef}
       className={baseStyles.shell}
+      data-fullscreen-game
       tabIndex={-1}
-      aria-label="Mirage: GTA in SF 3D game"
+      aria-label={`${BENCHMARK_TASK.brandName}: ${BENCHMARK_TASK.gameTitle} 3D game`}
     >
       <canvas
         ref={canvasRef}
@@ -262,9 +269,9 @@ export function HotDrop3D() {
 
       <header className={baseStyles.topHud}>
         <div className={baseStyles.brand}>
-          <span>Mirage:</span>
-          <strong>GTA in SF</strong>
-          <small>San Francisco · 3D build</small>
+          <span>{BENCHMARK_TASK.brandName}:</span>
+          <strong>{BENCHMARK_TASK.gameTitle}</strong>
+          <small>{BENCHMARK_TASK.locationLabel} · 3D build</small>
         </div>
         <div className={baseStyles.objectivePanel}>
           <span>Current move</span>
@@ -509,11 +516,12 @@ export function HotDrop3D() {
         <section className={baseStyles.intro}>
           <div className={baseStyles.introCard}>
             <p className={baseStyles.eyebrow}>
-              Mirage ML benchmark · frontier-coded
+              {BENCHMARK_TASK.brandName}{" "}
+              {BENCHMARK_TASK.surfaceLabel.toLowerCase()} · frontier-coded
             </p>
             <h1 className={baseStyles.mirageTitle}>
-              <span>Mirage:</span>
-              <strong>GTA in SF</strong>
+              <span>{BENCHMARK_TASK.brandName}:</span>
+              <strong>{BENCHMARK_TASK.gameTitle}</strong>
             </h1>
             <p className={baseStyles.tagline}>
               <span className={styles.dimensionNote}>

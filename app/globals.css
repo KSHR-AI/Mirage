@@ -11,7 +11,7 @@ body {
   width: 100%;
   min-height: 100%;
   margin: 0;
-  overflow: hidden;
+  overflow-x: hidden;
   background: #111613;
   color: #fff2cf;
   font-family:
@@ -21,10 +21,22 @@ body {
     sans-serif;
 }
 
+html:has([data-fullscreen-game]),
+body:has([data-fullscreen-game]) {
+  overflow: hidden;
+}
+
 button,
 input,
+select,
 textarea {
   font: inherit;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid #c9f45a;
+  outline-offset: 3px;
 }
 
 button:not(:disabled) {

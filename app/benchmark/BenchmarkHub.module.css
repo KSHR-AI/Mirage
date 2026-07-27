@@ -1,0 +1,1075 @@
+.shell {
+  --bg: #0c1111;
+  --panel: rgba(11, 17, 16, 0.94);
+  --panel-solid: #0c1211;
+  --ink: #e6dfc9;
+  --soft-ink: #c9c4ae;
+  --muted: #969486;
+  --rule: rgba(222, 216, 193, 0.22);
+  --rule-strong: rgba(222, 216, 193, 0.48);
+  --mint: #9cc1b9;
+  --success: #83b77e;
+  --warning: #c3a774;
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  display: flex;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter", Arial, sans-serif;
+}
+
+.stage {
+  position: relative;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--bg);
+}
+
+.heroImage,
+.imageVeil,
+.lowerScrim {
+  position: absolute;
+  inset: 0;
+}
+
+.heroImage {
+  z-index: -3;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  filter: saturate(0.82) contrast(1.08) brightness(0.82);
+  transform: scale(1.015);
+}
+
+.imageVeil {
+  z-index: -2;
+  background: rgba(5, 10, 9, 0.2);
+}
+
+.lowerScrim {
+  z-index: -1;
+  top: auto;
+  height: 41%;
+  background: rgba(7, 12, 11, 0.9);
+  box-shadow: 0 -70px 90px rgba(7, 12, 11, 0.78);
+}
+
+.masthead {
+  position: absolute;
+  z-index: 3;
+  top: 22px;
+  left: 50%;
+  display: flex;
+  width: min(470px, calc(100% - 80px));
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  transform: translateX(-50%);
+}
+
+.mastRule {
+  height: 1px;
+  flex: 1 1 80px;
+  background: rgba(230, 223, 201, 0.58);
+}
+
+.wordmark {
+  color: var(--ink);
+  font-family: "Barlow Condensed", Impact, sans-serif;
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.benchmarkWord {
+  color: var(--soft-ink);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.46em;
+  text-transform: uppercase;
+}
+
+.runDeck {
+  position: absolute;
+  z-index: 4;
+  right: clamp(18px, 3vw, 44px);
+  bottom: 62px;
+  left: clamp(18px, 3vw, 44px);
+  outline: none;
+}
+
+.runStatus {
+  display: flex;
+  width: max-content;
+  max-width: calc(100% - 120px);
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin: 0 auto -1px;
+  border: 1px solid var(--rule-strong);
+  border-bottom-color: var(--panel-solid);
+  border-radius: 7px 7px 0 0;
+  padding: 0 16px;
+  background: rgba(10, 16, 15, 0.94);
+  color: var(--soft-ink);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.runStatus svg {
+  width: 14px;
+  height: 14px;
+  color: var(--success);
+}
+
+.runStatus i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(230, 223, 201, 0.5);
+}
+
+.deckRow {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 12px;
+}
+
+.deckArrow {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: rgba(10, 16, 15, 0.82);
+  color: var(--ink);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.deckArrow svg {
+  width: 17px;
+  height: 17px;
+}
+
+.deckArrow:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+.deckArrow:not(:disabled):hover {
+  border-color: var(--mint);
+  background: #141c1a;
+  color: var(--mint);
+}
+
+.cards {
+  display: grid;
+  width: min(100%, 1120px);
+  grid-template-columns: minmax(180px, 0.78fr) minmax(310px, 1.16fr) minmax(
+      180px,
+      0.78fr
+    );
+  align-items: end;
+  gap: 12px;
+  margin-inline: auto;
+}
+
+.selectedCard,
+.sideCard,
+.openSlot {
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--panel);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.3);
+  color: var(--ink);
+}
+
+.selectedCard {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  grid-template-rows: auto minmax(80px, 1fr) auto auto auto;
+  border-color: rgba(230, 223, 201, 0.9);
+  box-shadow:
+    0 20px 58px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(230, 223, 201, 0.08);
+}
+
+.selectedCard::before {
+  position: absolute;
+  z-index: 2;
+  top: -1px;
+  left: 50%;
+  width: 72%;
+  height: 2px;
+  background: var(--mint);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.cardHeading {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 0 8px;
+  padding: 13px 16px 10px;
+  text-align: left;
+}
+
+.cardHeading strong {
+  overflow: hidden;
+  font-family: "Barlow Condensed", Impact, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardHeading > span {
+  overflow: hidden;
+  color: var(--mint);
+  font-family:
+    "Barlow Condensed",
+    Arial Narrow,
+    sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardHeading time {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.selectedCard > img,
+.sideCard > img {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  object-fit: cover;
+  filter: saturate(0.86) contrast(1.04);
+}
+
+.selectedCard > img {
+  height: clamp(96px, 12.5vh, 138px);
+}
+
+.selectedCard > p {
+  margin: 0;
+  padding: 7px 14px;
+  color: var(--soft-ink);
+  font-size: 9px;
+  text-align: center;
+}
+
+.playButton,
+.detailButton {
+  margin-inline: 14px;
+  border: 0;
+  font-weight: 600;
+}
+
+.playButton {
+  display: grid;
+  min-height: 42px;
+  grid-template-columns: 18px 1fr 18px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 4px;
+  padding: 0 14px;
+  background: #d8dfd1;
+  color: #101614;
+  font-size: 13px;
+  transition:
+    background-color 140ms ease,
+    transform 140ms ease;
+}
+
+.playButton:hover {
+  background: #a9cbc3;
+  transform: translateY(-1px);
+}
+
+.playButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.playButton svg:last-child {
+  justify-self: end;
+}
+
+.detailButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 35px;
+  margin-bottom: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11px;
+  text-decoration: underline;
+  text-decoration-color: rgba(230, 223, 201, 0.54);
+  text-underline-offset: 4px;
+}
+
+.detailButton:hover {
+  color: var(--mint);
+  text-decoration-color: var(--mint);
+}
+
+.detailButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+.shell[data-detail-open="true"] .playButton {
+  display: none;
+}
+
+.shell[data-detail-open="true"] .detailButton {
+  display: grid;
+  min-height: 42px;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  margin-bottom: 14px;
+  border-radius: 4px;
+  padding: 0 16px;
+  background: #d8dfd1;
+  color: #101614;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.sideCard {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: auto minmax(70px, 1fr) auto;
+  padding: 0;
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.sideCard:hover {
+  border-color: var(--rule-strong);
+  transform: translateY(-2px);
+}
+
+.sideCard .cardHeading {
+  padding: 11px 13px 8px;
+}
+
+.sideCard .cardHeading strong {
+  font-size: 17px;
+}
+
+.sideCard .cardHeading > span {
+  font-size: 14px;
+}
+
+.sideCard > img {
+  height: clamp(80px, 10vh, 112px);
+}
+
+.sideCard > small {
+  padding: 9px 13px 10px;
+  color: var(--soft-ink);
+  font-size: 9px;
+}
+
+.openSlot {
+  display: grid;
+  min-height: 178px;
+  place-content: center;
+  gap: 6px;
+  padding: 24px;
+  background: rgba(11, 17, 16, 0.76);
+  color: var(--muted);
+  text-align: center;
+  text-decoration: none;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.openSlot:hover {
+  border-color: var(--mint);
+  background: #111a18;
+  color: var(--ink);
+}
+
+.openSlot svg {
+  width: 22px;
+  height: 22px;
+  margin: 0 auto 4px;
+  color: var(--mint);
+}
+
+.openSlot span,
+.openSlot small {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.openSlot strong {
+  max-width: 220px;
+  color: var(--soft-ink);
+  font-family:
+    "Barlow Condensed",
+    Arial Narrow,
+    sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.openSlot small {
+  margin-top: 8px;
+  color: var(--mint);
+  letter-spacing: 0.08em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.stageFooter {
+  position: absolute;
+  z-index: 5;
+  right: clamp(24px, 3vw, 44px);
+  bottom: 16px;
+  left: clamp(24px, 3vw, 44px);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+  color: var(--soft-ink);
+  font-size: 10px;
+}
+
+.stageFooter button,
+.stageFooter a {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(230, 223, 201, 0.46);
+  text-underline-offset: 4px;
+}
+
+.stageFooter button {
+  justify-self: start;
+  padding: 0;
+}
+
+.stageFooter a:hover,
+.stageFooter button:hover {
+  color: var(--mint);
+  text-decoration-color: var(--mint);
+}
+
+.stageFooter svg {
+  width: 17px;
+  height: 17px;
+}
+
+.stageFooter time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.stageFooter nav {
+  display: flex;
+  justify-self: end;
+  gap: 22px;
+}
+
+.drawer {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  width: clamp(400px, 30vw, 448px);
+  min-width: clamp(400px, 30vw, 448px);
+  height: 100%;
+  flex-direction: column;
+  border-left: 1px solid rgba(230, 223, 201, 0.42);
+  background: #0a100f;
+  box-shadow: -22px 0 60px rgba(0, 0, 0, 0.34);
+  color: var(--soft-ink);
+  font-family: "Inter", Arial, sans-serif;
+}
+
+.drawerHeader {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 24px;
+}
+
+.drawerHeader h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Barlow Condensed", Impact, sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.drawerHeader button {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+}
+
+.drawerHeader button:hover {
+  color: var(--mint);
+}
+
+.drawerHeader button:focus-visible {
+  outline-color: var(--mint);
+  outline-offset: -4px;
+}
+
+.drawerHeader svg {
+  width: 21px;
+  height: 21px;
+}
+
+.drawerStatus {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 10px;
+  margin-inline: 24px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 12px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.drawerStatus span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.drawerStatus span:not(:last-child)::after {
+  margin-left: 6px;
+  color: var(--muted);
+  content: "·";
+}
+
+.drawerStatus svg {
+  width: 14px;
+  height: 14px;
+}
+
+.drawerStatus span[data-published="true"] svg {
+  color: var(--success);
+}
+
+.drawerStatus span[data-published="false"] svg {
+  color: var(--warning);
+}
+
+.drawerScroll {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 24px;
+  scrollbar-color: rgba(230, 223, 201, 0.28) transparent;
+  scrollbar-width: thin;
+}
+
+.detailSection {
+  border-bottom: 1px solid var(--rule);
+  padding: 15px 0 14px;
+}
+
+.detailSection h3 {
+  margin: 0 0 10px;
+  color: #d9ceb4;
+  font-family:
+    "Barlow Condensed",
+    Arial Narrow,
+    sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.detailSection blockquote {
+  margin: 0;
+  color: #b7b2a0;
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.65;
+}
+
+.missingEvidence {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 8px;
+  color: #b6ad94;
+}
+
+.missingEvidence svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: var(--warning);
+}
+
+.missingEvidence p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.detailList {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.detailList div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.82fr) minmax(0, 1.18fr);
+  align-items: baseline;
+  gap: 14px;
+}
+
+.detailList dt,
+.detailList dd {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.detailList dt {
+  color: var(--muted);
+}
+
+.detailList dd {
+  overflow-wrap: anywhere;
+  margin: 0;
+  color: var(--soft-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.detailList dd[data-missing="true"] {
+  color: #7f7f73;
+  font-style: italic;
+}
+
+.textLink {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--soft-ink);
+  font-size: 10px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.textLink:hover {
+  color: var(--mint);
+}
+
+.textLink svg {
+  width: 13px;
+  height: 13px;
+}
+
+.drawerActions {
+  position: relative;
+  display: grid;
+  flex: 0 0 auto;
+  padding: 7px 24px 14px;
+  background: #0a100f;
+}
+
+.drawerActions > button,
+.drawerActions > a {
+  display: grid;
+  min-height: 34px;
+  grid-template-columns: 18px 1fr 18px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  padding: 0;
+  background: transparent;
+  color: var(--soft-ink);
+  font-size: 10px;
+  text-align: left;
+  text-decoration: none;
+}
+
+.drawerActions > button:hover,
+.drawerActions > a:hover {
+  color: var(--mint);
+}
+
+.drawerActions > button:disabled {
+  color: #62645d;
+  cursor: not-allowed;
+}
+
+.drawerActions svg {
+  width: 15px;
+  height: 15px;
+}
+
+.drawerActions svg:last-child {
+  justify-self: end;
+}
+
+.drawerActions .primaryDrawerAction {
+  min-height: 44px;
+  grid-template-columns: 1fr 18px;
+  justify-items: center;
+  margin-top: 7px;
+  border: 0;
+  border-radius: 3px;
+  padding: 0 14px;
+  background: #d7ded0;
+  color: #101614;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.drawerActions .primaryDrawerAction:hover {
+  background: #a9cbc3;
+  color: #101614;
+}
+
+.copyFeedback {
+  position: absolute;
+  right: 24px;
+  bottom: 61px;
+  left: 24px;
+  margin: 0;
+  color: var(--success);
+  font-size: 9px;
+  text-align: right;
+  pointer-events: none;
+}
+
+.playingShell {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  background: #050807;
+  font-family: "Inter", Arial, sans-serif;
+}
+
+.liveGame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #050807;
+}
+
+.playBar {
+  position: absolute;
+  z-index: 50;
+  top: 16px;
+  right: 16px;
+  left: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  pointer-events: none;
+}
+
+.playBar button,
+.playBar a,
+.playBar span {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(230, 223, 201, 0.26);
+  border-radius: 4px;
+  padding: 0 12px;
+  pointer-events: auto;
+  background: rgba(7, 12, 11, 0.82);
+  box-shadow: 0 7px 26px rgba(0, 0, 0, 0.28);
+  color: var(--soft-ink, #c9c4ae);
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.playBar button {
+  justify-self: start;
+}
+
+.playBar span {
+  justify-self: center;
+}
+
+.playBar a {
+  justify-self: end;
+}
+
+.playBar button:hover,
+.playBar a:hover {
+  border-color: #9cc1b9;
+  color: #9cc1b9;
+}
+
+.playBar svg {
+  width: 16px;
+  height: 16px;
+}
+
+.playBar strong {
+  color: #e6dfc9;
+  font-family:
+    "Barlow Condensed",
+    Arial Narrow,
+    sans-serif;
+  font-size: 15px;
+}
+
+.playBar i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(230, 223, 201, 0.52);
+}
+
+@media (max-width: 1199px) {
+  .drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: min(448px, 92vw);
+    min-width: 0;
+  }
+
+  .cards {
+    grid-template-columns: minmax(150px, 0.62fr) minmax(300px, 1.18fr) minmax(
+        150px,
+        0.62fr
+      );
+  }
+
+  .openSlot {
+    padding-inline: 16px;
+  }
+
+  .openSlot strong {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 760px) {
+  .masthead {
+    top: 16px;
+    width: calc(100% - 32px);
+  }
+
+  .mastRule {
+    max-width: 52px;
+  }
+
+  .runDeck {
+    right: 14px;
+    bottom: 72px;
+    left: 14px;
+  }
+
+  .runStatus {
+    max-width: calc(100% - 44px);
+    gap: 6px;
+    padding-inline: 10px;
+    font-size: 8px;
+  }
+
+  .runStatus span:last-child,
+  .runStatus i:last-of-type {
+    display: none;
+  }
+
+  .deckRow {
+    grid-template-columns: 28px minmax(0, 1fr) 28px;
+    gap: 5px;
+  }
+
+  .deckArrow {
+    width: 28px;
+    height: 40px;
+    border-radius: 4px;
+  }
+
+  .cards {
+    display: block;
+    width: 100%;
+  }
+
+  .sideCard,
+  .openSlot {
+    display: none;
+  }
+
+  .selectedCard > img {
+    height: clamp(98px, 16vh, 145px);
+  }
+
+  .stageFooter {
+    right: 16px;
+    bottom: 12px;
+    left: 16px;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+  }
+
+  .stageFooter > time,
+  .stageFooter nav a:first-child {
+    display: none;
+  }
+
+  .stageFooter nav {
+    gap: 8px;
+  }
+
+  .drawer {
+    width: 100%;
+    max-width: none;
+  }
+
+  .drawerHeader,
+  .drawerScroll {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .drawerStatus,
+  .drawerActions {
+    margin-right: 0;
+    margin-left: 0;
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .drawerStatus {
+    margin-inline: 20px;
+    overflow-x: auto;
+  }
+
+  .detailList div {
+    grid-template-columns: minmax(100px, 0.8fr) minmax(0, 1.2fr);
+  }
+
+  .playBar {
+    grid-template-columns: 1fr auto;
+  }
+
+  .playBar span {
+    display: none;
+  }
+}
+
+@media (max-height: 760px) {
+  .masthead {
+    top: 12px;
+  }
+
+  .runDeck {
+    bottom: 52px;
+  }
+
+  .runStatus {
+    min-height: 28px;
+  }
+
+  .selectedCard > img {
+    height: 72px;
+  }
+
+  .cardHeading {
+    padding-top: 8px;
+    padding-bottom: 6px;
+  }
+
+  .cardHeading strong {
+    font-size: 17px;
+  }
+
+  .playButton {
+    min-height: 36px;
+  }
+
+  .detailButton {
+    min-height: 28px;
+  }
+
+  .openSlot {
+    min-height: 148px;
+  }
+
+  .stageFooter {
+    bottom: 8px;
+  }
+
+  .detailSection {
+    padding-block: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deckArrow,
+  .playButton,
+  .sideCard,
+  .openSlot {
+    transition: none;
+  }
+}

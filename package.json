@@ -1,5 +1,5 @@
 {
-  "name": "untitled-game",
+  "name": "mirage-benchmark",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -14,11 +14,14 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "format:check": "prettier --check .openai app build worker .github README.md eslint.config.mjs next.config.ts package.json pnpm-workspace.yaml tsconfig.json vite.config.ts vitest.config.ts",
+    "format:check": "prettier --check .openai app benchmark build worker .github README.md eslint.config.mjs next.config.ts package.json pnpm-workspace.yaml tsconfig.json vite.config.ts vitest.config.ts",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.19.3",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@phosphor-icons/react": "^2.1.10",
     "next": "16.2.6",
     "react": "19.2.6",
     "react-dom": "19.2.6",

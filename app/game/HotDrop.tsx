@@ -7,6 +7,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { BENCHMARK_TASK } from "../benchmark/catalog";
 import styles from "./HotDrop.module.css";
 import {
   BUILDINGS,
@@ -257,8 +258,9 @@ export function HotDrop() {
     <main
       ref={shellRef}
       className={styles.shell}
+      data-fullscreen-game
       tabIndex={-1}
-      aria-label="Mirage: GTA in SF game"
+      aria-label={`${BENCHMARK_TASK.brandName}: ${BENCHMARK_TASK.gameTitle} game`}
     >
       <canvas
         ref={canvasRef}
@@ -270,9 +272,9 @@ export function HotDrop() {
 
       <header className={styles.topHud}>
         <div className={styles.brand}>
-          <span>Mirage:</span>
-          <strong>GTA in SF</strong>
-          <small>San Francisco · 02:17 AM</small>
+          <span>{BENCHMARK_TASK.brandName}:</span>
+          <strong>{BENCHMARK_TASK.gameTitle}</strong>
+          <small>{BENCHMARK_TASK.locationLabel} · 02:17 AM</small>
         </div>
 
         <div className={styles.objectivePanel}>
@@ -459,10 +461,13 @@ export function HotDrop() {
       {!hasStarted ? (
         <section className={styles.intro}>
           <div className={styles.introCard}>
-            <p className={styles.eyebrow}>Mirage ML benchmark · 2D reference</p>
+            <p className={styles.eyebrow}>
+              {BENCHMARK_TASK.brandName}{" "}
+              {BENCHMARK_TASK.surfaceLabel.toLowerCase()} · 2D reference
+            </p>
             <h1 className={styles.mirageTitle}>
-              <span>Mirage:</span>
-              <strong>GTA in SF</strong>
+              <span>{BENCHMARK_TASK.brandName}:</span>
+              <strong>{BENCHMARK_TASK.gameTitle}</strong>
             </h1>
             <p className={styles.tagline}>
               Frontier models build it. You break it.

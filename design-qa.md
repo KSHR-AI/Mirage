@@ -1,47 +1,94 @@
-# Typography Design QA
+# Mirage benchmark design QA
 
 ## Evidence
 
-- Source visual truth: `/var/folders/hx/6dkvktts5wgdbx2l5scqhrr00000gn/T/codex-clipboard-1c5056d8-1de8-4c1b-8920-2090c1eabd18.png`
-- Final implementation: `/tmp/mirage-typography-final-compact.png`
-- Side-by-side comparison: `/tmp/mirage-design-qa-final-comparison.png`
-- State: 3D intro, before starting the run
-- Viewport: 572 × 444 CSS pixels
-- Source: 1144 × 888 pixels at 2× density, normalized to 572 × 444
-- Implementation: 572 × 444 pixels at 1× density
+- Source visual truth:
+  `/Users/aman/.codex/generated_images/019f90c0-2f5b-70d2-815f-60d41680b6a3/call_z0VGxg8VuGcyLBThHwaeIVMG.png`
+- Normalized source:
+  `/Users/aman/Documents/Git/mirage/.codex-artifacts/reference-normalized-1440x1024.png`
+- Browser-rendered implementation:
+  `/Users/aman/Documents/Git/mirage/.codex-artifacts/benchmark-final-1440x1024.png`
+- Full-view comparison:
+  `/Users/aman/Documents/Git/mirage/.codex-artifacts/comparison-detail-v2.png`
+- Focused drawer comparison:
+  `/Users/aman/Documents/Git/mirage/.codex-artifacts/comparison-drawer-v2.png`
+- Responsive evidence:
+  `/Users/aman/Documents/Git/mirage/.codex-artifacts/benchmark-lobby-390x844.png`
+  and
+  `/Users/aman/Documents/Git/mirage/.codex-artifacts/benchmark-detail-390x844.png`
+- Live-game evidence:
+  `/Users/aman/Documents/Git/mirage/.codex-artifacts/benchmark-playing-1440x1024.png`
+- Status-bar correction source:
+  `/var/folders/hx/6dkvktts5wgdbx2l5scqhrr00000gn/T/codex-clipboard-ed1aebc5-3677-497c-aaf6-37cb7edd8c15.png`
+- Status-bar correction implementation:
+  `/Users/aman/Documents/Git/mirage/.codex-artifacts/benchmark-submit-progress.png`
+- Desktop viewport: 1440 × 1024 CSS pixels at device pixel ratio 1.
+- Mobile viewport: 390 × 844 CSS pixels at device pixel ratio 1.
+- Source pixels: 1487 × 1058, normalized to 1440 × 1024.
+- Implementation pixels: 1440 × 1024.
+- State: the single `gpt-5.6-sol` run selected with its submitter-reported
+  progress visible.
 
 ## Findings
 
-- Fonts and typography: passed. The display stack is preserved, “Mirage:” and
-  “GTA in SF” now have balanced optical widths, and the two lines no longer
-  collide. Supporting text retains clear scale and weight hierarchy.
-- Spacing and layout rhythm: passed. The taller title line box still preserves
-  the reference positions of the tagline, mission brief, CTA, and feature row.
-- Colors and visual tokens: passed. Orange, cream, acid green, and muted text
-  remain unchanged.
-- Image quality and asset fidelity: passed. No image assets changed; the live 3D
-  backdrop remains sharp and unobstructed.
-- Copy and content: passed. All text matches the intended intro.
-- Responsive fit: passed at the supplied compact viewport. No title, CTA, or
-  feature text is clipped.
-- Interaction: passed. “Start 3D run” dismisses the intro and advances to
-  “Steal the marked ride.”
-- Console: no errors.
+- Fonts and typography: passed. Barlow Condensed recreates the narrow
+  benchmark/display hierarchy; Inter keeps dense provenance readable. Weight,
+  tracking, line height, truncation, and tabular metric alignment match the
+  target at desktop and mobile widths.
+- Spacing and layout rhythm: passed. The desktop split is 70/30, the game image
+  remains dominant, the selected run is centered above a compact footer, and
+  the drawer uses the target's divider-led vertical rhythm. The mobile drawer
+  becomes full width with its close control and primary action continuously
+  available.
+- Colors and visual tokens: passed. Near-black, warm ivory, desaturated mint,
+  success green, and restrained evidence-warning tones match the target without
+  reintroducing the earlier acid/orange dashboard treatment.
+- Image quality and asset fidelity: passed. A dedicated 1672 × 941 cinematic
+  pursuit image supplies the full-bleed preview and run thumbnail. The playable
+  state switches to the real WebGL build instead of pretending the generated
+  still is gameplay. Phosphor supplies all interface icons; there are no
+  handcrafted icon or placeholder assets.
+- Copy and content: passed. The shell presents one real historical run and two
+  explicit open contribution slots rather than fictional model results. The
+  drawer truthfully marks the historical prompt and exact setup as missing
+  while preserving its immutable source commit. Progress is explicitly labeled
+  as a submitter estimate; no synthetic test-count or redundant baseline label
+  remains.
+- Interaction and accessibility: passed. “Prompt & setup” opens a named modal
+  drawer, moves focus to Close, traps Tab, closes on Escape, and returns focus
+  to the trigger. The background is inert while open. “Play selected build”
+  launches the real 3D route in-place and auto-starts it; “Back to builds”
+  restores the deck. External links use safe target/rel attributes. Desktop and
+  mobile documents have no horizontal overflow.
+- Runtime: passed. A clean final in-app-browser tab reported no console errors
+  or warnings. The repository passed formatting, lint, typecheck, 31 tests, and
+  production build.
 
-The full normalized comparison keeps the title and supporting copy legible
-enough to judge directly, so a separate focused crop was not required.
+## Comparison history
 
-## Comparison History
+1. Initial full-view comparison found three P2 differences:
+   the implementation added an unrequested marketing block over the hero; the
+   open-detail state retained a prominent Play action instead of making
+   “Prompt & setup” the selected-card action; and provenance rows were smaller
+   than the target.
+2. The marketing block was removed, the open-detail selected card now promotes
+   “Prompt & setup,” drawer text was increased, and the close focus treatment
+   was changed from acid to muted mint.
+3. Post-fix full-view and focused-drawer comparisons show no remaining P0, P1,
+   or P2 mismatch. Missing historical provenance and open run slots are
+   intentional evidence-integrity constraints, not visual drift.
+4. The latest focused comparison removed the unsupported “24/24 verified”
+   claim and the redundant “Legacy baseline” label. The leading checkmark was
+   replaced with a gauge, and “10% coverage” became “10% submitter estimate.”
+   No P0, P1, or P2 issue remains in the revised status treatment.
 
-1. Initial source: the title lines collided and “GTA in SF” was visually
-   undersized.
-2. First correction: the second line gained width, but the display line box
-   still allowed a slight collision.
-3. Final correction: increased the “Mirage:” line height to create clean
-   separation while preserving the reference layout below it.
+## Follow-up polish
 
-## Follow-up Polish
-
-No P0, P1, P2, or P3 findings remain.
+- P3: add distinct preview imagery when real independent model submissions
+  arrive.
+- P3: the static lobby preview omits decorative in-game HUD; the HUD appears
+  immediately after Play launches the verified build.
+- P3: migrate existing Rapier and Three.js deprecated APIs without changing
+  game behavior.
 
 final result: passed

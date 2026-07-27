@@ -1,0 +1,68 @@
+{
+  "id": "legacy-hot-drop",
+  "taskId": "mirage-gta-sf-v1",
+  "model": "gpt-5.6-sol",
+  "builtOn": "2026-07-24",
+  "commit": "507d32ec1edbdf22ca09f4194824fb8575b81cab",
+  "playUrl": "/play/legacy-hot-drop",
+  "sourceUrl": "https://github.com/KSHR-AI/Mirage/tree/507d32ec1edbdf22ca09f4194824fb8575b81cab",
+  "status": "playable",
+  "progress": {
+    "percent": 10,
+    "basis": "submitter-estimate",
+    "note": "A vibes-based progress estimate supplied by the run submitter; it is not a benchmark score."
+  },
+  "comparisonEligible": false,
+  "previewImage": "/benchmark/legacy-hot-drop-cover.png",
+  "provenance": {
+    "prompt": {
+      "status": "not-recorded",
+      "text": null,
+      "digest": null,
+      "note": "This build predates the reproducible-run protocol, so its verbatim prompt was not captured."
+    },
+    "setup": {
+      "status": "partial",
+      "modelSnapshot": null,
+      "reasoning": null,
+      "harness": null,
+      "tools": [],
+      "agentCount": null,
+      "subagentCount": null,
+      "baseCommit": null,
+      "resultCommit": "507d32ec1edbdf22ca09f4194824fb8575b81cab"
+    },
+    "execution": {
+      "wallTimeSeconds": null,
+      "totalTokens": null,
+      "costUsd": null,
+      "retries": null,
+      "humanInterventions": null
+    },
+    "dependencies": {
+      "packageLock": "pnpm-lock.yaml",
+      "thirdPartyAssets": null,
+      "licenseStatus": "review-required"
+    },
+    "manifestUrl": null,
+    "submissionPrUrl": null
+  },
+  "capabilities": [
+    {
+      "label": "Driving physics",
+      "status": "verified"
+    },
+    {
+      "label": "Police pursuit",
+      "status": "verified"
+    },
+    {
+      "label": "Mission loop",
+      "status": "verified"
+    },
+    {
+      "label": "Objective navigation",
+      "status": "verified"
+    }
+  ]
+}
