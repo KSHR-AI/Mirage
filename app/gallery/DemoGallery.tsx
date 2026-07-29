@@ -210,7 +210,10 @@ export function DemoGallery({ demos = DEMOS }: DemoGalleryProps) {
             className={styles.wordmark}
             aria-label={`${DEMO_COLLECTION.brandName} home`}
           >
-            {DEMO_COLLECTION.brandName}
+            {/* This is also the file-based browser icon; one asset keeps the brand consistent. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className={styles.brandMark} src="/icon.png" alt="" />
+            <span>{DEMO_COLLECTION.brandName}</span>
           </Link>
           <span className={styles.collectionWord}>
             {DEMO_COLLECTION.surfaceLabel}

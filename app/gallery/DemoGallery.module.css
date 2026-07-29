@@ -79,6 +79,9 @@
 }
 
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--ink);
   font-family: "Barlow Condensed", Impact, sans-serif;
   font-size: 20px;
@@ -88,6 +91,12 @@
   line-height: 1;
   text-decoration: none;
   text-transform: uppercase;
+}
+
+.brandMark {
+  width: 22px;
+  height: 25px;
+  object-fit: contain;
 }
 
 .collectionWord {
@@ -1001,6 +1010,15 @@
     font-size: 7px;
     letter-spacing: 0.24em;
     white-space: nowrap;
+  }
+
+  .wordmark {
+    gap: 6px;
+  }
+
+  .brandMark {
+    width: 18px;
+    height: 21px;
   }
 
   .runDeck {
