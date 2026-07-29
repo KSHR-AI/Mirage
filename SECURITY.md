@@ -3,7 +3,7 @@
 ## Supported versions
 
 Security fixes target the current `main` branch and production deployment. An
-older demo with a security defect may be disabled while its source record is
+older game with a security defect may be disabled while its source record is
 preserved.
 
 ## Reporting a vulnerability

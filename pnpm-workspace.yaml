@@ -2,7 +2,6 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
-  workerd: true
 auditConfig:
   ignoreGhsas:
     - GHSA-mh99-v99m-4gvg

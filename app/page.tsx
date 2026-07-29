@@ -1,17 +1,17 @@
 import { DemoGallery } from "./gallery/DemoGallery";
-import { HotDrop } from "./game/HotDrop";
-import { HotDrop3D } from "./game3d/HotDrop3D";
+import { loadPublishedRegistry } from "./registry/load";
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ mode?: string | string[] }>;
-}) {
-  const { mode } = await searchParams;
+export const dynamic = "force-dynamic";
 
-  // Preserve the original direct-game URLs while the gallery is the default.
-  if (mode === "2d") return <HotDrop />;
-  if (mode === "game" || mode === "3d") return <HotDrop3D />;
-
-  return <DemoGallery />;
+export default async function Page() {
+  const registry = await loadPublishedRegistry();
+  return (
+    <DemoGallery
+      games={registry.games}
+      registryState={{
+        kind: registry.kind,
+        message: registry.message,
+      }}
+    />
+  );
 }

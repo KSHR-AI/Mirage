@@ -6,14 +6,15 @@
 
 - [ ] `pnpm check` passes.
 - [ ] The affected route was played or exercised end to end.
-- [ ] The Vercel preview renders without console or runtime errors.
+- [ ] The Mirage preview renders without console or runtime errors.
 - [ ] New code and assets have compatible licenses and attribution.
 
-## Demo record
+## Game submission
 
-- [ ] A materially new build uses a new demo ID.
-- [ ] Model, setup, source, and limitations are recorded.
-- [ ] The build brief is included when available.
+- [ ] A new game changes one `submissions/ID.json` record and adds no game source or generated artifact.
+- [ ] A materially different attempt uses a new immutable game ID.
+- [ ] Model, prompt status, setup, pinned source commit, lineage, licenses, controls, and limitations are recorded; derived lineage pins the matching parent repository and commit.
+- [ ] The record contains no contributor-authored artifact URL, digest, build command, environment, or deployment setting.
 - [ ] The description makes no unsupported performance claims.
 
 ## Risk and rollback

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowLeft,
   ArrowRight,
   ArrowSquareOut,
   CaretLeft,
@@ -10,7 +9,6 @@ import {
   Copy,
   DownloadSimple,
   GithubLogo,
-  LinkSimple,
   PaperPlaneTilt,
   Play,
   WarningCircle,
@@ -26,26 +24,46 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
 } from "react";
+import { GamePlayer } from "../player/GamePlayer";
+import type { PublishedGame } from "../registry/schema";
 import {
-  DEMO_COLLECTION,
-  DEMOS,
-  hasPublishedPrompt,
-  hasPublishedSetup,
-  type DemoRecord,
-} from "./catalog";
+  getPresentationCoverUrl,
+  getSourceRevisionUrl,
+} from "../registry/urls";
+import { RegistryNotice, type RegistryNoticeKind } from "./RegistryNotice";
 import styles from "./DemoGallery.module.css";
 
-const REPOSITORY_URL = DEMO_COLLECTION.repositoryUrl;
-const CONTRIBUTION_URL = `${REPOSITORY_URL.replace(/\/$/, "")}/blob/main/${DEMO_COLLECTION.contribution.guidePath.replace(/^\//, "")}`;
+const REPOSITORY_URL = "https://github.com/KSHR-AI/Mirage";
+const CONTRIBUTION_URL = `${REPOSITORY_URL}/issues/new?template=demo.yml`;
 const DRAWER_FOCUSABLE =
   'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type DemoGalleryProps = {
-  demos?: readonly DemoRecord[];
+  games: readonly PublishedGame[];
+  registryState: {
+    kind: "ready" | RegistryNoticeKind;
+    message: string | null;
+  };
 };
 
-export function DemoGallery({ demos = DEMOS }: DemoGalleryProps) {
-  const [selectedDemoId, setSelectedDemoId] = useState(demos[0].id);
+export function DemoGallery({ games, registryState }: DemoGalleryProps) {
+  if (games.length === 0 || registryState.kind !== "ready") {
+    return (
+      <RegistryNotice
+        kind={registryState.kind === "ready" ? "empty" : registryState.kind}
+        message={
+          registryState.message ??
+          "The registry is available, but no games have been published yet."
+        }
+      />
+    );
+  }
+
+  return <PopulatedGallery games={games} />;
+}
+
+function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
+  const [selectedGameId, setSelectedGameId] = useState(games[0].id);
   const [detailOpen, setDetailOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -53,20 +71,24 @@ export function DemoGallery({ demos = DEMOS }: DemoGalleryProps) {
   const detailTriggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const gameFrameRef = useRef<HTMLIFrameElement>(null);
 
-  const selectedDemo = useMemo(
-    () => demos.find((demo) => demo.id === selectedDemoId) ?? demos[0],
-    [demos, selectedDemoId],
+  const selectedGame = useMemo(
+    () => games.find((game) => game.id === selectedGameId) ?? games[0],
+    [games, selectedGameId],
   );
-  const selectedIndex = demos.findIndex((demo) => demo.id === selectedDemo.id);
-  const neighboringDemos = getNeighboringDemos(demos, selectedIndex);
+  const selectedIndex = games.findIndex((game) => game.id === selectedGame.id);
+  const neighboringGames = getNeighboringGames(games, selectedIndex);
+  const coverUrl = getPresentationCoverUrl(selectedGame);
+  const updatedOn = games.reduce(
+    (latest, game) => (game.builtOn > latest ? game.builtOn : latest),
+    games[0].builtOn,
+  );
   const recordDownload = useMemo(
     () =>
       `data:application/json;charset=utf-8,${encodeURIComponent(
-        JSON.stringify(selectedDemo, null, 2),
+        JSON.stringify(selectedGame, null, 2),
       )}`,
-    [selectedDemo],
+    [selectedGame],
   );
 
   const closeDetail = useCallback(() => {
@@ -83,30 +105,19 @@ export function DemoGallery({ demos = DEMOS }: DemoGalleryProps) {
 
   const moveSelection = useCallback(
     (direction: -1 | 1) => {
-      if (demos.length < 2) return;
+      if (games.length < 2) return;
       const nextIndex =
-        (selectedIndex + direction + demos.length) % demos.length;
-      setSelectedDemoId(demos[nextIndex].id);
+        (selectedIndex + direction + games.length) % games.length;
+      setSelectedGameId(games[nextIndex].id);
       setFeedback("");
     },
-    [demos, selectedIndex],
+    [games, selectedIndex],
   );
-
-  const beginPlay = useCallback(() => {
-    setDetailOpen(false);
-    setIsPlaying(true);
-  }, []);
 
   useEffect(() => {
     if (!detailOpen) return;
     requestAnimationFrame(() => closeRef.current?.focus());
-  }, [detailOpen, selectedDemo.id]);
-
-  useEffect(() => {
-    if (!isPlaying) return;
-    const frame = requestAnimationFrame(() => gameFrameRef.current?.focus());
-    return () => cancelAnimationFrame(frame);
-  }, [isPlaying, selectedDemo.id]);
+  }, [detailOpen, selectedGame.id]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -138,8 +149,7 @@ export function DemoGallery({ demos = DEMOS }: DemoGalleryProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [closeDetail, detailOpen, isPlaying, moveSelection]);
 
-  const copyText = async (label: string, value: string | null) => {
-    if (!value) return;
+  const copyText = async (label: string, value: string) => {
     try {
       await navigator.clipboard.writeText(value);
       setFeedback(`${label} copied.`);
@@ -150,35 +160,7 @@ export function DemoGallery({ demos = DEMOS }: DemoGalleryProps) {
 
   if (isPlaying) {
     return (
-      <main className={styles.playingShell} data-fullscreen-game>
-        <iframe
-          ref={gameFrameRef}
-          key={selectedDemo.id}
-          className={styles.liveGame}
-          src={withEmbedMode(selectedDemo.playUrl)}
-          title={`${selectedDemo.title}, a playable model-built demo`}
-          sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-fullscreen"
-          allow="fullscreen; gamepad"
-          allowFullScreen
-          referrerPolicy="no-referrer"
-          tabIndex={0}
-        />
-        <div className={styles.playBar}>
-          <button type="button" onClick={() => setIsPlaying(false)}>
-            <ArrowLeft aria-hidden="true" weight="bold" />
-            Back to demos
-          </button>
-          <span>
-            <strong>{selectedDemo.title}</strong>
-            <i aria-hidden="true" />
-            {selectedDemo.model}
-          </span>
-          <a href={selectedDemo.playUrl} target="_blank" rel="noreferrer">
-            Open full screen
-            <ArrowSquareOut aria-hidden="true" />
-          </a>
-        </div>
-      </main>
+      <GamePlayer game={selectedGame} onExit={() => setIsPlaying(false)} />
     );
   }
 
@@ -189,97 +171,89 @@ export function DemoGallery({ demos = DEMOS }: DemoGalleryProps) {
     >
       <section
         className={styles.stage}
-        aria-label={`${DEMO_COLLECTION.brandName} playable model demo gallery`}
+        data-has-cover={coverUrl ? "true" : "false"}
+        aria-label="Mirage playable model-built game gallery"
         inert={detailOpen ? true : undefined}
       >
-        {/* Demo records own these static or public paths. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          className={styles.heroImage}
-          src={selectedDemo.previewImage}
-          alt=""
-          aria-hidden="true"
-        />
+        {coverUrl ? (
+          // Registry image paths resolve through the validated artifact proxy.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            className={styles.heroImage}
+            src={coverUrl}
+            alt=""
+            aria-hidden="true"
+          />
+        ) : null}
         <div className={styles.imageVeil} aria-hidden="true" />
         <div className={styles.lowerScrim} aria-hidden="true" />
 
         <header className={styles.masthead}>
           <span className={styles.mastRule} aria-hidden="true" />
-          <Link
-            href="/"
-            className={styles.wordmark}
-            aria-label={`${DEMO_COLLECTION.brandName} home`}
-          >
-            {/* This is also the file-based browser icon; one asset keeps the brand consistent. */}
+          <Link href="/" className={styles.wordmark} aria-label="Mirage home">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className={styles.brandMark} src="/icon.png" alt="" />
-            <span>{DEMO_COLLECTION.brandName}</span>
+            <span>Mirage</span>
           </Link>
-          <span className={styles.collectionWord}>
-            {DEMO_COLLECTION.surfaceLabel}
-          </span>
+          <span className={styles.collectionWord}>Model-built games</span>
           <span className={styles.mastRule} aria-hidden="true" />
         </header>
 
         <div className={styles.heroCopy}>
           <span>Playable model-built game</span>
-          <h1>{selectedDemo.title}</h1>
-          <p>{selectedDemo.description}</p>
+          <h1>{selectedGame.title}</h1>
+          <p>{selectedGame.description}</p>
         </div>
 
         <section
           ref={deckRef}
-          id="demo-deck"
+          id="game-deck"
           className={styles.runDeck}
-          aria-label="Playable model demos"
+          aria-label="Published games"
           tabIndex={-1}
         >
           <div className={styles.deckRow}>
             <button
               className={styles.deckArrow}
               type="button"
-              aria-label="Previous demo"
-              disabled={demos.length < 2}
+              aria-label="Previous game"
+              disabled={games.length < 2}
               onClick={() => moveSelection(-1)}
             >
               <CaretLeft aria-hidden="true" weight="bold" />
             </button>
 
             <div className={styles.cards}>
-              {neighboringDemos.previous ? (
-                <SideDemoCard
-                  demo={neighboringDemos.previous}
-                  onSelect={setSelectedDemoId}
+              {neighboringGames.previous ? (
+                <SideGameCard
+                  game={neighboringGames.previous}
+                  onSelect={setSelectedGameId}
                 />
               ) : (
-                <OpenDemoSlot position="previous" />
+                <OpenGameSlot position="previous" />
               )}
 
               <article
                 className={styles.selectedCard}
                 aria-current="true"
-                data-demo-id={selectedDemo.id}
+                data-game-id={selectedGame.id}
               >
                 <div className={styles.cardHeading}>
-                  <strong>{selectedDemo.model}</strong>
-                  <span>{selectedDemo.title}</span>
-                  <time dateTime={selectedDemo.builtOn}>
-                    Built {formatDate(selectedDemo.builtOn)}
+                  <strong>{selectedGame.model}</strong>
+                  <span>{selectedGame.title}</span>
+                  <time dateTime={selectedGame.builtOn}>
+                    Built {formatDate(selectedGame.builtOn)}
                   </time>
                 </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={selectedDemo.previewImage}
-                  alt={`${selectedDemo.title} preview`}
-                />
-                <p>{selectedDemo.tagline}</p>
+                <GameCover game={selectedGame} selected />
+                <p>{selectedGame.tagline}</p>
                 <button
                   className={styles.playButton}
                   type="button"
-                  onClick={beginPlay}
+                  onClick={() => setIsPlaying(true)}
                 >
                   <Play aria-hidden="true" weight="fill" />
-                  Play demo
+                  Play game
                   <ArrowRight aria-hidden="true" weight="bold" />
                 </button>
                 <button
@@ -295,21 +269,21 @@ export function DemoGallery({ demos = DEMOS }: DemoGalleryProps) {
                 </button>
               </article>
 
-              {neighboringDemos.next ? (
-                <SideDemoCard
-                  demo={neighboringDemos.next}
-                  onSelect={setSelectedDemoId}
+              {neighboringGames.next ? (
+                <SideGameCard
+                  game={neighboringGames.next}
+                  onSelect={setSelectedGameId}
                 />
               ) : (
-                <OpenDemoSlot position="next" />
+                <OpenGameSlot position="next" />
               )}
             </div>
 
             <button
               className={styles.deckArrow}
               type="button"
-              aria-label="Next demo"
-              disabled={demos.length < 2}
+              aria-label="Next game"
+              disabled={games.length < 2}
               onClick={() => moveSelection(1)}
             >
               <CaretRight aria-hidden="true" weight="bold" />
@@ -319,30 +293,27 @@ export function DemoGallery({ demos = DEMOS }: DemoGalleryProps) {
 
         <footer className={styles.stageFooter}>
           <button type="button" onClick={() => deckRef.current?.focus()}>
-            <LinkSimple aria-hidden="true" weight="bold" />
-            Browse demos
+            Browse games
           </button>
-          <time dateTime={DEMO_COLLECTION.updatedOn}>
-            Updated {formatDate(DEMO_COLLECTION.updatedOn)}
-          </time>
+          <time dateTime={updatedOn}>Updated {formatDate(updatedOn)}</time>
           <nav aria-label="Project links">
             <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">
               <GithubLogo aria-hidden="true" weight="fill" />
-              View on GitHub
+              GitHub
             </a>
-            <a href={CONTRIBUTION_URL} target="_blank" rel="noreferrer">
+            <a href={CONTRIBUTION_URL}>
               <PaperPlaneTilt aria-hidden="true" weight="bold" />
-              {DEMO_COLLECTION.contribution.navAction}
+              Add a game
             </a>
           </nav>
         </footer>
       </section>
 
       {detailOpen ? (
-        <DemoDetailDrawer
+        <GameDetailDrawer
           ref={drawerRef}
           closeRef={closeRef}
-          demo={selectedDemo}
+          game={selectedGame}
           feedback={feedback}
           recordDownload={recordDownload}
           onClose={closeDetail}
@@ -353,30 +324,49 @@ export function DemoGallery({ demos = DEMOS }: DemoGalleryProps) {
   );
 }
 
-type DemoDetailDrawerProps = {
+function GameCover({
+  game,
+  selected = false,
+}: {
+  game: PublishedGame;
+  selected?: boolean;
+}) {
+  const coverUrl = getPresentationCoverUrl(game);
+  if (!coverUrl) {
+    return (
+      <div
+        className={selected ? styles.cardFallback : styles.sideFallback}
+        aria-label="No cover image was published"
+      >
+        <span>{game.id}</span>
+      </div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={coverUrl} alt={game.presentation.coverAlt} />
+  );
+}
+
+type GameDetailDrawerProps = {
   ref: RefObject<HTMLElement | null>;
   closeRef: RefObject<HTMLButtonElement | null>;
-  demo: DemoRecord;
+  game: PublishedGame;
   feedback: string;
   recordDownload: string;
   onClose: () => void;
-  onCopy: (label: string, value: string | null) => Promise<void>;
+  onCopy: (label: string, value: string) => Promise<void>;
 };
 
-function DemoDetailDrawer({
+function GameDetailDrawer({
   ref,
   closeRef,
-  demo,
+  game,
   feedback,
   recordDownload,
   onClose,
   onCopy,
-}: DemoDetailDrawerProps) {
-  const promptPublished = hasPublishedPrompt(demo);
-  const setupPublished = hasPublishedSetup(demo);
-  const sourcePinned = /^[0-9a-f]{40}$/.test(demo.commit);
-  const setupText = formatSetupForCopy(demo);
-
+}: GameDetailDrawerProps) {
   const trapFocus = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.key !== "Tab") return;
     const focusable = Array.from(
@@ -400,15 +390,15 @@ function DemoDetailDrawer({
       className={styles.drawer}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="demo-detail-title"
+      aria-labelledby="game-detail-title"
       onKeyDown={trapFocus}
     >
       <header className={styles.drawerHeader}>
-        <h2 id="demo-detail-title">How this demo was made</h2>
+        <h2 id="game-detail-title">How this game was made</h2>
         <button
           ref={closeRef}
           type="button"
-          aria-label="Close demo details"
+          aria-label="Close game details"
           onClick={onClose}
         >
           <X aria-hidden="true" />
@@ -416,145 +406,69 @@ function DemoDetailDrawer({
       </header>
 
       <div className={styles.drawerStatus}>
+        <EvidenceStatus published label="Source pinned" />
+        <EvidenceStatus published label="Artifact digested" />
         <EvidenceStatus
-          published={promptPublished}
-          label={promptPublished ? "Brief available" : "Brief not recorded"}
+          published={game.lineage.kind !== "unverified"}
+          label={formatLineage(game)}
         />
-        <EvidenceStatus
-          published={setupPublished}
-          label={setupPublished ? "Setup available" : "Setup partial"}
-        />
-        <EvidenceStatus published={sourcePinned} label="Source linked" />
       </div>
 
       <div className={styles.drawerScroll}>
         <DetailSection title="About">
-          <p>{demo.description}</p>
-          <ul className={styles.featureList}>
-            {demo.features.map((feature) => (
-              <li key={feature}>{feature}</li>
-            ))}
-          </ul>
+          <p>{game.description}</p>
+          {game.features.length ? (
+            <ul className={styles.featureList}>
+              {game.features.map((feature) => (
+                <li key={feature}>{feature}</li>
+              ))}
+            </ul>
+          ) : null}
         </DetailSection>
 
-        <DetailSection title="Build brief">
-          {demo.provenance.prompt.text ? (
-            <>
-              <blockquote>{demo.provenance.prompt.text}</blockquote>
-              <button
-                className={styles.textLink}
-                type="button"
-                onClick={() =>
-                  void onCopy("Build brief", demo.provenance.prompt.text)
-                }
-              >
-                Copy build brief
-                <Copy aria-hidden="true" />
-              </button>
-            </>
-          ) : (
-            <div className={styles.missingEvidence}>
-              <WarningCircle aria-hidden="true" weight="fill" />
-              <p>{demo.provenance.prompt.note}</p>
-            </div>
-          )}
-        </DetailSection>
-
-        <DetailSection title="Build setup">
+        <DetailSection title="Immutable record">
           <DetailList
             rows={[
-              ["Model", demo.model],
-              ["Model snapshot", demo.provenance.setup.modelSnapshot],
-              ["Reasoning", demo.provenance.setup.reasoning],
-              ["Agent", demo.provenance.setup.harness],
-              [
-                "Tools",
-                demo.provenance.setup.tools.length
-                  ? demo.provenance.setup.tools.join(", ")
-                  : null,
-              ],
-              ["Agent count", demo.provenance.setup.agentCount],
-              ["Subagent count", demo.provenance.setup.subagentCount],
-              [
-                "Starting commit",
-                shortCommit(demo.provenance.setup.baseCommit),
-              ],
-              ["Demo commit", shortCommit(demo.provenance.setup.resultCommit)],
+              ["Model", game.model],
+              ["Built", formatDate(game.builtOn)],
+              ["Source commit", game.source.commit],
+              ["Artifact digest", game.artifact.digest],
+              ["Artifact entry", game.artifact.entryPath],
+              ["Files", game.artifact.fileCount],
+              ["Static bytes", formatBytes(game.artifact.bytes)],
+              ["Lineage", formatLineage(game)],
             ]}
           />
         </DetailSection>
 
-        <DetailSection title="Build record">
-          <DetailList
-            rows={[
-              [
-                "Build time",
-                formatDuration(demo.provenance.execution.wallTimeSeconds),
-              ],
-              ["Tokens", formatNumber(demo.provenance.execution.totalTokens)],
-              ["Cost (USD)", formatCost(demo.provenance.execution.costUsd)],
-              ["Retries", demo.provenance.execution.retries],
-              [
-                "Human interventions",
-                demo.provenance.execution.humanInterventions,
-              ],
-            ]}
-          />
+        <DetailSection title="Provenance">
+          <JsonBlock value={game.provenance} />
         </DetailSection>
 
-        <DetailSection title="Source & assets">
-          <DetailList
-            rows={[
-              ["Package lock", demo.provenance.dependencies.packageLock],
-              [
-                "Third-party assets",
-                demo.provenance.dependencies.thirdPartyAssets,
-              ],
-              [
-                "License status",
-                demo.provenance.dependencies.licenseStatus === "verified"
-                  ? "Verified"
-                  : "Review required",
-              ],
-            ]}
-          />
-          <a
-            className={styles.textLink}
-            href={demo.playUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open playable demo
-            <ArrowSquareOut aria-hidden="true" />
-          </a>
+        <DetailSection title="Licenses">
+          <JsonBlock value={game.licenses} />
+        </DetailSection>
+
+        <DetailSection title="Presentation">
+          <JsonBlock value={game.presentation} />
         </DetailSection>
       </div>
 
       <div className={styles.drawerActions}>
         <button
           type="button"
-          disabled={!demo.provenance.prompt.text}
-          onClick={() =>
-            void onCopy("Build brief", demo.provenance.prompt.text)
-          }
+          onClick={() => void onCopy("Source commit", game.source.commit)}
         >
           <Copy aria-hidden="true" />
-          Copy brief
+          Copy commit
         </button>
-        <button
-          type="button"
-          onClick={() => void onCopy("Available setup", setupText)}
-        >
-          <Copy aria-hidden="true" />
-          Copy setup
-        </button>
-        <a href={recordDownload} download={`${demo.id}.json`}>
+        <a href={recordDownload} download={`${game.id}.json`}>
           <DownloadSimple aria-hidden="true" />
           Download record
         </a>
         <a
           className={styles.primaryDrawerAction}
-          href={demo.sourceUrl}
+          href={getSourceRevisionUrl(game.source)}
           target="_blank"
           rel="noreferrer"
         >
@@ -566,6 +480,12 @@ function DemoDetailDrawer({
         </p>
       </div>
     </aside>
+  );
+}
+
+function JsonBlock({ value }: { value: object }) {
+  return (
+    <pre className={styles.jsonBlock}>{JSON.stringify(value, null, 2)}</pre>
   );
 }
 
@@ -584,19 +504,13 @@ function DetailSection({
   );
 }
 
-function DetailList({
-  rows,
-}: {
-  rows: Array<[string, string | number | null]>;
-}) {
+function DetailList({ rows }: { rows: Array<[string, string | number]> }) {
   return (
     <dl className={styles.detailList}>
       {rows.map(([label, value]) => (
         <div key={label}>
           <dt>{label}</dt>
-          <dd data-missing={value === null ? "true" : undefined}>
-            {value ?? "Not recorded"}
-          </dd>
+          <dd>{value}</dd>
         </div>
       ))}
     </dl>
@@ -622,66 +536,69 @@ function EvidenceStatus({
   );
 }
 
-function SideDemoCard({
-  demo,
+function SideGameCard({
+  game,
   onSelect,
 }: {
-  demo: DemoRecord;
+  game: PublishedGame;
   onSelect: (id: string) => void;
 }) {
   return (
     <button
       className={styles.sideCard}
       type="button"
-      onClick={() => onSelect(demo.id)}
-      aria-label={`Select ${demo.title}`}
+      onClick={() => onSelect(game.id)}
+      aria-label={`Select ${game.title}`}
     >
       <span className={styles.cardHeading}>
-        <strong>{demo.model}</strong>
-        <span>{demo.title}</span>
-        <time dateTime={demo.builtOn}>Built {formatDate(demo.builtOn)}</time>
+        <strong>{game.model}</strong>
+        <span>{game.title}</span>
+        <time dateTime={game.builtOn}>Built {formatDate(game.builtOn)}</time>
       </span>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={demo.previewImage} alt="" />
-      <small>{demo.tagline}</small>
+      <GameCover game={game} />
+      <small>{game.tagline}</small>
     </button>
   );
 }
 
-function OpenDemoSlot({ position }: { position: "previous" | "next" }) {
-  const contribution = DEMO_COLLECTION.contribution;
-
+function OpenGameSlot({ position }: { position: "previous" | "next" }) {
   return (
     <a
       className={styles.openSlot}
       href={CONTRIBUTION_URL}
-      target="_blank"
-      rel="noreferrer"
-      aria-label={`${position === "previous" ? "Previous" : "Next"} demo slot is open; ${contribution.slotAction}`}
+      aria-label={`${position === "previous" ? "Previous" : "Next"} game slot is open; submit a game`}
     >
       <PaperPlaneTilt aria-hidden="true" weight="bold" />
-      <span>{contribution.slotLabel}</span>
-      <strong>{contribution.slotDescription}</strong>
-      <small>{contribution.slotAction}</small>
+      <span>Add a game</span>
+      <strong>Built something playable with a coding model?</strong>
+      <small>Submit the source</small>
     </a>
   );
 }
 
-function getNeighboringDemos(
-  demos: readonly DemoRecord[],
+function getNeighboringGames(
+  games: readonly PublishedGame[],
   selectedIndex: number,
 ) {
-  if (demos.length === 1) return { previous: null, next: null };
-  if (demos.length === 2) {
+  if (games.length === 1) return { previous: null, next: null };
+  if (games.length === 2) {
     return {
-      previous: demos[(selectedIndex + 1) % demos.length],
+      previous: games[(selectedIndex + 1) % games.length],
       next: null,
     };
   }
   return {
-    previous: demos[(selectedIndex - 1 + demos.length) % demos.length],
-    next: demos[(selectedIndex + 1) % demos.length],
+    previous: games[(selectedIndex - 1 + games.length) % games.length],
+    next: games[(selectedIndex + 1) % games.length],
   };
+}
+
+function formatLineage(game: PublishedGame) {
+  if (game.lineage.kind === "independent") return "Independent";
+  if (game.lineage.kind === "derived") {
+    return `Derived from ${game.lineage.parentId}`;
+  }
+  return "Unverified lineage";
 }
 
 function formatDate(date: string) {
@@ -693,44 +610,13 @@ function formatDate(date: string) {
   }).format(new Date(`${date}T00:00:00Z`));
 }
 
-function shortCommit(value: string | null) {
-  return value ? value.slice(0, 7) : null;
-}
-
-function formatNumber(value: number | null) {
-  return value === null ? null : new Intl.NumberFormat("en-US").format(value);
-}
-
-function formatCost(value: number | null) {
-  return value === null ? null : `$${value.toFixed(2)}`;
-}
-
-function formatDuration(seconds: number | null) {
-  if (seconds === null) return null;
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainder = seconds % 60;
-  return `${hours}h ${minutes}m ${remainder}s`;
-}
-
-function formatSetupForCopy(demo: DemoRecord) {
-  const setup = demo.provenance.setup;
-  return [
-    `Demo: ${demo.title}`,
-    `Model: ${demo.model}`,
-    `Model snapshot: ${setup.modelSnapshot ?? "Not recorded"}`,
-    `Reasoning: ${setup.reasoning ?? "Not recorded"}`,
-    `Agent: ${setup.harness ?? "Not recorded"}`,
-    `Tools: ${setup.tools.length ? setup.tools.join(", ") : "Not recorded"}`,
-    `Agent count: ${setup.agentCount ?? "Not recorded"}`,
-    `Subagent count: ${setup.subagentCount ?? "Not recorded"}`,
-    `Starting commit: ${setup.baseCommit ?? "Not recorded"}`,
-    `Demo commit: ${setup.resultCommit}`,
-  ].join("\n");
-}
-
-function withEmbedMode(playUrl: string) {
-  return `${playUrl}${playUrl.includes("?") ? "&" : "?"}embed=gallery`;
+function formatBytes(bytes: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "unit",
+    unit: bytes >= 1_000_000 ? "megabyte" : "kilobyte",
+    unitDisplay: "short",
+    maximumFractionDigits: 1,
+  }).format(bytes / (bytes >= 1_000_000 ? 1_000_000 : 1_000));
 }
 
 function isFormControl(target: EventTarget | null) {
