@@ -58,7 +58,7 @@ then centrally built and played at `mirageml.com`.
 
 ## P0: production enforcement
 
-- [ ] Require the submission preflight, CI, and publishing-contract checks in
+- [x] Require the submission preflight, CI, and publishing-contract checks in
       protected-branch rules.
 - [ ] Restrict artifact-branch writes to the protected publisher identity and
       continuously audit branch protection.

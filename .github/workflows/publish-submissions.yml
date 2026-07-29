@@ -181,6 +181,8 @@ jobs:
 
   publish:
     name: Append immutable artifacts
+    # Repository policy protects mirage-artifacts; this is the only job granted
+    # the contents:write token used by the append-only publisher.
     needs: stage
     if: >-
       needs.stage.result == 'success' &&

@@ -8,8 +8,8 @@
 3. A maintainer reviews the provenance, licenses, playability, and check output,
    then merges the record to protected `main`. This is the sole approval.
 4. `Build and publish game submissions` repeats the build from protected
-   `main`, transfers only validated static files, and updates
-   `mirage-artifacts`.
+   `main`, transfers only validated static files, and uses its isolated
+   `contents:write` job to update the protected `mirage-artifacts` branch.
 5. The runtime registry exposes `mirageml.com/play/GAME_ID`. Contributors never
    deploy the game or receive production credentials.
 
