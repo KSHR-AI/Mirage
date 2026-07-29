@@ -8,11 +8,15 @@ import "@fontsource/barlow-condensed/800.css";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
-import { DEMO_COLLECTION } from "./gallery/catalog";
 import "./globals.css";
 
+const SITE_METADATA = {
+  title: "Mirage — Playable games built by coding models",
+  description:
+    "Play immutable browser games built by coding models, then inspect each source, lineage, and provenance record.",
+};
+
 export async function generateMetadata(): Promise<Metadata> {
-  const { metadata } = DEMO_COLLECTION;
   const requestHeaders = await headers();
   const forwardedHost = requestHeaders
     .get("x-forwarded-host")
@@ -33,26 +37,17 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase,
-    title: metadata.title,
-    description: metadata.description,
+    title: SITE_METADATA.title,
+    description: SITE_METADATA.description,
     openGraph: {
-      title: metadata.title,
-      description: metadata.description,
+      title: SITE_METADATA.title,
+      description: SITE_METADATA.description,
       type: "website",
-      images: [
-        {
-          url: metadata.shareImage.path,
-          width: metadata.shareImage.width,
-          height: metadata.shareImage.height,
-          alt: metadata.shareImage.alt,
-        },
-      ],
     },
     twitter: {
-      card: "summary_large_image",
-      title: metadata.title,
-      description: metadata.description,
-      images: [metadata.shareImage.path],
+      card: "summary",
+      title: SITE_METADATA.title,
+      description: SITE_METADATA.description,
     },
   };
 }

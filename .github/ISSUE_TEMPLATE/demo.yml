@@ -1,21 +1,57 @@
-name: Model-built demo proposal
-description: Propose a new playable model-built game before opening its pull request.
-title: "[Demo]: "
+name: Model-built game proposal
+description: Submit a pinned model-built game repository for Mirage's automatic publishing flow.
+title: "[Game]: "
 labels:
   - enhancement
 body:
+  - type: markdown
+    attributes:
+      value: |
+        You provide public source and an exact commit; you never need a Vercel account or deployment URL. After a maintainer approves and merges the submission record, Mirage's protected workflow builds, validates, publishes, and registers the game at mirageml.com.
+  - type: input
+    id: source_repository
+    attributes:
+      label: Public source repository
+      description: The standalone repository containing only this game attempt and its provenance.
+      placeholder: https://github.com/owner/repository
+    validations:
+      required: true
+  - type: input
+    id: source_commit
+    attributes:
+      label: Source commit
+      description: Pin the exact submitted revision; branch names and mutable tags are not accepted.
+      placeholder: 40-character Git commit
+    validations:
+      required: true
+  - type: dropdown
+    id: lineage
+    attributes:
+      label: Lineage
+      description: Independent attempts start from the neutral Mirage seed; derived attempts intentionally use an earlier game.
+      options:
+        - Independent
+        - Derived
+        - Unverified
+    validations:
+      required: true
+  - type: input
+    id: lineage_reference
+    attributes:
+      label: Seed digest, parent game, or uncertainty
+      description: For an independent build, provide the seed digest. For a derived build, provide the parent Mirage game ID. For an unverified build, state what is unknown.
+      placeholder: sha256:... or earlier-game-001
+  - type: input
+    id: parent_source
+    attributes:
+      label: Derived parent source snapshot
+      description: For a derived build, provide the parent's canonical public GitHub repository and exact 40-character commit. It must match the accepted parent record.
+      placeholder: https://github.com/owner/parent-game @ 40-character commit
   - type: input
     id: model
     attributes:
       label: Model
       placeholder: Provider and exact model identifier when available
-    validations:
-      required: true
-  - type: input
-    id: base
-    attributes:
-      label: Starting commit
-      placeholder: 40-character Git commit
     validations:
       required: true
   - type: textarea
@@ -33,9 +69,29 @@ body:
     validations:
       required: true
   - type: textarea
-    id: artifact
+    id: limitations
     attributes:
-      label: Artifact and license plan
-      description: Describe the playable route or immutable artifact and the licenses for code and assets.
+      label: Known limitations
+      description: Describe unfinished behavior, browser constraints, performance issues, or accessibility gaps.
     validations:
       required: true
+  - type: textarea
+    id: licensing
+    attributes:
+      label: Code and asset licensing
+      description: Identify every third-party asset and license, or state that the game uses only original code and procedural assets.
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Submission checks
+      options:
+        - label: The repository and pinned commit are public and contain no credentials or private data.
+          required: true
+        - label: The game runs in a modern browser without an account, payment, camera, microphone, location, or clipboard access.
+          required: true
+        - label: The repository uses the fixed Mirage static contract—Node 24, pnpm 11.7, a committed lockfile, `pnpm run build:mirage`, and `dist/index.html`.
+          required: true
+        - label: I understand that Mirage will publish an immutable reviewed artifact and that later revisions require a new submission.
+          required: true

@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem in the demo gallery or a playable game.
+description: Report a reproducible problem in the gallery or a playable game.
 title: "[Bug]: "
 labels:
   - bug
@@ -9,9 +9,9 @@ body:
     attributes:
       label: Affected surface
       options:
-        - Demo gallery
-        - Fogline Pursuit
-        - Legacy Hot Drop
+        - Game gallery
+        - Published game
+        - Artifact proxy
         - Contribution tooling
         - Deployment
         - Other
@@ -21,7 +21,7 @@ body:
     id: url
     attributes:
       label: URL or route
-      placeholder: https://mirage-kshr.vercel.app/play/...
+      placeholder: https://mirageml.com/play/...
     validations:
       required: true
   - type: textarea
@@ -45,7 +45,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Browser, operating system, input device, viewport, and commit or demo ID.
+      description: Browser, operating system, input device, viewport, and commit or game ID.
     validations:
       required: true
   - type: textarea

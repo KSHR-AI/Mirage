@@ -3,6 +3,6 @@ contact_links:
   - name: Security vulnerability
     url: https://github.com/KSHR-AI/Mirage/security/advisories/new
     about: Report security issues privately.
-  - name: Demo contribution guide
-    url: https://github.com/KSHR-AI/Mirage/blob/main/demos/README.md
+  - name: Game contribution guide
+    url: https://github.com/KSHR-AI/Mirage/blob/main/submissions/README.md
     about: Read how to add a playable model-built game.

@@ -1,0 +1,227 @@
+name: Build and publish game submissions
+
+on:
+  # This check is intended to be required on main, so it must report even when
+  # a pull request changes no submission records. The CLIs no-op on an empty plan.
+  pull_request:
+  push:
+    branches:
+      - main
+    paths:
+      - "submissions/**/*.json"
+      - "scripts/publishing/**"
+      - ".github/workflows/publish-submissions.yml"
+      - ".github/actions/publishing-contract/**"
+  workflow_dispatch:
+
+# Main publications queue instead of cancelling one another: a later diff may
+# not contain a submission that appeared in an earlier queued commit.
+concurrency:
+  group: >-
+    mirage-submission-publishing-${{
+      github.event_name == 'pull_request' &&
+      format('pr-{0}', github.event.pull_request.number) ||
+      'main'
+    }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # node:24.14.0-bookworm, resolved from Docker Hub on 2026-07-29.
+  # The host-side orchestrator launches this image; candidate code never sees
+  # the Mirage checkout, Actions token, or publisher credentials.
+  MIRAGE_BUILDER_IMAGE: >-
+    node:24.14.0-bookworm@sha256:5a593d74b632d1c6f816457477b6819760e13624455d587eef0fa418c8d0777b
+
+jobs:
+  preflight:
+    name: submission-preflight
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the proposed control-plane revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.14.0
+
+      - name: Validate changed submission records
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PLAN_PATH: ${{ runner.temp }}/mirage-submission-plan.json
+        run: |
+          node scripts/publishing/validate-submissions.mjs \
+            --mode changed \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --output "$PLAN_PATH"
+
+      - name: Build and validate candidates without credentials
+        shell: bash
+        env:
+          PLAN_PATH: ${{ runner.temp }}/mirage-submission-plan.json
+          PAYLOAD_DIR: ${{ runner.temp }}/mirage-preflight/payload
+          PROVENANCE_DIR: ${{ runner.temp }}/mirage-preflight/provenance
+        run: |
+          node scripts/publishing/build-submissions.mjs \
+            --plan "$PLAN_PATH" \
+            --output-dir "$PAYLOAD_DIR" \
+            --provenance-dir "$PROVENANCE_DIR" \
+            --image "$MIRAGE_BUILDER_IMAGE"
+
+  stage:
+    name: Rebuild validated publication payload
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      artifact-digest: ${{ steps.upload.outputs.artifact-digest }}
+      artifact-name: ${{ steps.artifact-name.outputs.name }}
+    steps:
+      - name: Check out protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.14.0
+
+      - name: Validate changed submission records
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+          PLAN_PATH: ${{ runner.temp }}/mirage-submission-plan.json
+        run: |
+          node scripts/publishing/validate-submissions.mjs \
+            --mode changed \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --output "$PLAN_PATH"
+
+      - name: Validate every submission for a manual rebuild
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          PLAN_PATH: ${{ runner.temp }}/mirage-submission-plan.json
+        run: |
+          node scripts/publishing/validate-submissions.mjs \
+            --mode all \
+            --output "$PLAN_PATH"
+
+      - name: Build and validate candidates without credentials
+        shell: bash
+        env:
+          PLAN_PATH: ${{ runner.temp }}/mirage-submission-plan.json
+          PAYLOAD_DIR: ${{ runner.temp }}/mirage-publication/payload
+          PROVENANCE_DIR: ${{ runner.temp }}/mirage-publication/provenance
+        run: |
+          node scripts/publishing/build-submissions.mjs \
+            --plan "$PLAN_PATH" \
+            --output-dir "$PAYLOAD_DIR" \
+            --provenance-dir "$PROVENANCE_DIR" \
+            --image "$MIRAGE_BUILDER_IMAGE"
+
+      - name: Enforce the static transfer boundary
+        shell: bash
+        env:
+          STAGING_DIR: ${{ runner.temp }}/mirage-publication
+        run: |
+          test -d "$STAGING_DIR/payload"
+          test -d "$STAGING_DIR/provenance"
+
+          unsafe_path="$(
+            find "$STAGING_DIR" -mindepth 1 \
+              ! -type d ! -type f -print -quit
+          )"
+          if [[ -n "$unsafe_path" ]]; then
+            echo "::error title=Unsafe staged file::Only regular files and directories may cross the publishing boundary."
+            exit 1
+          fi
+
+      - name: Choose the workflow-artifact name
+        id: artifact-name
+        shell: bash
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: echo "name=validated-submissions-${RUN_ID}-${RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload only validated static payload and provenance
+        id: upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: ${{ runner.temp }}/mirage-publication
+          if-no-files-found: error
+          include-hidden-files: true
+          compression-level: 0
+          retention-days: 7
+
+  publish:
+    name: Append immutable artifacts
+    needs: stage
+    if: >-
+      needs.stage.result == 'success' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the trusted publisher from main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.14.0
+
+      - name: Download the validated publication payload
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.stage.outputs.artifact-name }}
+          path: ${{ runner.temp }}/mirage-publication
+          digest-mismatch: error
+
+      - name: Publish without executing candidate content
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_DIR: ${{ runner.temp }}/mirage-publication
+          WORKFLOW_ARTIFACT_DIGEST: sha256:${{ needs.stage.outputs.artifact-digest }}
+          SOURCE_WORKFLOW_SHA: ${{ github.sha }}
+        run: |
+          node scripts/publishing/publish-artifacts.mjs \
+            --input-dir "$INPUT_DIR" \
+            --branch mirage-artifacts \
+            --repository "$GITHUB_REPOSITORY" \
+            --workflow-artifact-digest "$WORKFLOW_ARTIFACT_DIGEST" \
+            --source-workflow-sha "$SOURCE_WORKFLOW_SHA" \
+            --disable-vercel-deployments

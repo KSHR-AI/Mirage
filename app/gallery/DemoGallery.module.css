@@ -29,6 +29,12 @@
   background: var(--bg);
 }
 
+.stage[data-has-cover="false"] {
+  background:
+    radial-gradient(circle at 70% 16%, #285249 0, #14221f 29%, transparent 58%),
+    linear-gradient(145deg, #111c19, #070c0b 72%);
+}
+
 .heroImage,
 .imageVeil,
 .lowerScrim {
@@ -333,6 +339,27 @@
   min-height: 0;
   object-fit: cover;
   filter: saturate(0.86) contrast(1.04);
+}
+
+.cardFallback,
+.sideFallback {
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, rgba(156, 193, 185, 0.08), transparent), #111917;
+  color: rgba(201, 196, 174, 0.5);
+  font-family: "Barlow Condensed", Impact, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.cardFallback {
+  height: clamp(96px, 12.5vh, 138px);
+}
+
+.sideFallback {
+  height: clamp(80px, 10vh, 112px);
 }
 
 .selectedCard > img {
@@ -706,6 +733,22 @@
   font-size: 11px;
   font-style: italic;
   line-height: 1.65;
+}
+
+.jsonBlock {
+  overflow-x: auto;
+  max-height: 260px;
+  margin: 0;
+  border: 1px solid rgba(230, 223, 201, 0.12);
+  border-radius: 4px;
+  padding: 10px;
+  background: rgba(3, 7, 6, 0.48);
+  color: #b7b2a0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .missingEvidence {
