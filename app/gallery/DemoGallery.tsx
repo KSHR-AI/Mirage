@@ -24,12 +24,13 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
 } from "react";
-import { GamePlayer } from "../player/GamePlayer";
 import type { PublishedGame } from "../registry/schema";
 import {
+  getCanonicalPlayPath,
   getPresentationCoverUrl,
   getSourceRevisionUrl,
 } from "../registry/urls";
+import benchmarkCover from "./mirage-bench-sf-chase.jpg";
 import { RegistryNotice, type RegistryNoticeKind } from "./RegistryNotice";
 import styles from "./DemoGallery.module.css";
 
@@ -65,7 +66,6 @@ export function DemoGallery({ games, registryState }: DemoGalleryProps) {
 function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
   const [selectedGameId, setSelectedGameId] = useState(games[0].id);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [feedback, setFeedback] = useState("");
   const deckRef = useRef<HTMLElement>(null);
   const detailTriggerRef = useRef<HTMLButtonElement>(null);
@@ -78,7 +78,6 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
   );
   const selectedIndex = games.findIndex((game) => game.id === selectedGame.id);
   const neighboringGames = getNeighboringGames(games, selectedIndex);
-  const coverUrl = getPresentationCoverUrl(selectedGame);
   const updatedOn = games.reduce(
     (latest, game) => (game.builtOn > latest ? game.builtOn : latest),
     games[0].builtOn,
@@ -98,7 +97,6 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
   }, []);
 
   const openDetail = useCallback(() => {
-    setIsPlaying(false);
     setDetailOpen(true);
     setFeedback("");
   }, []);
@@ -128,7 +126,6 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
       }
       if (
         detailOpen ||
-        isPlaying ||
         event.metaKey ||
         event.ctrlKey ||
         event.altKey ||
@@ -147,7 +144,7 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [closeDetail, detailOpen, isPlaying, moveSelection]);
+  }, [closeDetail, detailOpen, moveSelection]);
 
   const copyText = async (label: string, value: string) => {
     try {
@@ -158,12 +155,6 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
     }
   };
 
-  if (isPlaying) {
-    return (
-      <GamePlayer game={selectedGame} onExit={() => setIsPlaying(false)} />
-    );
-  }
-
   return (
     <main
       className={styles.shell}
@@ -171,21 +162,19 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
     >
       <section
         className={styles.stage}
-        data-has-cover={coverUrl ? "true" : "false"}
+        data-has-cover="true"
         aria-label="MirageML Bench GTA-in-San-Francisco submissions"
         inert={detailOpen ? true : undefined}
       >
-        {coverUrl ? (
-          // Covers resolve relative to the contributor-operated deployment.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            className={styles.heroImage}
-            src={coverUrl}
-            alt=""
-            aria-hidden="true"
-            referrerPolicy="no-referrer"
-          />
-        ) : null}
+        {/* The benchmark keeps one cinematic identity; run-specific evidence
+            stays inside each submission card. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          className={styles.heroImage}
+          src={benchmarkCover.src}
+          alt=""
+          aria-hidden="true"
+        />
         <div className={styles.imageVeil} aria-hidden="true" />
         <div className={styles.lowerScrim} aria-hidden="true" />
 
@@ -251,15 +240,14 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
                 </div>
                 <GameCover game={selectedGame} selected />
                 <p>{selectedGame.tagline}</p>
-                <button
+                <Link
                   className={styles.playButton}
-                  type="button"
-                  onClick={() => setIsPlaying(true)}
+                  href={getCanonicalPlayPath(selectedGame)}
                 >
                   <Play aria-hidden="true" weight="fill" />
                   Play
                   <ArrowRight aria-hidden="true" weight="bold" />
-                </button>
+                </Link>
                 <button
                   ref={detailTriggerRef}
                   className={styles.detailButton}
