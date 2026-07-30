@@ -27,7 +27,7 @@
   },
   "provenance": {
     "builtOn": "2026-07-30",
-    "model": "GPT-5",
+    "model": "gpt-5.6-ultra",
     "modelSnapshot": null,
     "reasoning": null,
     "harness": "Codex desktop",
