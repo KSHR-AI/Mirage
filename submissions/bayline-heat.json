@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "id": "bayline-heat",
+  "title": "BAYLINE HEAT",
+  "tagline": "One night, one manifest, and the whole Bayline on your tail",
+  "description": "An original third-person action-driving vertical slice set in a fictional San Francisco. Walk to the getaway car, cross a dense procedural night district through live traffic, steal a ferry manifest, break a two-unit police pursuit, and deliver the evidence to a hillside safehouse before time or vehicle damage ends the run.",
+  "features": [
+    "Camera-relative on-foot exploration with vehicle entry and exit",
+    "Arcade driving with acceleration, braking, reverse, handbrake, collisions, and recovery",
+    "Procedural fictional San Francisco district with traffic and pedestrians",
+    "Escalating two-unit police pursuit with timed evasion",
+    "Replayable manifest pickup and safehouse delivery mission",
+    "Procedural engine, siren, and mission audio",
+    "Route-aware HUD, minimap, integrity, wanted state, failure, completion, and restart"
+  ],
+  "source": {
+    "repositoryUrl": "https://github.com/KSHR-AI/bayline-heat",
+    "commit": "5656056bd5daeb40f4a48c887b24488cbd1cfd9d"
+  },
+  "deployment": {
+    "url": "https://kshr-ai.github.io/bayline-heat/",
+    "provider": "GitHub Pages"
+  },
+  "lineage": {
+    "kind": "unverified",
+    "note": "The run was built before Mirage's clean-room procedure was applied, and the agent environment included prior Mirage context. A neutral-seed isolation record was not preserved, so independence cannot be established."
+  },
+  "provenance": {
+    "builtOn": "2026-07-30",
+    "model": "gpt-5.6-ultra",
+    "modelSnapshot": null,
+    "reasoning": null,
+    "harness": "Codex desktop",
+    "tools": [
+      "apply_patch",
+      "shell",
+      "in-app Browser",
+      "image generation",
+      "Sites",
+      "subagents"
+    ],
+    "agentCount": 4,
+    "subagentCount": 3,
+    "humanInterventions": 1,
+    "prompt": {
+      "status": "partial",
+      "text": "Build an original, full-screen, browser-playable, third-person open-world action-driving game set in a fictionalized San Francisco. It should feel like a polished vertical slice of a real game, not a tech demo: a player can explore on foot, enter and exit a vehicle, drive meaningfully through a lively city, attract and evade police, and complete at least one memorable mission.\n\nUse Grand Theft Auto V and Watch Dogs 2 gameplay as quality references for responsiveness, urban density, visual hierarchy, animation, camera work, traffic, police escalation, sound, UI, and mission pacing. Do not copy their characters, writing, map, branding, music, code, or assets; create an original world and identity.\n\nAct as the lead agent. Choose the architecture and divide the experience into the smallest pieces that can be built and judged independently. Fan out builders and separate critics with fresh context. Critics must inspect the running game, actual pixels, recorded gameplay, performance data, and behavioral tests—not builder summaries.\n\nFor every important piece, compare our result directly against the references. If ours loses, identify the largest perceptible gap, fix it, and run the comparison again. Pay special attention to whether driving is genuinely controllable and enjoyable: steering, acceleration, braking, camera behavior, collisions, recovery, road readability, and the ability to intentionally navigate to a destination.\n\nContinuously test the complete player journey: load the game, move on foot, enter a car, drive through traffic for five minutes, trigger a wanted level, evade pursuit, start a mission, complete or fail it, and restart without breaking. Maintain smooth desktop performance and eliminate blocking bugs.\n\nAfter each major wave, use a fresh integration critic to make the city, controls, art, audio, UI, and mission feel like one coherent game. Maintain a simple live progress page with screenshots, gameplay clips, test results, performance, completed improvements, and the largest remaining gaps.\n\nKeep building, testing, judging, and improving until the experience reaches the bar or I stop the run. Prioritize one dense, delightful, replayable slice of San Francisco over a large empty map.",
+      "note": "The exact build objective is preserved. Harness-level system and developer instructions are not published, so this record is conservatively labeled partial."
+    }
+  },
+  "licenses": {
+    "code": "MIT",
+    "assetStatement": "The game renders first-party procedural Three.js geometry and procedural Web Audio. The submitted cover is a first-party Browser capture and is dedicated under CC0-1.0. No third-party gameplay assets or franchise material are shipped. Notices for bundled open-source runtime code are included in the deployment.",
+    "assets": [
+      {
+        "name": "BAYLINE HEAT benchmark cover",
+        "creator": "Aman Kishore and Codex",
+        "license": "CC0-1.0",
+        "sourceUrl": null,
+        "attribution": "First-party Browser capture of the running procedural game, rendered from the frozen source commit."
+      }
+    ]
+  },
+  "presentation": {
+    "coverPath": "assets/cover.jpg",
+    "coverAlt": "A red getaway car waits on a steep fictional San Francisco street beneath the BAYLINE HEAT mission interface at night",
+    "controls": [
+      "WASD or arrow keys to move on foot and drive",
+      "S or Arrow Down to brake and reverse",
+      "E to enter or exit the vehicle",
+      "Shift to sprint on foot",
+      "Space to use the handbrake",
+      "R to restart the run",
+      "M to mute or unmute procedural audio"
+    ],
+    "limitations": [
+      "Desktop keyboard play is the only submitted and Browser-tested input mode.",
+      "Visuals use stylized low-poly procedural geometry rather than authored character animation or photoreal materials.",
+      "Observed 30 FPS under Browser automation is not a native GPU frame-time benchmark.",
+      "Audio behavior is implemented, but audible output was not captured as benchmark evidence."
+    ],
+    "protocolVersion": 1
+  }
+}

@@ -384,6 +384,7 @@
   background: #d8dfd1;
   color: #101614;
   font-size: 13px;
+  text-decoration: none;
   transition:
     background-color 140ms ease,
     transform 140ms ease;
