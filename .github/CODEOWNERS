@@ -5,11 +5,10 @@
 /.github/workflows/ @AmanKishore
 /TODO.md @AmanKishore
 /submissions/ @AmanKishore
-/app/artifacts/ @AmanKishore
 /app/gallery/ @AmanKishore
 /app/play/ @AmanKishore
 /app/player/ @AmanKishore
 /app/registry/ @AmanKishore
-/docs/publishing-operations.md @AmanKishore
-/docs/publishing-security.md @AmanKishore
+/docs/deployment-operations.md @AmanKishore
+/docs/external-deployment-security.md @AmanKishore
 /scripts/ @AmanKishore

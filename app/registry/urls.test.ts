@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { PublishedGame } from "./schema";
 import {
-  getArtifactBasePath,
-  getArtifactEntryUrl,
-  getArtifactFilePath,
   getCanonicalPlayPath,
+  getDeploymentEntryUrl,
   getPresentationCoverUrl,
   getSourceRevisionUrl,
 } from "./urls";
@@ -20,12 +18,9 @@ const game: PublishedGame = {
     repositoryUrl: "https://github.com/example/night-drive",
     commit: "1".repeat(40),
   },
-  artifact: {
-    digest: `sha256:${"a".repeat(64)}`,
-    manifestDigest: `sha256:${"b".repeat(64)}`,
-    entryPath: "index.html",
-    fileCount: 2,
-    bytes: 256,
+  deployment: {
+    url: "https://example.github.io/night-drive/",
+    provider: "GitHub Pages",
   },
   lineage: {
     kind: "unverified",
@@ -43,35 +38,23 @@ const game: PublishedGame = {
   },
 };
 
-describe("runtime artifact URL derivation", () => {
-  it("derives the immutable base path without registry-supplied URLs", () => {
-    expect(getArtifactBasePath(game)).toBe(
-      `/artifacts/night-drive-001/${"1".repeat(40)}/${"a".repeat(64)}`,
-    );
+describe("runtime deployment URL derivation", () => {
+  it("uses the verified external deployment for iframe playback", () => {
     expect(getCanonicalPlayPath(game)).toBe("/play/night-drive-001");
-    expect(getArtifactEntryUrl(game)).toBe(
-      `${getArtifactBasePath(game)}/index.html?embed=mirage`,
+    expect(getDeploymentEntryUrl(game)).toBe(
+      "https://example.github.io/night-drive/?embed=mirage",
     );
   });
 
-  it("encodes artifact path segments exactly once", () => {
-    expect(getArtifactFilePath(game, "assets/cover 100%.webp")).toBe(
-      `${getArtifactBasePath(game)}/assets/cover%20100%25.webp`,
-    );
+  it("resolves the cover relative to the deployment", () => {
     expect(getPresentationCoverUrl(game)).toBe(
-      `${getArtifactBasePath(game)}/assets/cover%20100%25.webp`,
+      "https://example.github.io/night-drive/assets/cover%20100%.webp",
     );
   });
 
   it("derives the immutable source revision link", () => {
     expect(getSourceRevisionUrl(game.source)).toBe(
       `https://github.com/example/night-drive/tree/${"1".repeat(40)}`,
-    );
-  });
-
-  it("rejects traversal before constructing a local path", () => {
-    expect(() => getArtifactFilePath(game, "../secret.txt")).toThrow(
-      "Unsafe artifact path",
     );
   });
 });

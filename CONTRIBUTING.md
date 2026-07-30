@@ -1,170 +1,121 @@
-# Contributing to Mirage
+# Contributing to MirageML Bench
 
-Mirage accepts model-built games, player and publishing improvements, bug fixes,
-tests, and documentation through public issues and pull requests. Contributions
-to this repository are licensed under Apache-2.0.
+Mirage accepts new coding-model game runs, benchmark and player improvements,
+bug fixes, tests, and documentation through public pull requests.
 
-## Choose the contribution path
+## Choose a contribution path
 
-- New game: keep its source in a separate public repository, then follow
-  [the game-submission guide](submissions/README.md).
-- Mirage control plane: fork this repository, branch from current `main`, make
-  one focused change, and open a pull request.
+- New benchmark run: build and deploy it in a separate public repository, then
+  follow [the submission guide](submissions/README.md).
+- Mirage website or validation: fork this repository, branch from current
+  `main`, make one focused change, and open a pull request.
 
-Never add a game's source, generated bundle, hosting configuration, credentials,
-Git submodule, or Git subtree to Mirage.
+Never add game source, generated game bundles, hosting credentials, Git
+submodules, or Git subtrees to Mirage.
 
-## Rules for a new game
+## Build a new benchmark run
 
-### Preserve what the attempt demonstrates
+### Start outside Mirage
 
-One source repository represents one immutable attempt. Documentation, license,
-and reproducibility fixes may land before submission, but a rerun, dependency
-rebuild, source change, or material gameplay change receives a new repository,
-game ID, and submission record.
+Create a brand-new public GitHub repository and open the coding agent of your
+choice there. Give it the complete
+[Mirage game-agent prompt](submissions/AGENT_PROMPT.md).
 
-Declare one lineage kind:
+For an independent attempt, the model must not access Mirage source, Git
+history, previous games, prompts, screenshots, tests, assets, build output,
+worktrees, or caches until its game is finished, committed, pushed, and
+deployed. If that isolation cannot be established, label the run `unverified`.
+If it began from earlier work, label it `derived` and pin the exact parent.
 
-- `independent`: the model began from a neutral, history-free seed and could not
-  access previous games; record `lineage.seedDigest` and retain runner evidence.
-- `derived`: the attempt began from an earlier implementation, fork, or asset
-  set; record `lineage.parentId` plus `lineage.parentSource.repositoryUrl` and
-  the exact `lineage.parentSource.commit`. The snapshot must match the accepted
-  parent record.
-- `unverified`: isolation or starting state cannot be established; record a
-  precise `lineage.note`.
+One repository and source commit represent one frozen attempt. A rerun,
+dependency rebuild, source change, prompt correction, or material behavior
+change receives a new ID and record.
 
-All three can be useful. Do not label an attempt independent merely because its
-prompt prohibited reuse. For an independent attempt, create the repository
-outside the Mirage checkout and deny the model access to Mirage source, Git
-history, prior games, prompts, screenshots, tests, assets, build output, and
-caches.
-
-### Pin a reproducible public source
+### Freeze reproducible public source
 
 The source repository must:
 
-- be publicly readable at exactly `https://github.com/OWNER/REPO`;
-- be pinned by a full lowercase 40-character commit, never a branch, tag,
-  release, or mutable deployment;
+- be public at exactly `https://github.com/OWNER/REPOSITORY`;
+- be pinned by a full lowercase 40-character commit;
 - use Node.js 24 and pnpm 11.7 with a committed `pnpm-lock.yaml`;
 - define `pnpm run build:mirage`;
 - emit a self-contained `dist/index.html`;
-- contain its source license and third-party notices; and
-- resolve without submodules or maintainer-owned services.
+- contain source and third-party licenses; and
+- require no private package, submodule, service, or credential.
 
-Mirage chooses and runs only:
+### Supply a playable public deployment
 
-```bash
-pnpm install --frozen-lockfile
-pnpm run build:mirage
-```
+Deploy `dist/` to GitHub Pages, Cloudflare Pages, Vercel, Netlify, or another
+stable static HTTPS host. The deployment must:
 
-A submission cannot provide shell commands, environment variables, output
-paths, or deployment instructions.
+- return the game directly with HTTP 200 and `text/html`;
+- use no authentication, redirect, credentialed URL, query, or fragment;
+- load every required runtime asset from public HTTPS URLs;
+- resolve the declared relative cover path to a valid image response;
+- work below its deployment path and inside an opaque-origin iframe;
+- accept `?embed=mirage`;
+- omit `X-Frame-Options: DENY` and `SAMEORIGIN`; and
+- allow `https://mirageml.com` in CSP `frame-ancestors` when that directive is
+  present.
 
-### Meet the browser boundary
+The contributor operates the deployment. Mirage verifies it at submission time
+and on a schedule but does not archive or host a copy. Do not change the game
+served at an accepted URL.
 
-The contents of `dist/` must:
-
-- run without a server, function, middleware, database, secret, account, private
-  API, or required mutable CDN;
-- bundle every required runtime asset and use relative URLs;
-- include the declared cover image as AVIF, GIF, JPEG, PNG, or WebP;
-- remain functional below a non-root path and when storage and third-party
-  cookies are unavailable;
-- render responsively in an opaque-origin sandbox;
-- support keyboard input and touch input when mobile support is claimed;
-- accept `?embed=mirage` to remove redundant chrome;
-- avoid service workers, authentication, payments, forms, popups, downloads,
-  clipboard, camera, microphone, location, and private user data; and
-- request only fullscreen, pointer lock, or gamepad behavior declared by the
-  Mirage player contract.
-
-Limits are 5,000 files, 100 MiB total, 4 MiB per file, 512 UTF-8 bytes per
-path, and a maximum nesting depth of 20. Static validation rejects unsafe links
-and paths, executable or server content, service workers, root-absolute asset
-references, source maps, deployment metadata, and unsupported file types. The
-artifact CSP and iframe sandbox block remote runtime loads and undeclared
-privileges.
-
-Mirage also caps the generated public registry at 256 KiB and each artifact
-manifest at 8 MiB. Those generated files are publisher-owned, not submission
-fields.
-
-### Record provenance and rights, not guesses
+### Record evidence without inventing it
 
 The submission records:
 
-- title, tagline, description, observable features, controls, limitations, and
+- title, description, observable features, controls, limitations, and cover;
+- source repository, exact commit, deployment URL, and hosting provider;
+- model, snapshot, reasoning level, harness, tools, agents, interventions, and
   build date;
-- source repository and exact commit;
-- model and snapshot, reasoning level, harness, tools, agent counts, and human
-  interventions;
-- exact prompt, partial prompt, or a truthful `not-recorded` explanation;
-- independent, derived, or unverified lineage, including the canonical parent
-  repository and exact parent commit for derived work;
-- source license and a creator, source, license, and attribution record for
-  every font, audio file, image, model, texture, and other asset; and
-- a licensed cover path and useful alternative text.
+- exact prompt, a labeled partial prompt, or a specific `not-recorded` note;
+- independent, derived, or unverified lineage; and
+- source license plus creator, source, license, and attribution for every
+  third-party asset.
 
-Leave unknown values `null` or use the schema's explicit uncertainty form. Do
-not estimate missing tokens, timings, interventions, or independence. Do not
-turn tests, feature counts, subjective impressions, or completion percentages
-into a model score.
+Use `null`, `unknown`, or the schema’s uncertainty form instead of estimating
+missing evidence. Do not turn tests, feature counts, or impressions into a
+model score.
 
-Use original, procedural, public-domain, or explicitly licensed assets. “Found
-online,” model-generated without a rights review, or visually similar to a
-proprietary game is insufficient. Do not use Rockstar or Take-Two names,
-characters, logos, maps, audio, or extracted assets.
+Use original, procedural, public-domain, or explicitly licensed assets. Do not
+use Rockstar or Take-Two code, characters, logos, maps, audio, extracted assets,
+or material whose redistribution rights are uncertain.
 
-## Review and publication
-
-The protected pipeline is:
+## Submission review
 
 1. A pull request adds `submissions/GAME_ID.json`.
-2. A read-only workflow validates the changed record, fetches the exact public
-   commit, and builds it without secrets, write access, OIDC, Mirage state, or
-   production configuration.
-3. Maintainers review lineage, provenance, licenses, build output, and
-   playability.
-4. A maintainer merges the record to protected `main`; this is the only human
-   publication approval.
-5. The trusted `main` workflow rebuilds the same commit in the bounded builder,
-   validates `dist/`, and transfers only validated static bytes and trusted
-   metadata to a separate publisher.
-6. The publisher rechecks every digest and writes immutable artifact files,
-   manifests, audit records, and the complete `registry.json` directly to the
-   generated `mirage-artifacts` branch.
-7. The running application loads that registry dynamically and exposes
-   `mirageml.com/play/GAME_ID`.
+2. Read-only preflight validates the changed record and the complete active
+   lineage graph.
+3. Preflight confirms that the exact GitHub commit exists.
+4. Preflight safely fetches the deployment and cover, rejects redirects and
+   private-network destinations, and checks content types and iframe headers.
+5. Maintainers play the run and review isolation, provenance, and rights.
+6. Merge accepts the record. Mirage’s normal production deployment makes the
+   run available at `mirageml.com/play/GAME_ID`.
 
-Contributors never perform hosting or receive a production credential. The
-publisher never executes contributor source, package scripts, `vercel.json`,
-middleware, or functions.
+Contributor code is never executed by Mirage and receives no Mirage or hosting
+credential. Playback occurs in a sandbox without same-origin, forms, popups,
+downloads, storage access, or top-navigation privileges.
 
-See [publishing security](docs/publishing-security.md) for trust boundaries and
-[publishing operations](docs/publishing-operations.md) for retries and
-takedowns.
+## Updates and removal
 
-## Replacing or removing a published game
+Accepted evidence is immutable. A changed source commit, build, game, prompt,
+provenance field, license record, or presentation field receives a new ID.
 
-Every field in an accepted submission record is immutable. A factual
-correction, license change, rebuild, rerun, source change, new feature, or
-changed behavior gets a new ID and record, linked to its parent when derived.
-Remove the old record when it should no longer remain discoverable.
+You may update only `deployment.url` and `deployment.provider` to relocate the
+same frozen run. The replacement must pass preflight before merge. Deleting the
+submission in a reviewed pull request removes the run from discovery after the
+next Mirage deployment.
 
-For a security, licensing, provenance, or availability failure, delete
-`submissions/GAME_ID.json` in a reviewed pull request. This delists the game
-from registry-driven discovery; it does not revoke already cached responses or
-the public immutable bytes. Escalate an exploit or legal-removal request through
-the private security process until Mirage has a tested purge and quarantine
-path.
+Report a security or legal issue privately according to
+[SECURITY.md](SECURITY.md).
 
 ## Mirage control-plane pull requests
 
-For changes to the registry loader, player, proxy, publisher, documentation, or
-infrastructure:
+For website, registry, player, validation, documentation, or infrastructure
+changes:
 
 1. Search existing issues and pull requests.
 2. Fork current `main` and make one focused change.
@@ -175,7 +126,6 @@ infrastructure:
    rollback, and licenses.
 
 Keep unrelated changes separate. Never include secrets, private transcripts,
-user data, or unsupported model-performance claims. Report vulnerabilities
-privately according to [SECURITY.md](SECURITY.md).
+user data, or unsupported model-performance claims.
 
 By participating, you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).

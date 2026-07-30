@@ -11,10 +11,11 @@
 
 ## Game submission
 
-- [ ] A new game changes one `submissions/ID.json` record and adds no game source or generated artifact.
+- [ ] A new game changes one `submissions/ID.json` record and adds no game source, generated bundle, or hosting credential.
 - [ ] A materially different attempt uses a new immutable game ID.
-- [ ] Model, prompt status, setup, pinned source commit, lineage, licenses, controls, and limitations are recorded; derived lineage pins the matching parent repository and commit.
-- [ ] The record contains no contributor-authored artifact URL, digest, build command, environment, or deployment setting.
+- [ ] Model, prompt status, setup, pinned source commit, deployment, lineage, licenses, controls, and limitations are recorded.
+- [ ] The external play URL and cover return successfully and allow mirageml.com framing.
+- [ ] A deployment-only relocation changes no benchmark evidence.
 - [ ] The description makes no unsupported performance claims.
 
 ## Risk and rollback

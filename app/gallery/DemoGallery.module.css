@@ -151,14 +151,6 @@
   text-transform: uppercase;
 }
 
-.heroCopy p {
-  max-width: 48ch;
-  margin: 0;
-  color: var(--soft-ink);
-  font-size: clamp(12px, 1.3vw, 16px);
-  line-height: 1.5;
-}
-
 .featureList {
   display: flex;
   flex-wrap: wrap;
@@ -1034,10 +1026,6 @@
 
   .heroCopy h1 {
     font-size: clamp(40px, 14vw, 62px);
-  }
-
-  .heroCopy p {
-    display: none;
   }
 
   .masthead {

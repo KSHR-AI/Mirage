@@ -53,7 +53,7 @@ export function DemoGallery({ games, registryState }: DemoGalleryProps) {
         kind={registryState.kind === "ready" ? "empty" : registryState.kind}
         message={
           registryState.message ??
-          "The registry is available, but no games have been published yet."
+          "No accepted GTA-in-San-Francisco benchmark runs have been published yet."
         }
       />
     );
@@ -172,17 +172,18 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
       <section
         className={styles.stage}
         data-has-cover={coverUrl ? "true" : "false"}
-        aria-label="Mirage playable model-built game gallery"
+        aria-label="MirageML Bench GTA-in-San-Francisco submissions"
         inert={detailOpen ? true : undefined}
       >
         {coverUrl ? (
-          // Registry image paths resolve through the validated artifact proxy.
+          // Covers resolve relative to the contributor-operated deployment.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             className={styles.heroImage}
             src={coverUrl}
             alt=""
             aria-hidden="true"
+            referrerPolicy="no-referrer"
           />
         ) : null}
         <div className={styles.imageVeil} aria-hidden="true" />
@@ -190,33 +191,36 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
 
         <header className={styles.masthead}>
           <span className={styles.mastRule} aria-hidden="true" />
-          <Link href="/" className={styles.wordmark} aria-label="Mirage home">
+          <Link
+            href="/"
+            className={styles.wordmark}
+            aria-label="MirageML Bench home"
+          >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className={styles.brandMark} src="/icon.png" alt="" />
-            <span>Mirage</span>
+            <span>MirageML Bench</span>
           </Link>
-          <span className={styles.collectionWord}>Model-built games</span>
+          <span className={styles.collectionWord}>GTA in SF</span>
           <span className={styles.mastRule} aria-hidden="true" />
         </header>
 
         <div className={styles.heroCopy}>
-          <span>Playable model-built game</span>
-          <h1>{selectedGame.title}</h1>
-          <p>{selectedGame.description}</p>
+          <span>MirageML Bench</span>
+          <h1>GTA in SF</h1>
         </div>
 
         <section
           ref={deckRef}
           id="game-deck"
           className={styles.runDeck}
-          aria-label="Published games"
+          aria-label="Accepted submissions"
           tabIndex={-1}
         >
           <div className={styles.deckRow}>
             <button
               className={styles.deckArrow}
               type="button"
-              aria-label="Previous game"
+              aria-label="Previous submission"
               disabled={games.length < 2}
               onClick={() => moveSelection(-1)}
             >
@@ -253,7 +257,7 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
                   onClick={() => setIsPlaying(true)}
                 >
                   <Play aria-hidden="true" weight="fill" />
-                  Play game
+                  Play
                   <ArrowRight aria-hidden="true" weight="bold" />
                 </button>
                 <button
@@ -264,7 +268,7 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
                   aria-expanded={detailOpen}
                   onClick={openDetail}
                 >
-                  How it was made
+                  Submission details
                   <ArrowRight aria-hidden="true" weight="bold" />
                 </button>
               </article>
@@ -282,7 +286,7 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
             <button
               className={styles.deckArrow}
               type="button"
-              aria-label="Next game"
+              aria-label="Next submission"
               disabled={games.length < 2}
               onClick={() => moveSelection(1)}
             >
@@ -293,7 +297,7 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
 
         <footer className={styles.stageFooter}>
           <button type="button" onClick={() => deckRef.current?.focus()}>
-            Browse games
+            Browse submissions
           </button>
           <time dateTime={updatedOn}>Updated {formatDate(updatedOn)}</time>
           <nav aria-label="Project links">
@@ -303,7 +307,7 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
             </a>
             <a href={CONTRIBUTION_URL}>
               <PaperPlaneTilt aria-hidden="true" weight="bold" />
-              Add a game
+              Submit
             </a>
           </nav>
         </footer>
@@ -344,7 +348,11 @@ function GameCover({
   }
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={coverUrl} alt={game.presentation.coverAlt} />
+    <img
+      src={coverUrl}
+      alt={game.presentation.coverAlt}
+      referrerPolicy="no-referrer"
+    />
   );
 }
 
@@ -394,11 +402,11 @@ function GameDetailDrawer({
       onKeyDown={trapFocus}
     >
       <header className={styles.drawerHeader}>
-        <h2 id="game-detail-title">How this game was made</h2>
+        <h2 id="game-detail-title">Submission details</h2>
         <button
           ref={closeRef}
           type="button"
-          aria-label="Close game details"
+          aria-label="Close submission details"
           onClick={onClose}
         >
           <X aria-hidden="true" />
@@ -407,7 +415,7 @@ function GameDetailDrawer({
 
       <div className={styles.drawerStatus}>
         <EvidenceStatus published label="Source pinned" />
-        <EvidenceStatus published label="Artifact digested" />
+        <EvidenceStatus published label="Deployment verified" />
         <EvidenceStatus
           published={game.lineage.kind !== "unverified"}
           label={formatLineage(game)}
@@ -426,16 +434,14 @@ function GameDetailDrawer({
           ) : null}
         </DetailSection>
 
-        <DetailSection title="Immutable record">
+        <DetailSection title="Accepted record">
           <DetailList
             rows={[
               ["Model", game.model],
               ["Built", formatDate(game.builtOn)],
               ["Source commit", game.source.commit],
-              ["Artifact digest", game.artifact.digest],
-              ["Artifact entry", game.artifact.entryPath],
-              ["Files", game.artifact.fileCount],
-              ["Static bytes", formatBytes(game.artifact.bytes)],
+              ["Deployment provider", game.deployment.provider],
+              ["Deployment URL", game.deployment.url],
               ["Lineage", formatLineage(game)],
             ]}
           />
@@ -566,12 +572,12 @@ function OpenGameSlot({ position }: { position: "previous" | "next" }) {
     <a
       className={styles.openSlot}
       href={CONTRIBUTION_URL}
-      aria-label={`${position === "previous" ? "Previous" : "Next"} game slot is open; submit a game`}
+      aria-label={`${position === "previous" ? "Previous" : "Next"} submission slot is open`}
     >
       <PaperPlaneTilt aria-hidden="true" weight="bold" />
-      <span>Add a game</span>
-      <strong>Built something playable with a coding model?</strong>
-      <small>Submit the source</small>
+      <span>Open slot</span>
+      <strong>Submit your GTA-in-SF build</strong>
+      <small>GitHub source + live URL</small>
     </a>
   );
 }
@@ -608,15 +614,6 @@ function formatDate(date: string) {
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(`${date}T00:00:00Z`));
-}
-
-function formatBytes(bytes: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "unit",
-    unit: bytes >= 1_000_000 ? "megabyte" : "kilobyte",
-    unitDisplay: "short",
-    maximumFractionDigits: 1,
-  }).format(bytes / (bytes >= 1_000_000 ? 1_000_000 : 1_000));
 }
 
 function isFormControl(target: EventTarget | null) {

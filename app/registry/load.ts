@@ -1,145 +1,113 @@
+import { readdir, readFile } from "node:fs/promises";
+import path from "node:path";
 import { parseRegistryDocument, type PublishedGame } from "./schema";
 
-export const DEFAULT_REGISTRY_URL =
-  "https://raw.githubusercontent.com/KSHR-AI/Mirage/mirage-artifacts/registry.json";
-
-// Keep this synchronized with scripts/publishing/constants.mjs. The publisher
-// owns the hard limit; the runtime independently fails closed above it.
 export const MAX_REGISTRY_BYTES = 256 * 1024;
-
-type RegistryFetch = (
-  input: string | URL,
-  init?: RequestInit,
-) => Promise<Response>;
+const SUBMISSION_SCHEMA_VERSION = 2;
 
 export type RegistryLoadResult =
   | {
       kind: "ready";
       games: readonly PublishedGame[];
-      registryUrl: string;
       message: null;
     }
   | {
       kind: "empty";
       games: readonly [];
-      registryUrl: string;
       message: string;
     }
   | {
       kind: "unavailable";
       games: readonly [];
-      registryUrl: string | null;
       message: string;
     };
 
 export async function loadPublishedRegistry(options?: {
-  registryUrl?: string;
-  fetcher?: RegistryFetch;
+  directory?: string;
+  records?: readonly unknown[];
 }): Promise<RegistryLoadResult> {
-  let registryUrl: string;
   try {
-    registryUrl = resolveRegistryUrl(options?.registryUrl).toString();
-  } catch {
-    return {
-      kind: "unavailable",
-      games: [],
-      registryUrl: null,
-      message:
-        "The published-game registry URL is invalid. Mirage is not substituting bundled or cached games.",
-    };
-  }
-
-  try {
-    const response = await (options?.fetcher ?? fetch)(registryUrl, {
-      method: "GET",
-      redirect: "manual",
-      cache: "no-store",
+    const records =
+      options?.records ??
+      (await readSubmissionRecords(
+        options?.directory ?? path.join(process.cwd(), "submissions"),
+      ));
+    const document = parseRegistryDocument({
+      schemaVersion: 1,
+      games: records.map(projectSubmission),
     });
-    if (response.status !== 200) {
-      return {
-        kind: "unavailable",
-        games: [],
-        registryUrl,
-        message:
-          "The published-game registry is unavailable. Mirage is not substituting bundled or cached games.",
-      };
-    }
 
-    const document = parseRegistryDocument(
-      JSON.parse(await readBoundedText(response, MAX_REGISTRY_BYTES)),
-    );
     if (document.games.length === 0) {
       return {
         kind: "empty",
         games: [],
-        registryUrl,
         message:
-          "The registry is available, but no games have been published yet.",
+          "No accepted runs yet. Give a coding agent a brand-new repository, deploy its game, and submit the source and live URL.",
       };
     }
 
     return {
       kind: "ready",
       games: document.games,
-      registryUrl,
       message: null,
     };
   } catch {
     return {
       kind: "unavailable",
       games: [],
-      registryUrl,
       message:
-        "The published-game registry could not be verified. Mirage is not substituting bundled or cached games.",
+        "The MirageML Bench submission registry could not be verified. No benchmark run will be substituted.",
     };
   }
 }
 
-export function resolveRegistryUrl(configuredUrl?: string) {
-  const raw =
-    configuredUrl?.trim() ||
-    process.env.MIRAGE_REGISTRY_URL?.trim() ||
-    DEFAULT_REGISTRY_URL;
-  const url = new URL(raw);
-  if (
-    url.protocol !== "https:" ||
-    url.username !== "" ||
-    url.password !== "" ||
-    url.port !== "" ||
-    url.search !== "" ||
-    url.hash !== "" ||
-    !url.pathname.endsWith(".json")
-  ) {
-    throw new Error("Registry URL must be an uncredentialed HTTPS JSON URL");
+async function readSubmissionRecords(directory: string) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const names = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+    .map((entry) => entry.name)
+    .sort();
+  const records: unknown[] = [];
+  let bytes = 0;
+
+  for (const name of names) {
+    const source = await readFile(path.join(directory, name));
+    bytes += source.byteLength;
+    if (bytes > MAX_REGISTRY_BYTES) {
+      throw new Error("Submission registry exceeds its byte limit");
+    }
+    records.push(JSON.parse(source.toString("utf8")));
   }
-  return url;
+
+  return records;
 }
 
-async function readBoundedText(response: Response, maximumBytes: number) {
-  const declaredLength = response.headers.get("content-length");
+function projectSubmission(value: unknown) {
   if (
-    declaredLength !== null &&
-    (!/^\d+$/.test(declaredLength) || Number(declaredLength) > maximumBytes)
+    !isPlainObject(value) ||
+    value.schemaVersion !== SUBMISSION_SCHEMA_VERSION
   ) {
-    throw new Error("Registry response exceeds its byte limit");
+    throw new Error(
+      `Submission schemaVersion must equal ${SUBMISSION_SCHEMA_VERSION}`,
+    );
+  }
+  if (!isPlainObject(value.provenance)) {
+    throw new Error("Submission provenance must be an object");
   }
 
-  if (!response.body) return "";
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder("utf-8", { fatal: true });
-  let received = 0;
-  let text = "";
+  const record = { ...value };
+  delete record.schemaVersion;
+  return {
+    ...record,
+    model: value.provenance.model,
+    builtOn: value.provenance.builtOn,
+  };
+}
 
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    received += value.byteLength;
-    if (received > maximumBytes) {
-      await reader.cancel();
-      throw new Error("Registry response exceeds its byte limit");
-    }
-    text += decoder.decode(value, { stream: true });
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
   }
-
-  return text + decoder.decode();
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
 }

@@ -11,9 +11,9 @@ import "@fontsource/inter/600.css";
 import "./globals.css";
 
 const SITE_METADATA = {
-  title: "Mirage — Playable games built by coding models",
+  title: "MirageML Bench — Can coding models build GTA in SF?",
   description:
-    "Play immutable browser games built by coding models, then inspect each source, lineage, and provenance record.",
+    "A playable benchmark tracking how far coding models can get toward building GTA in San Francisco from clean-room repositories.",
 };
 
 export async function generateMetadata(): Promise<Metadata> {

@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowSquareOut } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { PublishedGame } from "../registry/schema";
-import { getArtifactEntryUrl, getCanonicalPlayPath } from "../registry/urls";
+import { getCanonicalPlayPath, getDeploymentEntryUrl } from "../registry/urls";
 import { GAME_IFRAME_SANDBOX } from "./sandbox";
 import styles from "./GamePlayer.module.css";
 
@@ -29,8 +29,8 @@ export function GamePlayer({ game, onExit }: GamePlayerProps) {
         ref={frameRef}
         key={game.id}
         className={styles.frame}
-        src={getArtifactEntryUrl(game)}
-        title={`${game.title}, a playable model-built game`}
+        src={getDeploymentEntryUrl(game)}
+        title={`${game.title}, a MirageML Bench GTA-in-San-Francisco attempt`}
         sandbox={GAME_IFRAME_SANDBOX}
         allow="fullscreen; gamepad"
         allowFullScreen
@@ -44,18 +44,18 @@ export function GamePlayer({ game, onExit }: GamePlayerProps) {
         data-loaded={loaded ? "true" : "false"}
         role="status"
       >
-        Loading verified artifact…
+        Loading verified deployment…
       </p>
       <div className={styles.bar}>
         {onExit ? (
           <button type="button" onClick={onExit}>
             <ArrowLeft aria-hidden="true" weight="bold" />
-            Back to games
+            Back to benchmark
           </button>
         ) : (
           <Link href="/">
             <ArrowLeft aria-hidden="true" weight="bold" />
-            Back to games
+            Back to benchmark
           </Link>
         )}
         <span>

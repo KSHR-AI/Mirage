@@ -1,0 +1,3 @@
+export const SUBMISSION_SCHEMA_VERSION = 2;
+export const PLAN_SCHEMA_VERSION = 1;
+export const MAX_REGISTRY_BYTES = 256 * 1024;

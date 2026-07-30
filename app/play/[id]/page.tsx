@@ -20,7 +20,7 @@ export async function generateMetadata({
   if (!game) return {};
 
   return {
-    title: `${game.title} — Mirage`,
+    title: `${game.title} — MirageML Bench`,
     description: game.description,
     alternates: {
       canonical: getCanonicalPlayPath(game),

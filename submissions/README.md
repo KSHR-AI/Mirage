@@ -1,75 +1,86 @@
-# Submit a game to Mirage
+# Submit a run to MirageML Bench
 
-Mirage hosts accepted games centrally. You provide a public source repository,
-an exact commit, and an evidence record—never a Vercel project, deployment URL,
-cloud account, generated bundle, or artifact digest.
+MirageML Bench asks one public question: **can a coding model build GTA in San
+Francisco?**
+
+Your coding agent builds one game in a brand-new repository. You host the
+finished static game. Mirage verifies the public source commit and deployment,
+records how the run was produced, and makes it playable at
+`mirageml.com/play/GAME_ID`.
 
 ## Fast path
 
-1. Create one public GitHub repository for one model-built game attempt.
-2. Commit a pnpm lockfile and make `pnpm run build:mirage` produce
-   `dist/index.html`.
-3. Pin the result to its full lowercase 40-character commit.
-4. Open a
-   [model-built game proposal](https://github.com/KSHR-AI/Mirage/issues/new?template=demo.yml)
-   if you want help preparing the record, or fork Mirage and add
-   `submissions/GAME_ID.json` directly.
-5. Open a pull request. The secretless preflight validates and builds the exact
-   commit.
-6. After review, a maintainer merges the record to protected `main`. That one
-   merge rebuilds, validates, publishes, and registers the game at
-   `mirageml.com/play/GAME_ID`.
+1. Create a new, empty, public GitHub repository.
+2. Open the coding agent of your choice inside that repository.
+3. Paste the complete [Mirage game-agent prompt](AGENT_PROMPT.md).
+4. Let the agent build, test, push, and deploy the game.
+5. Freeze the source commit and save the agent’s `MIRAGE_RUN_HANDOFF`.
+6. Fork Mirage and add exactly one `submissions/GAME_ID.json` file.
+7. Open a pull request. Mirage checks the record, exact GitHub commit, live
+   deployment, cover, and iframe headers.
+8. After review and merge, the next Mirage deployment adds the run to the
+   benchmark.
 
-Game source remains in its own repository. The submission file is only a pinned
-reference and evidence record.
+Do not open Mirage in the game-building agent’s environment until the game has
+been committed, deployed, and frozen. This prevents previous implementations
+from leaking into an independent attempt.
 
-## Source repository contract
+## Hosting
 
-The repository must be public at exactly `https://github.com/OWNER/REPO` and
-must not require submodules, private packages, services, or credentials. The
-pinned revision must include:
+You choose and operate the static host. GitHub Pages, Cloudflare Pages, Vercel,
+Netlify, or another public HTTPS provider is acceptable.
 
-- Node.js 24 compatibility;
-- `packageManager: "pnpm@11.7.0"`;
-- a committed `pnpm-lock.yaml`;
-- a `build:mirage` package script;
-- a source license and third-party notices; and
-- every source and runtime asset needed to emit a static `dist/`.
+- GitHub Pages is the simplest default when you want no additional hosting
+  account.
+- Another provider may be better for larger assets, heavier traffic, custom
+  response headers, or different deployment limits.
+- Mirage does not accept localhost, authenticated previews, expiring share
+  links, redirects, URLs with credentials, query strings, or fragments.
+- The game must allow `https://mirageml.com` to frame it. Do not send
+  `X-Frame-Options: DENY` or `SAMEORIGIN`. A CSP `frame-ancestors` directive
+  must include `https://mirageml.com`.
+- The deployment and its cover must return HTTP 200 with the correct HTML or
+  image content type.
 
-Mirage chooses and runs only:
+The live deployment remains under your control, so it is not immutable. Mirage
+verifies it when you submit and checks accepted deployments on a schedule. Keep
+the accepted URL online and do not change the game served there. You may update
+only the `deployment` object to move the same frozen run to another host; Mirage
+re-verifies the replacement. A source, gameplay, prompt, provenance, license, or
+presentation change is a new run with a new ID.
 
-```bash
-pnpm install --frozen-lockfile
-pnpm run build:mirage
-```
+## Static game contract
 
-`dist/` must contain `index.html`, the declared cover image, and all required
-static assets. Use relative URLs. The game must work without a server, secret,
-login, database, private API, required mutable CDN, service worker, popup,
-download, form submission, or privileged browser data. It must tolerate an
-opaque origin and accept `?embed=mirage`.
+The frozen source revision must:
 
-The publisher accepts at most 5,000 files, 100 MiB total, 4 MiB per file, 512
-UTF-8 bytes per path, and a maximum nesting depth of 20. Cover files must be
-AVIF, GIF, JPEG, PNG, or WebP. Static validation rejects links, unsafe or hidden
-paths, executables, server and deployment files, service workers, root-absolute
-asset references, source maps, and unsupported MIME types. The artifact CSP and
-iframe sandbox block remote runtime loads, forms, popups, downloads, top
-navigation, and undeclared browser privileges.
+- be public at exactly `https://github.com/OWNER/REPOSITORY`;
+- use Node.js 24 and pnpm 11.7 with a committed `pnpm-lock.yaml`;
+- define `pnpm run build:mirage`;
+- emit a self-contained game at `dist/index.html`;
+- bundle required runtime assets and use relative paths;
+- work below a hosting-provider subpath;
+- require no server, database, login, secret, private API, or mutable CDN;
+- work in an opaque-origin iframe without same-origin privileges, third-party
+  cookies, or persistent storage;
+- accept `?embed=mirage` and remove redundant chrome in embed mode;
+- support keyboard controls and every other input mode it claims;
+- include the declared cover image in `dist/`; and
+- include compatible code and per-asset licensing.
 
-The publisher caps the complete public registry at 256 KiB and each artifact
-manifest at 8 MiB. Contributors do not author either generated file.
+Mirage does not execute contributor code. The pull request verifies the public
+deployment and the pinned source identity; maintainers review playability,
+lineage, provenance, and rights.
 
 ## Submission file
 
-Create exactly `submissions/GAME_ID.json`. `GAME_ID` is an immutable lowercase
-kebab-case identifier. The file name and `id` must match.
+Create `submissions/GAME_ID.json`. `GAME_ID` is a permanent lowercase kebab-case
+identifier. The filename and `id` must match.
 
 Use this schema-complete example as a shape, not as evidence to copy:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "night-drive-001",
   "title": "Night Drive",
   "tagline": "One city, one clean attempt",
@@ -78,6 +89,10 @@ Use this schema-complete example as a shape, not as evidence to copy:
   "source": {
     "repositoryUrl": "https://github.com/example/night-drive",
     "commit": "1111111111111111111111111111111111111111"
+  },
+  "deployment": {
+    "url": "https://example.github.io/night-drive/",
+    "provider": "GitHub Pages"
   },
   "lineage": {
     "kind": "independent",
@@ -115,23 +130,26 @@ Use this schema-complete example as a shape, not as evidence to copy:
 ```
 
 The executable validator is
-[`scripts/publishing/submission.mjs`](../scripts/publishing/submission.mjs);
-the machine-readable contract is
-[`scripts/publishing/submission.schema.json`](../scripts/publishing/submission.schema.json).
-Unknown fields are rejected. Contributors never add `artifact`, `publication`,
-`embedUrl`, build commands, environment variables, or deployment settings.
+[`scripts/submissions/submission.mjs`](../scripts/submissions/submission.mjs).
+The machine-readable schema is
+[`scripts/submissions/submission.schema.json`](../scripts/submissions/submission.schema.json).
+Unknown fields are rejected.
 
 ## Lineage
 
-Choose exactly one shape:
+Choose exactly one:
 
 ```json
-{ "kind": "independent", "seedDigest": "sha256:..." }
+{
+  "kind": "independent",
+  "seedDigest": "sha256:..."
+}
 ```
 
-Use `independent` only when the model began from a neutral, history-free seed
-and the runner prevented access to prior games. Preserve the seed digest and
-isolation evidence.
+Use `independent` only when the model began in a neutral, history-free
+repository and could not access prior runs. Preserve the seed digest and runner
+evidence. A prompt saying “do not inspect previous games” does not prove
+isolation.
 
 ```json
 {
@@ -144,12 +162,9 @@ isolation evidence.
 }
 ```
 
-Use `derived` when the attempt began from an earlier implementation, fork,
-prompted reproduction, or asset set. `parentSource.repositoryUrl` must be the
-parent's canonical public GitHub repository and `parentSource.commit` must be
-its exact lowercase 40-character source commit. Both must match the accepted
-parent record; a branch, tag, release, or current repository head is not a
-snapshot.
+Use `derived` when the run began from an earlier implementation, reproduction,
+fork, prompt, or asset set. The parent repository and exact commit must match
+the accepted parent record.
 
 ```json
 {
@@ -158,70 +173,40 @@ snapshot.
 }
 ```
 
-Use `unverified` when the starting state or isolation cannot be proved. All
-three categories can be accepted; they answer different questions. A prompt
-instructing a model not to inspect old games does not prove independence.
-
-For an independent attempt, create the source repository outside the Mirage
-checkout and prevent access to Mirage source, Git history, prior artifacts,
-screenshots, prompts, tests, assets, worktrees, and caches.
+Use `unverified` when the starting state or isolation cannot be established.
+All three categories are useful; they answer different questions.
 
 ## Provenance and licenses
 
-Record what happened, including uncertainty:
+Record what happened without filling gaps:
 
-- use an exact model identifier and snapshot when known;
-- set nullable model snapshots, reasoning levels, or counts to `null` when they
-  are unknown; the model identifier itself is required;
-- publish the exact prompt, mark it `partial`, or use `not-recorded` with a
-  specific explanation;
-- count human interventions consistently and explain material intervention in
-  the pull request;
-- list observable features and limitations, not scores; and
-- inventory every third-party font, audio file, image, 3D model, texture, and
-  other asset with creator, source URL, SPDX license, and required attribution.
+- use the exact model and snapshot when known;
+- preserve the complete prompt, mark it `partial`, or explain
+  `not-recorded`;
+- record the harness, tools, agent counts, and human interventions;
+- describe observable features and limitations, not a model score;
+- identify every third-party font, audio file, image, model, texture, and
+  other asset with its creator, source, SPDX license, and attribution; and
+- use original, procedural, public-domain, or explicitly licensed assets.
 
-Use original, procedural, public-domain, or explicitly licensed assets. Do not
-use proprietary game names, characters, logos, maps, audio, extracted assets,
-or material whose distribution rights are uncertain.
+Do not use Rockstar or Take-Two code, characters, logos, maps, audio, extracted
+assets, or material whose distribution rights are uncertain.
 
-## What happens after the pull request
+## Review, updates, and removal
 
-The pull-request preflight has read-only repository access and no secrets,
-write token, OIDC, production environment, or trusted cache write. It fetches
-the exact public source commit, installs its locked dependencies in the bounded
-candidate container, builds with network disabled, and validates `dist/`.
-Maintainers separately review playability, provenance, lineage, and rights.
+The submission preflight is read-only. It checks the full record collection,
+confirms the GitHub commit exists, rejects non-public deployment hosts, and
+verifies the game and cover responses without receiving contributor
+credentials.
 
-Merging the accepted record to protected `main` is the sole publication
-approval. The trusted workflow repeats the exact build, passes only validated
-static bytes and metadata across the trust boundary, and publishes directly to
-the generated `mirage-artifacts` branch:
+Accepted benchmark evidence is immutable. A new source commit, changed game,
+rerun, dependency rebuild, corrected prompt, changed provenance, new license
+record, or presentation change gets a new ID. A deployment-only edit is allowed
+for relocating the unchanged frozen run and must pass preflight again.
 
-```text
-artifacts/GAME_ID/SOURCE_COMMIT/ARTIFACT_DIGEST_HEX/...
-manifests/GAME_ID/SOURCE_COMMIT/ARTIFACT_DIGEST_HEX.json
-registry/GAME_ID.json
-registry.json
-```
+Deleting `submissions/GAME_ID.json` in a reviewed pull request removes the run
+from Mirage discovery after the next application deployment. Report security
+or legal issues privately through
+[GitHub Security Advisories](https://github.com/KSHR-AI/Mirage/security/advisories/new).
 
-The publisher derives and verifies artifact identity; contributors do not
-choose it. The production app reads `registry.json` at request time, completing
-publication without contributor hosting.
-
-## Updates, retries, and takedowns
-
-Every field in an accepted submission record is immutable. A factual
-correction, license change, rerun, rebuilt dependency graph, source or behavior
-change, or new feature gets a new ID and record; connect it to the parent when
-derived. Remove the old record when it should no longer remain discoverable.
-
-Identical publication retries are idempotent. Deleting a submission in a
-reviewed pull request delists it from the runtime registry while retaining
-immutable artifact and audit evidence. Delisting does not revoke already cached
-responses or direct access to public bytes; report an active exploit or legal
-removal privately so maintainers can coordinate containment.
-
-See [CONTRIBUTING.md](../CONTRIBUTING.md),
-[publishing security](../docs/publishing-security.md), and
-[publishing operations](../docs/publishing-operations.md).
+Read [CONTRIBUTING.md](../CONTRIBUTING.md) for project-wide review rules.
