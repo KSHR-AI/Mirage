@@ -1,10 +1,7 @@
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
-const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const SEED_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const MAX_GAME_ID_LENGTH = 80;
-const MAX_ARTIFACT_FILES = 5_000;
-const MAX_ARTIFACT_BYTES = 100 * 1024 * 1024;
 const MAX_JSON_DEPTH = 12;
 const MAX_JSON_COLLECTION_LENGTH = 512;
 const MAX_JSON_STRING_LENGTH = 256_000;
@@ -19,12 +16,9 @@ export type GameSource = {
   commit: string;
 };
 
-export type GameArtifact = {
-  digest: `sha256:${string}`;
-  manifestDigest: `sha256:${string}`;
-  entryPath: string;
-  fileCount: number;
-  bytes: number;
+export type GameDeployment = {
+  url: string;
+  provider: string;
 };
 
 export type GameLineage =
@@ -58,7 +52,7 @@ export type PublishedGame = {
   model: string;
   builtOn: string;
   source: GameSource;
-  artifact: GameArtifact;
+  deployment: GameDeployment;
   lineage: GameLineage;
   provenance: JsonObject;
   licenses: JsonObject;
@@ -95,7 +89,24 @@ export function parseRegistryDocument(value: unknown): PublishedRegistry {
 
 function parseGame(value: unknown, index: number): PublishedGame {
   const label = `games[${index}]`;
-  if (!isPlainObject(value)) {
+  if (
+    !isPlainObject(value) ||
+    !hasExactKeys(value, [
+      "id",
+      "title",
+      "tagline",
+      "description",
+      "model",
+      "builtOn",
+      "source",
+      "deployment",
+      "lineage",
+      "provenance",
+      "licenses",
+      "features",
+      "presentation",
+    ])
+  ) {
     throw new Error(`Invalid registry: ${label} must be an object`);
   }
 
@@ -114,16 +125,15 @@ function parseGame(value: unknown, index: number): PublishedGame {
   const model = requiredString(value.model, `${label}.model`, 200);
   const builtOn = parseIsoDate(value.builtOn, `${label}.builtOn`);
   const source = parseSource(value.source, label);
-  const artifact = parseArtifact(value.artifact, label);
+  const deployment = parseDeployment(value.deployment, label);
   const lineage = parseLineage(value.lineage, id, label);
   const provenance = parseJsonObject(value.provenance, `${label}.provenance`);
   const licenses = parseJsonObject(value.licenses, `${label}.licenses`);
   const presentation = parsePresentation(value.presentation, label);
   const features = parseFeatures(value.features, label);
 
-  // Construct a new object instead of spreading registry input. In particular,
-  // publisher paths such as basePath are always derived locally and can never
-  // be smuggled into the trusted runtime shape.
+  // Construct a new object instead of spreading accepted records so unknown
+  // fields cannot cross the server-to-client boundary.
   return {
     id,
     title,
@@ -132,7 +142,7 @@ function parseGame(value: unknown, index: number): PublishedGame {
     model,
     builtOn,
     source,
-    artifact,
+    deployment,
     lineage,
     provenance,
     licenses,
@@ -174,60 +184,22 @@ function parseSourceIdentity(value: unknown, label: string): GameSource {
   return { repositoryUrl, commit };
 }
 
-function parseArtifact(value: unknown, gameLabel: string): GameArtifact {
-  const label = `${gameLabel}.artifact`;
-  if (!isPlainObject(value)) {
-    throw new Error(`Invalid registry: ${label} must be an object`);
+function parseDeployment(value: unknown, gameLabel: string): GameDeployment {
+  const label = `${gameLabel}.deployment`;
+  if (!isPlainObject(value) || !hasExactKeys(value, ["url", "provider"])) {
+    throw new Error(`Invalid registry: ${label} has an invalid shape`);
   }
 
-  const digest = requiredString(value.digest, `${label}.digest`, 71);
-  if (!DIGEST_PATTERN.test(digest)) {
+  const url = requiredString(value.url, `${label}.url`, 2_000);
+  if (!isPublicDeploymentUrl(url)) {
     throw new Error(
-      `Invalid registry: ${label}.digest must be a lowercase SHA-256`,
+      `Invalid registry: ${label}.url must be an uncredentialed public HTTPS URL`,
     );
   }
-
-  const manifestDigest = requiredString(
-    value.manifestDigest,
-    `${label}.manifestDigest`,
-    71,
-  );
-  if (!DIGEST_PATTERN.test(manifestDigest)) {
-    throw new Error(
-      `Invalid registry: ${label}.manifestDigest must be a lowercase SHA-256`,
-    );
-  }
-
-  const entryPath = requiredString(
-    value.entryPath,
-    `${label}.entryPath`,
-    1_024,
-  );
-  if (entryPath !== "index.html") {
-    throw new Error(
-      `Invalid registry: ${label}.entryPath must equal index.html`,
-    );
-  }
-
-  const fileCount = requiredInteger(
-    value.fileCount,
-    `${label}.fileCount`,
-    1,
-    MAX_ARTIFACT_FILES,
-  );
-  const bytes = requiredInteger(
-    value.bytes,
-    `${label}.bytes`,
-    1,
-    MAX_ARTIFACT_BYTES,
-  );
 
   return {
-    digest: digest as `sha256:${string}`,
-    manifestDigest: manifestDigest as `sha256:${string}`,
-    entryPath,
-    fileCount,
-    bytes,
+    url,
+    provider: requiredString(value.provider, `${label}.provider`, 100),
   };
 }
 
@@ -315,7 +287,7 @@ function parsePresentation(
     throw new Error(`Invalid registry: ${label} has an invalid shape`);
   }
   const coverPath = requiredString(value.coverPath, `${label}.coverPath`, 300);
-  if (!isSafeArtifactPath(coverPath) || !isSafeImagePath(coverPath)) {
+  if (!isSafeRelativePath(coverPath) || !isSafeImagePath(coverPath)) {
     throw new Error(
       `Invalid registry: ${label}.coverPath must be a safe relative image path`,
     );
@@ -445,25 +417,6 @@ function requiredString(
   return value;
 }
 
-function requiredInteger(
-  value: unknown,
-  label: string,
-  minimum: number,
-  maximum: number,
-): number {
-  if (
-    typeof value !== "number" ||
-    !Number.isSafeInteger(value) ||
-    value < minimum ||
-    value > maximum
-  ) {
-    throw new Error(
-      `Invalid registry: ${label} must be an integer from ${minimum} to ${maximum}`,
-    );
-  }
-  return value;
-}
-
 function parseIsoDate(value: unknown, label: string): string {
   const date = requiredString(value, label, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -497,7 +450,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null;
 }
 
-export function isSafeArtifactPath(value: string): boolean {
+function isSafeRelativePath(value: string): boolean {
   if (
     value.length === 0 ||
     new TextEncoder().encode(value).byteLength > 512 ||
@@ -531,10 +484,6 @@ export function isGameId(value: string): boolean {
 
 export function isCommit(value: string): boolean {
   return COMMIT_PATTERN.test(value);
-}
-
-export function isDigestHex(value: string): boolean {
-  return /^[0-9a-f]{64}$/.test(value);
 }
 
 function parseStringArray(
@@ -572,4 +521,24 @@ function hasExactKeys(
     actual.length === expected.length &&
     actual.every((key, index) => key === expected[index])
   );
+}
+
+function isPublicDeploymentUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      url.username === "" &&
+      url.password === "" &&
+      url.port === "" &&
+      url.search === "" &&
+      url.hash === "" &&
+      url.hostname.includes(".") &&
+      url.hostname !== "localhost" &&
+      !url.hostname.endsWith(".localhost") &&
+      !/^\d+(?:\.\d+){3}$/.test(url.hostname)
+    );
+  } catch {
+    return false;
+  }
 }

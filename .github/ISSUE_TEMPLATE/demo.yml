@@ -1,5 +1,5 @@
 name: Model-built game proposal
-description: Submit a pinned model-built game repository for Mirage's automatic publishing flow.
+description: Prepare a deployed coding-model run for MirageML Bench.
 title: "[Game]: "
 labels:
   - enhancement
@@ -7,12 +7,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        You provide public source and an exact commit; you never need a Vercel account or deployment URL. After a maintainer approves and merges the submission record, Mirage's protected workflow builds, validates, publishes, and registers the game at mirageml.com.
+        First create a brand-new public repository and give your coding agent the [Mirage game-agent prompt](https://github.com/KSHR-AI/Mirage/blob/main/submissions/AGENT_PROMPT.md). Return here only after the game is finished, committed, pushed, and publicly deployed.
   - type: input
     id: source_repository
     attributes:
       label: Public source repository
-      description: The standalone repository containing only this game attempt and its provenance.
+      description: The standalone repository containing this frozen game attempt.
       placeholder: https://github.com/owner/repository
     validations:
       required: true
@@ -20,15 +20,30 @@ body:
     id: source_commit
     attributes:
       label: Source commit
-      description: Pin the exact submitted revision; branch names and mutable tags are not accepted.
-      placeholder: 40-character Git commit
+      description: The exact frozen revision; branches and tags are not accepted.
+      placeholder: 40-character lowercase Git commit
+    validations:
+      required: true
+  - type: input
+    id: play_url
+    attributes:
+      label: Public play URL
+      description: A stable HTTPS URL that returns the deployed game directly without login or redirects.
+      placeholder: https://owner.github.io/repository/
+    validations:
+      required: true
+  - type: input
+    id: hosting_provider
+    attributes:
+      label: Hosting provider
+      placeholder: GitHub Pages, Cloudflare Pages, Vercel, Netlify, or other
     validations:
       required: true
   - type: dropdown
     id: lineage
     attributes:
       label: Lineage
-      description: Independent attempts start from the neutral Mirage seed; derived attempts intentionally use an earlier game.
+      description: Independent means the agent could not access Mirage or previous runs before the game was frozen.
       options:
         - Independent
         - Derived
@@ -39,14 +54,8 @@ body:
     id: lineage_reference
     attributes:
       label: Seed digest, parent game, or uncertainty
-      description: For an independent build, provide the seed digest. For a derived build, provide the parent Mirage game ID. For an unverified build, state what is unknown.
-      placeholder: sha256:... or earlier-game-001
-  - type: input
-    id: parent_source
-    attributes:
-      label: Derived parent source snapshot
-      description: For a derived build, provide the parent's canonical public GitHub repository and exact 40-character commit. It must match the accepted parent record.
-      placeholder: https://github.com/owner/parent-game @ 40-character commit
+      description: Supply the seed digest, accepted parent ID and source revision, or a precise uncertainty note.
+      placeholder: sha256:... or earlier-game-001 or isolation record missing
   - type: input
     id: model
     attributes:
@@ -58,28 +67,28 @@ body:
     id: setup
     attributes:
       label: Agent and setup
-      description: Include the agent, reasoning level, tools, agent count, and known human interventions.
+      description: Include model snapshot, harness, reasoning level, tools, agent counts, and human interventions.
     validations:
       required: true
   - type: textarea
     id: prompt
     attributes:
       label: Exact prompt
-      description: Paste or link the complete prompt without credentials or private data.
+      description: Paste the complete prompt or explain precisely why it is partial or unavailable.
     validations:
       required: true
   - type: textarea
-    id: limitations
+    id: game
     attributes:
-      label: Known limitations
-      description: Describe unfinished behavior, browser constraints, performance issues, or accessibility gaps.
+      label: Game, controls, cover, and limitations
+      description: Describe observable features, real controls, relative cover path, play checks, and known failures.
     validations:
       required: true
   - type: textarea
     id: licensing
     attributes:
       label: Code and asset licensing
-      description: Identify every third-party asset and license, or state that the game uses only original code and procedural assets.
+      description: Inventory every third-party asset and license, or state that the game uses only original code and procedural assets.
     validations:
       required: true
   - type: checkboxes
@@ -87,11 +96,13 @@ body:
     attributes:
       label: Submission checks
       options:
-        - label: The repository and pinned commit are public and contain no credentials or private data.
+        - label: The repository and exact commit are public and contain no credentials or private data.
           required: true
-        - label: The game runs in a modern browser without an account, payment, camera, microphone, location, or clipboard access.
+        - label: The game was completed and frozen before the coding agent inspected Mirage or previous benchmark runs.
           required: true
-        - label: The repository uses the fixed Mirage static contract—Node 24, pnpm 11.7, a committed lockfile, `pnpm run build:mirage`, and `dist/index.html`.
+        - label: The public deployment and cover return directly without authentication or redirects and permit mirageml.com framing.
           required: true
-        - label: I understand that Mirage will publish an immutable reviewed artifact and that later revisions require a new submission.
+        - label: I will keep the accepted deployment online and unchanged, or submit a deployment-only relocation.
+          required: true
+        - label: The game uses original or properly licensed code and assets and does not reproduce protected Rockstar or Take-Two material.
           required: true

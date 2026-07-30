@@ -2,7 +2,7 @@
   "name": "mirage-model-demos",
   "version": "0.1.0",
   "private": true,
-  "description": "A gallery of playable browser games built end-to-end by coding models.",
+  "description": "A playable benchmark for coding-model attempts to build GTA in San Francisco.",
   "license": "Apache-2.0",
   "homepage": "https://mirageml.com",
   "repository": {
@@ -13,7 +13,8 @@
     "url": "https://github.com/KSHR-AI/Mirage/issues"
   },
   "keywords": [
-    "model-demos",
+    "benchmark",
+    "gta-in-sf",
     "browser-game",
     "coding-agents",
     "foundation-models"
@@ -30,11 +31,11 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:publishing": "vitest run --config scripts/publishing/vitest.config.mjs",
-    "publishing:contract": "node .github/actions/publishing-contract/check.mjs",
+    "test:submissions": "vitest run --config scripts/submissions/vitest.config.mjs",
+    "submissions:validate": "node scripts/submissions/validate-submissions.mjs --mode all",
     "audit:security": "pnpm audit --audit-level=high --ignore GHSA-mh99-v99m-4gvg",
     "format:check": "prettier --check .github app docs scripts submissions AGENTS.md README.md TODO.md CODE_OF_CONDUCT.md CONTRIBUTING.md SECURITY.md eslint.config.mjs next.config.ts package.json pnpm-workspace.yaml tsconfig.json vercel.json vitest.config.ts",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm publishing:contract && pnpm audit:security && pnpm build"
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm submissions:validate && pnpm audit:security && pnpm build"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",

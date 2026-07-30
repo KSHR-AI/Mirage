@@ -1,65 +1,89 @@
-import { describe, expect, it, vi } from "vitest";
-import {
-  DEFAULT_REGISTRY_URL,
-  loadPublishedRegistry,
-  MAX_REGISTRY_BYTES,
-  resolveRegistryUrl,
-} from "./load";
+import { describe, expect, it } from "vitest";
+import { loadPublishedRegistry } from "./load";
+
+function makeSubmission(overrides: Record<string, unknown> = {}) {
+  return {
+    schemaVersion: 2,
+    id: "night-drive-001",
+    title: "Night Drive",
+    tagline: "One city, one clean attempt",
+    description: "A complete browser driving game.",
+    features: ["Driving"],
+    source: {
+      repositoryUrl: "https://github.com/example/night-drive",
+      commit: "1".repeat(40),
+    },
+    deployment: {
+      url: "https://example.github.io/night-drive/",
+      provider: "GitHub Pages",
+    },
+    lineage: {
+      kind: "unverified",
+      note: "The clean-room runner record was not preserved.",
+    },
+    provenance: {
+      model: "example-model",
+      builtOn: "2026-07-29",
+    },
+    licenses: {},
+    presentation: {
+      coverPath: "assets/cover.webp",
+      coverAlt: "A car driving through a city at night",
+      controls: ["WASD"],
+      limitations: ["Desktop browsers are best tested"],
+      protocolVersion: 1,
+    },
+    ...overrides,
+  };
+}
 
 describe("runtime registry loading", () => {
-  it("uses the Mirage artifact branch by default", () => {
-    expect(resolveRegistryUrl("").toString()).toBe(DEFAULT_REGISTRY_URL);
-  });
-
   it("reports a valid empty registry without inventing games", async () => {
-    const fetcher = vi.fn(async () =>
-      Response.json({ schemaVersion: 1, games: [] }),
-    );
-    const result = await loadPublishedRegistry({
-      registryUrl: "https://registry.example/mirage/registry.json",
-      fetcher,
-    });
-
-    expect(result.kind).toBe("empty");
-    expect(result.games).toEqual([]);
-    expect(fetcher).toHaveBeenCalledWith(
-      "https://registry.example/mirage/registry.json",
+    await expect(loadPublishedRegistry({ records: [] })).resolves.toMatchObject(
       {
-        method: "GET",
-        redirect: "manual",
-        cache: "no-store",
+        kind: "empty",
+        games: [],
       },
     );
   });
 
-  it("fails closed for invalid configuration and invalid registry JSON", async () => {
-    expect(
-      await loadPublishedRegistry({
-        registryUrl: "http://registry.example/registry.json",
-      }),
-    ).toMatchObject({ kind: "unavailable", games: [] });
-
-    expect(
-      await loadPublishedRegistry({
-        registryUrl: "https://registry.example/registry.json",
-        fetcher: async () =>
-          new Response('{"schemaVersion":2,"games":[]}', { status: 200 }),
-      }),
-    ).toMatchObject({ kind: "unavailable", games: [] });
+  it("projects accepted submission provenance into the gallery record", async () => {
+    const result = await loadPublishedRegistry({
+      records: [makeSubmission()],
+    });
+    expect(result).toMatchObject({
+      kind: "ready",
+      games: [
+        {
+          id: "night-drive-001",
+          model: "example-model",
+          builtOn: "2026-07-29",
+          deployment: {
+            url: "https://example.github.io/night-drive/",
+          },
+        },
+      ],
+    });
   });
 
-  it("fails closed before parsing a registry above the response-safe limit", async () => {
-    const result = await loadPublishedRegistry({
-      registryUrl: "https://registry.example/mirage/registry.json",
-      fetcher: async () =>
-        new Response("{}", {
-          status: 200,
-          headers: {
-            "content-length": String(MAX_REGISTRY_BYTES + 1),
-          },
-        }),
-    });
+  it("fails closed for malformed or obsolete submission records", async () => {
+    await expect(
+      loadPublishedRegistry({
+        records: [makeSubmission({ schemaVersion: 1 })],
+      }),
+    ).resolves.toMatchObject({ kind: "unavailable", games: [] });
 
-    expect(result).toMatchObject({ kind: "unavailable", games: [] });
+    await expect(
+      loadPublishedRegistry({
+        records: [
+          makeSubmission({
+            deployment: {
+              url: "http://localhost:3000/",
+              provider: "Local",
+            },
+          }),
+        ],
+      }),
+    ).resolves.toMatchObject({ kind: "unavailable", games: [] });
   });
 });

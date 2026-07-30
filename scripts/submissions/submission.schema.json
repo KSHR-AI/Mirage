@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mirageml.com/schemas/submission.v2.json",
+  "title": "Mirage game submission",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "tagline",
+    "description",
+    "features",
+    "source",
+    "deployment",
+    "lineage",
+    "provenance",
+    "licenses",
+    "presentation"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 80
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "tagline": { "type": "string", "minLength": 1, "maxLength": 180 },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "features": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 30,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 120 }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repositoryUrl", "commit"],
+      "properties": {
+        "repositoryUrl": {
+          "type": "string",
+          "pattern": "^https://github\\.com/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9][A-Za-z0-9._-]{0,99}$"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "provider"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      }
+    },
+    "lineage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "seedDigest"],
+          "properties": {
+            "kind": { "const": "independent" },
+            "seedDigest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "parentId", "parentSource"],
+          "properties": {
+            "kind": { "const": "derived" },
+            "parentId": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            },
+            "parentSource": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["repositoryUrl", "commit"],
+              "properties": {
+                "repositoryUrl": {
+                  "type": "string",
+                  "pattern": "^https://github\\.com/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9][A-Za-z0-9._-]{0,99}$"
+                },
+                "commit": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "note"],
+          "properties": {
+            "kind": { "const": "unverified" },
+            "note": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 2000
+            }
+          }
+        }
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "builtOn",
+        "model",
+        "modelSnapshot",
+        "reasoning",
+        "harness",
+        "tools",
+        "agentCount",
+        "subagentCount",
+        "humanInterventions",
+        "prompt"
+      ],
+      "properties": {
+        "builtOn": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "model": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "modelSnapshot": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "reasoning": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "harness": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "tools": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 100 }
+        },
+        "agentCount": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "subagentCount": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "humanInterventions": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "prompt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "text", "note"],
+          "properties": {
+            "status": {
+              "enum": ["published", "partial", "not-recorded"]
+            },
+            "text": {
+              "type": ["string", "null"],
+              "minLength": 1,
+              "maxLength": 200000,
+              "pattern": "^(?=[\\s\\S]*\\S)[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]+$"
+            },
+            "note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            }
+          }
+        }
+      }
+    },
+    "licenses": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "assetStatement", "assets"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "assetStatement": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 4000
+        },
+        "assets": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "creator",
+              "license",
+              "sourceUrl",
+              "attribution"
+            ],
+            "properties": {
+              "name": { "type": "string", "minLength": 1, "maxLength": 300 },
+              "creator": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
+              "license": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "sourceUrl": {
+                "type": ["string", "null"],
+                "format": "uri"
+              },
+              "attribution": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            }
+          }
+        }
+      }
+    },
+    "presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coverPath",
+        "coverAlt",
+        "controls",
+        "limitations",
+        "protocolVersion"
+      ],
+      "properties": {
+        "coverPath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "coverAlt": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500
+        },
+        "controls": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 200 }
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+        },
+        "protocolVersion": { "const": 1 }
+      }
+    }
+  }
+}

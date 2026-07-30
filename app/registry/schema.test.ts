@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import { parseRegistryDocument } from "./schema";
 
 const COMMIT = "1".repeat(40);
-const ARTIFACT_DIGEST = `sha256:${"a".repeat(64)}`;
-const MANIFEST_DIGEST = `sha256:${"b".repeat(64)}`;
 const SEED_DIGEST = `sha256:${"c".repeat(64)}`;
 
 function makeGame(overrides: Record<string, unknown> = {}) {
@@ -18,12 +16,9 @@ function makeGame(overrides: Record<string, unknown> = {}) {
       repositoryUrl: "https://github.com/example/night-drive",
       commit: COMMIT,
     },
-    artifact: {
-      digest: ARTIFACT_DIGEST,
-      manifestDigest: MANIFEST_DIGEST,
-      entryPath: "index.html",
-      fileCount: 3,
-      bytes: 4_096,
+    deployment: {
+      url: "https://example.github.io/night-drive/",
+      provider: "GitHub Pages",
     },
     lineage: {
       kind: "independent",
@@ -50,23 +45,17 @@ function makeGame(overrides: Record<string, unknown> = {}) {
 }
 
 describe("runtime registry schema", () => {
-  it("parses schema version 1 and drops untrusted derived paths", () => {
-    const game = makeGame({
-      basePath: "https://attacker.invalid/",
-      artifact: {
-        ...(makeGame().artifact as Record<string, unknown>),
-        basePath: "/attacker-controlled",
-      },
-    });
+  it("parses an accepted externally hosted game", () => {
     const registry = parseRegistryDocument({
       schemaVersion: 1,
-      games: [game],
+      games: [makeGame()],
     });
 
     expect(registry.games).toHaveLength(1);
-    expect(registry.games[0].artifact.digest).toBe(ARTIFACT_DIGEST);
-    expect(Object.hasOwn(registry.games[0], "basePath")).toBe(false);
-    expect(Object.hasOwn(registry.games[0].artifact, "basePath")).toBe(false);
+    expect(registry.games[0].deployment).toEqual({
+      url: "https://example.github.io/night-drive/",
+      provider: "GitHub Pages",
+    });
   });
 
   it("accepts an honestly empty registry", () => {
@@ -76,7 +65,14 @@ describe("runtime registry schema", () => {
     });
   });
 
-  it("rejects mutable source identities and unsafe artifact metadata", () => {
+  it("rejects unknown fields and mutable source identities", () => {
+    expect(() =>
+      parseRegistryDocument({
+        schemaVersion: 1,
+        games: [makeGame({ injectedUrl: "https://attacker.invalid/" })],
+      }),
+    ).toThrow(/must be an object/);
+
     expect(() =>
       parseRegistryDocument({
         schemaVersion: 1,
@@ -90,34 +86,26 @@ describe("runtime registry schema", () => {
         ],
       }),
     ).toThrow(/repositoryUrl/);
+  });
 
+  it.each([
+    "http://example.github.io/night-drive/",
+    "https://localhost/night-drive/",
+    "https://127.0.0.1/night-drive/",
+    "https://user:secret@example.com/night-drive/",
+    "https://example.com:8443/night-drive/",
+    "https://example.com/night-drive/?preview=1",
+  ])("rejects unsafe deployment URL %s", (url) => {
     expect(() =>
       parseRegistryDocument({
         schemaVersion: 1,
         games: [
           makeGame({
-            artifact: {
-              ...(makeGame().artifact as Record<string, unknown>),
-              entryPath: "../index.html",
-            },
+            deployment: { url, provider: "Other" },
           }),
         ],
       }),
-    ).toThrow(/entryPath/);
-
-    expect(() =>
-      parseRegistryDocument({
-        schemaVersion: 1,
-        games: [
-          makeGame({
-            artifact: {
-              ...(makeGame().artifact as Record<string, unknown>),
-              fileCount: 5_001,
-            },
-          }),
-        ],
-      }),
-    ).toThrow(/fileCount/);
+    ).toThrow(/deployment\.url/);
   });
 
   it("requires the normalized presentation contract", () => {
@@ -145,16 +133,16 @@ describe("runtime registry schema", () => {
         games: [
           makeGame({
             presentation: {
-              coverPath: "cover.webp",
+              coverPath: "../cover.webp",
               coverAlt: "A game cover",
               controls: ["WASD"],
               limitations: ["Touch controls are not implemented"],
-              protocolVersion: 2,
+              protocolVersion: 1,
             },
           }),
         ],
       }),
-    ).toThrow(/protocolVersion/);
+    ).toThrow(/coverPath/);
   });
 
   it("validates derived parents and rejects lineage cycles", () => {
@@ -165,18 +153,22 @@ describe("runtime registry schema", () => {
         repositoryUrl: "https://github.com/example/child-game",
         commit: "2".repeat(40),
       },
+      deployment: {
+        url: "https://example.github.io/child-game/",
+        provider: "GitHub Pages",
+      },
       lineage: {
         kind: "derived",
         parentId: "parent-game",
         parentSource: parent.source,
       },
     });
-    const games = parseRegistryDocument({
-      schemaVersion: 1,
-      games: [parent, child],
-    }).games;
-    expect(games).toHaveLength(2);
-    expect(games[1].lineage).toEqual({
+    expect(
+      parseRegistryDocument({
+        schemaVersion: 1,
+        games: [parent, child],
+      }).games[1].lineage,
+    ).toEqual({
       kind: "derived",
       parentId: "parent-game",
       parentSource: parent.source,
@@ -188,6 +180,14 @@ describe("runtime registry schema", () => {
         games: [
           makeGame({
             id: "cycle-a",
+            source: {
+              repositoryUrl: "https://github.com/example/cycle-a",
+              commit: "2".repeat(40),
+            },
+            deployment: {
+              url: "https://example.github.io/cycle-a/",
+              provider: "GitHub Pages",
+            },
             lineage: {
               kind: "derived",
               parentId: "cycle-b",
@@ -203,75 +203,21 @@ describe("runtime registry schema", () => {
               repositoryUrl: "https://github.com/example/cycle-b",
               commit: "3".repeat(40),
             },
+            deployment: {
+              url: "https://example.github.io/cycle-b/",
+              provider: "GitHub Pages",
+            },
             lineage: {
               kind: "derived",
               parentId: "cycle-a",
               parentSource: {
-                repositoryUrl: "https://github.com/example/night-drive",
-                commit: COMMIT,
+                repositoryUrl: "https://github.com/example/cycle-a",
+                commit: "2".repeat(40),
               },
             },
           }),
         ],
       }),
     ).toThrow(/cycle/);
-  });
-
-  it("requires a canonical exact parent source snapshot for derived lineage", () => {
-    const parent = makeGame({ id: "parent-game" });
-
-    expect(() =>
-      parseRegistryDocument({
-        schemaVersion: 1,
-        games: [
-          parent,
-          makeGame({
-            id: "child-game",
-            lineage: { kind: "derived", parentId: "parent-game" },
-          }),
-        ],
-      }),
-    ).toThrow(/lineage/);
-
-    expect(() =>
-      parseRegistryDocument({
-        schemaVersion: 1,
-        games: [
-          parent,
-          makeGame({
-            id: "child-game",
-            lineage: {
-              kind: "derived",
-              parentId: "parent-game",
-              parentSource: {
-                repositoryUrl:
-                  "https://github.com/example/night-drive/tree/main",
-                commit: COMMIT,
-              },
-            },
-          }),
-        ],
-      }),
-    ).toThrow(/parentSource\.repositoryUrl/);
-
-    expect(() =>
-      parseRegistryDocument({
-        schemaVersion: 1,
-        games: [
-          parent,
-          makeGame({
-            id: "child-game",
-            lineage: {
-              kind: "derived",
-              parentId: "parent-game",
-              parentSource: {
-                repositoryUrl: "https://github.com/example/night-drive",
-                commit: "4".repeat(40),
-              },
-            },
-          }),
-        ],
-      }),
-    ).toThrow(/parentSource does not match/);
   });
 });
