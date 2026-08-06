@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "id": "opus-sanfran",
+  "title": "OPUS SANFRAN",
+  "tagline": "Three deliveries, five stars, and one steep city with nowhere clean to hide",
+  "description": "A procedural third-person action-driving run set across a dense San Francisco district. Walk the hills, enter parked cars or boost occupied traffic, carry three packages across a routed street graph, and survive an escalating police response while pedestrians, signals, civilian drivers, weather, and mission state keep moving around you.",
+  "features": [
+    "Third-person on-foot exploration with sprinting and mouse-driven camera control",
+    "Enter, exit, drive, and steal vehicles from live traffic",
+    "Ten-street SF district with hills, Victorians, storefronts, pedestrians, signals, and overhead wires",
+    "Three-delivery pickup and drop-off run with routed objectives, HUD guidance, timing, penalties, completion, and restart",
+    "Escalating five-star heat system with multi-car police pursuit, arrest, evasion, and stolen cruisers",
+    "Deterministic procedural geometry, Canvas textures, shaders, wet surfaces, daylight, dusk, and marine fog"
+  ],
+  "source": {
+    "repositoryUrl": "https://github.com/KSHR-AI/opus-sanfran",
+    "commit": "7b0552d94d1dd79111b2bbe0e60320a0ac43cb5d"
+  },
+  "deployment": {
+    "url": "https://kshr-ai.github.io/opus-sanfran/",
+    "provider": "GitHub Pages"
+  },
+  "lineage": {
+    "kind": "unverified",
+    "note": "The run predates Mirage's clean-room seed procedure. Repository history begins from an empty root commit and preserves the user prompt, reference-bar commit, and build history, but a neutral seed digest and runner isolation record were not preserved; independence cannot be established."
+  },
+  "provenance": {
+    "builtOn": "2026-08-05",
+    "model": "Claude Opus 5",
+    "modelSnapshot": null,
+    "reasoning": "ultracode",
+    "harness": "Claude Code",
+    "tools": [
+      "shell",
+      "apply_patch",
+      "Playwright",
+      "screenshot harness",
+      "performance harness",
+      "subagents"
+    ],
+    "agentCount": null,
+    "subagentCount": null,
+    "humanInterventions": null,
+    "prompt": {
+      "status": "partial",
+      "text": "Build a third-person open-world driving-and-shooting game set in San Francisco, playable in the browser. Everything generated programmatically — no imported assets.\n\nThe quality bar is the GTA V screenshots in `reference/gtav/`. Look at them. That is the fidelity we are chasing: the lighting, the density of the street, the way asphalt and buildings and traffic read at street level. The city itself must be San Francisco, not Los Santos — steep hills, the grid draped over them, fog, Victorians, the bay. Judge our look against the screenshots; judge our content against San Francisco.\n\nDecide the approach yourself. Divide the goal into the smallest pieces that can be improved and judged independently. For each important piece, fan out a builder and a separate critic with fresh context — the critic must not see the builder's reasoning.\n\nEach critic inspects the real running output (screenshot it), compares it directly against the bar with a blind A/B when possible, identifies the single biggest remaining gap, and sends it back for another round. Keep looping on each piece until our output wins or I stop the run.\n\nMaintain a simple live HTML progress page that shows the work evolving over time — current screenshots next to the bar, what each critic said, what round each piece is on.\n\nUse subagents and ultracode.",
+      "note": "The repository preserves the complete user build objective in PROMPT.md. Claude Code system instructions, developer instructions, and runner logs were not preserved, so the prompt is conservatively labeled partial."
+    }
+  },
+  "licenses": {
+    "code": "MIT",
+    "assetStatement": "The deployed runtime uses first-party procedural geometry, Canvas textures, shaders, interface graphics, and a first-party gameplay screenshot as its cover. Three.js 0.185.1 runtime code is bundled under MIT with its license retained. No third-party art, audio, fonts, models, maps, or textures ship in dist. The repository's development-only GTA V comparison screenshots are excluded from the deployment and are not game assets.",
+    "assets": [
+      {
+        "name": "OPUS SANFRAN benchmark cover",
+        "creator": "Mayank Kishore and Claude Code",
+        "license": "CC0-1.0",
+        "sourceUrl": null,
+        "attribution": "First-party capture of the frozen procedural game, rendered from the submitted source commit."
+      }
+    ]
+  },
+  "presentation": {
+    "coverPath": "assets/cover.png",
+    "coverAlt": "A black player car descends a dense San Francisco street at sunset between Victorian buildings, traffic, pedestrians, signals, storefronts, and overhead wires",
+    "controls": [
+      "WASD to move on foot and drive",
+      "Shift to sprint on foot",
+      "E to enter or exit the nearest vehicle",
+      "Space to brake",
+      "Mouse drag to look around",
+      "R to reset the world"
+    ],
+    "limitations": [
+      "Desktop keyboard and mouse are the only tested input modes; touch and gamepad are not claimed.",
+      "No player shooting system or audio system is implemented; the action loop is walking, driving, vehicle theft, deliveries, and police pursuit.",
+      "The latest full keyboard harness passed 155 of 172 checks; timing and state-sequencing failures were concentrated in long-running traffic, possession carry-over, mission best-time, and police arrest or escape scenarios.",
+      "Long-running traffic and police behavior is nondeterministic and can stall or fail to close distance.",
+      "The storage-disabled Mirage sandbox cannot preserve best times across reloads, but the mission remains playable without storage.",
+      "Characters and vehicles use stylized procedural geometry rather than authored skeletal animation or photoreal materials."
+    ],
+    "protocolVersion": 1
+  }
+}
