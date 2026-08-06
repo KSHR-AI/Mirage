@@ -31,6 +31,7 @@ import {
   getSourceRevisionUrl,
 } from "../registry/urls";
 import benchmarkCover from "./mirage-bench-sf-chase.jpg";
+import { getDefaultGameId } from "./default-game";
 import { RegistryNotice, type RegistryNoticeKind } from "./RegistryNotice";
 import styles from "./DemoGallery.module.css";
 
@@ -64,7 +65,9 @@ export function DemoGallery({ games, registryState }: DemoGalleryProps) {
 }
 
 function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
-  const [selectedGameId, setSelectedGameId] = useState(games[0].id);
+  const [selectedGameId, setSelectedGameId] = useState(
+    () => getDefaultGameId(games) ?? games[0].id,
+  );
   const [detailOpen, setDetailOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const deckRef = useRef<HTMLElement>(null);

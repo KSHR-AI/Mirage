@@ -1,66 +1,49 @@
-# MirageML Bench design QA
+# OPUS SANFRAN default selection design QA
 
 ## Comparison target
 
-- Source visual truth:
-  `/var/folders/hx/6dkvktts5wgdbx2l5scqhrr00000gn/T/codex-clipboard-8f298924-077e-48cd-a88a-8d9f612673b8.png`
-- Implementation capture: `/tmp/mirage-cover-role-implementation.png`
-- Side-by-side evidence: `/tmp/mirage-cover-role-comparison.png`
-- Viewport: `2222 x 1682` CSS pixels.
-- Source pixels: `2222 x 1682`.
-- Implementation pixels: `2222 x 1682`.
-- Device density: `1`; no density normalization was required.
-- State: the source shows the empty registry and the implementation shows the
-  populated Bayline Heat registry. The comparison is scoped to the requested
-  image roles: a fixed benchmark cover behind the page and submission evidence
-  inside the carousel.
+- Source visual truth: `/var/folders/hx/6dkvktts5wgdbx2l5scqhrr00000gn/T/codex-clipboard-07214a80-e70f-453e-9d52-6094422150ae.png`
+- Browser-rendered implementation: `/tmp/mirage-opus-default-implementation-1024.png`
+- Combined comparison: `/tmp/mirage-opus-default-comparison.png`
+- Source pixels: `1024 x 638`.
+- Implementation pixels and CSS viewport: `1024 x 638` at device density `1`.
+- Density normalization: none required.
+- State: fresh load of `/`, with no drawer open and no prior carousel input.
 
 ## Full-view comparison evidence
 
-The combined capture shows the same cinematic San Francisco chase artwork
-anchoring both states. In the populated implementation, that artwork remains
-fixed while the centered Bayline Heat card independently renders the
-submission's first-party Browser capture from its external deployment.
+The source is a focused crop of the requested center card, while the implementation capture shows the complete MirageML Bench page. The combined comparison confirms that a fresh page load now centers the same `Claude Opus 5` / `OPUS SANFRAN` submission, Aug 5, 2026 date, first-party street cover, tagline, Play action, and Submission details action. The surrounding page layout and registry order remain unchanged.
 
-A focused crop was not needed: both the viewport background and the complete
-carousel card are legible in the full-size `4444 x 1682` side-by-side image.
-DOM inspection separately confirmed that the hero uses the bundled
-`mirage-bench-sf-chase.jpg` while the card uses the contributor URL
-`https://kshr-ai.github.io/bayline-heat/assets/cover.jpg`.
+A separate focused-region comparison was unnecessary because the source itself is already a readable focused card crop and the requested change concerns initial selection, not page-scale restyling. Page-level size differences between that crop and the full implementation are therefore not treated as design drift.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: unchanged Barlow Condensed and Inter hierarchy matches
-  the accepted Mirage composition.
-- Spacing and layout rhythm: the masthead, hero copy, lower scrim, carousel, and
-  footer retain the existing responsive layout; the image-role change caused no
-  reflow or overflow.
-- Colors and visual tokens: the warm chase image, dark green scrims, bone type,
-  mint labels, and blue brand mark remain unchanged.
-- Image quality and asset fidelity: the page uses the original `1672 x 941`
-  cinematic raster without approximation. The carousel uses the submission's
-  externally hosted first-party game capture, not the page cover.
-- Copy and content: unchanged apart from the populated submission data required
-  by the live comparison state.
+- Fonts and typography: the existing Barlow Condensed and Inter hierarchy is unchanged; the selected card exposes the same model, title, date, tagline, and action labels as the source.
+- Spacing and layout rhythm: the existing carousel geometry is unchanged. Only the initial selected ID changed, so no reflow, wrapping, overflow, radius, or spacing regression was introduced.
+- Colors and visual tokens: the dark green panel, bone text, mint title, pale Play button, borders, and shadows continue to use the existing tokens.
+- Image quality and asset fidelity: the selected card loads OPUS SANFRAN's published `assets/cover.png` with its submitted alternative text. No approximation or replacement asset was introduced.
+- Copy and content: model, title, build date, tagline, Play label, and Submission details label match the source.
 
 ## Interaction and console verification
 
-- The Play control resolves to `/play/bayline-heat`.
-- Submission details opened as a dialog and closed successfully.
-- The page exposed no browser console warnings or errors.
-- Formatting, lint, typecheck, and all 57 tests passed.
+- Fresh load selected `opus-sanfran`; BAYLINE HEAT remained the previous carousel neighbor.
+- Play navigated to `/play/opus-sanfran`, whose player identified `OPUS SANFRAN` and `Claude Opus 5`.
+- Submission details opened the OPUS SANFRAN evidence drawer and closed successfully.
+- The browser reported no console warnings or errors.
+- `pnpm check` passed: formatting, lint, typecheck, 60 tests, both submission validations, security audit, and production build.
 
 ## Findings
 
-No actionable P0, P1, or P2 differences remain for the requested image-role
-change. The empty-versus-populated carousel content is intentional state data,
-not visual drift.
+No actionable P0, P1, or P2 differences remain for the requested default-selection change.
 
 ## Comparison history
 
-- Earlier QA was blocked because the local browser capture was unavailable.
-- This pass captured both source and implementation at the same dimensions,
-  confirmed the two independent image sources, exercised the primary controls,
-  and found no blocking mismatch. No post-comparison visual fix was required.
+- Before the change, gallery state initialized from the first alphabetically loaded submission, which selected BAYLINE HEAT.
+- The implementation now prefers the stable `opus-sanfran` ID and falls back to the first published game if that record is absent.
+- Post-fix browser evidence at `1024 x 638` confirms the requested OPUS SANFRAN card is selected on a fresh load, with working Play and Submission details actions.
+
+## Follow-up polish
+
+None required for this scoped change.
 
 final result: passed
