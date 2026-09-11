@@ -59,6 +59,7 @@ describe("external deployment verification", () => {
 
   it("does not fetch a Mirage-hosted showcase cover from the contributor", async () => {
     const fetcher = successfulFetcher();
+    const access = vi.fn(async () => undefined);
     await expect(
       verifySubmissionDeployment(
         makeSubmission({
@@ -69,16 +70,42 @@ describe("external deployment verification", () => {
             note: "The source and runner record were not published.",
           },
           presentation: {
-            coverPath: "/showcase-covers/public-attempt.png",
+            coverPath: "/showcase-covers/night-drive-001.png",
           },
         }),
-        { fetcher, lookup: publicLookup },
+        { fetcher, lookup: publicLookup, access },
       ),
     ).resolves.toMatchObject({
       source: null,
-      coverUrl: "/showcase-covers/public-attempt.png",
+      coverUrl: "/showcase-covers/night-drive-001.png",
     });
     expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(access).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a missing Mirage-hosted showcase cover", async () => {
+    await expect(
+      verifySubmissionDeployment(
+        makeSubmission({
+          track: "showcase",
+          source: null,
+          lineage: {
+            kind: "unverified",
+            note: "The source and runner record were not published.",
+          },
+          presentation: {
+            coverPath: "/showcase-covers/night-drive-001.png",
+          },
+        }),
+        {
+          fetcher: successfulFetcher(),
+          lookup: publicLookup,
+          access: vi.fn(async () => {
+            throw new Error("ENOENT");
+          }),
+        },
+      ),
+    ).rejects.toThrow(/does not exist/);
   });
 
   it.each([

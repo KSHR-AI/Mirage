@@ -324,6 +324,25 @@
   font-size: 10px;
 }
 
+.cardHeading .trackLabel {
+  grid-column: 1 / -1;
+  width: fit-content;
+  margin-top: 5px;
+  padding: 2px 5px;
+  border: 1px solid var(--rule-strong);
+  color: var(--soft-ink);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.cardHeading .trackLabel[data-track="showcase"] {
+  border-color: var(--mint);
+  color: var(--mint);
+}
+
 .selectedCard > img,
 .sideCard > img {
   display: block;

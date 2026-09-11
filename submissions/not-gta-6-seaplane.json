@@ -21,7 +21,7 @@
     "note": "The public deployment was submitted without a source repository, frozen commit, seed digest, runner record, or parent record, so lineage cannot be established."
   },
   "provenance": {
-    "builtOn": "2026-09-09",
+    "builtOn": null,
     "model": "GPT-6-Astra",
     "modelSnapshot": "gpt-6-astra",
     "reasoning": null,
@@ -75,7 +75,7 @@
     ],
     "limitations": [
       "Showcase only: no public source commit was supplied, so reproducibility and source identity are not verified.",
-      "The first public submission date is recorded as the build date; the exact build timestamp was not preserved.",
+      "The deployment was first submitted publicly on 2026-09-09; the build date was not recorded.",
       "The ChatGPT Sites harness is inferred from the deployment host; the reasoning level, agent counts, interventions, and prompt were not recorded.",
       "Code and asset license clearance could not be established from the deployment.",
       "The cover is an unaltered Mirage browser capture of the public deployment, not a contributor-published asset.",

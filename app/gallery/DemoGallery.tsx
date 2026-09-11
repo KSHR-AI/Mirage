@@ -240,6 +240,7 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
                 <div className={styles.cardHeading}>
                   <strong>{selectedGame.model}</strong>
                   <span>{selectedGame.title}</span>
+                  <TrackLabel game={selectedGame} />
                   <BuildDate game={selectedGame} />
                 </div>
                 <GameCover game={selectedGame} selected />
@@ -574,6 +575,7 @@ function SideGameCard({
       <span className={styles.cardHeading}>
         <strong>{game.model}</strong>
         <span>{game.title}</span>
+        <TrackLabel game={game} />
         <BuildDate game={game} />
       </span>
       <GameCover game={game} />
@@ -636,6 +638,14 @@ function BuildDate({ game }: { game: PublishedGame }) {
     <time dateTime={game.builtOn}>Built {formatDate(game.builtOn)}</time>
   ) : (
     <time>Build date not recorded</time>
+  );
+}
+
+function TrackLabel({ game }: { game: PublishedGame }) {
+  return (
+    <small className={styles.trackLabel} data-track={game.track}>
+      {game.track === "benchmark" ? "Benchmark" : "Showcase"}
+    </small>
   );
 }
 
