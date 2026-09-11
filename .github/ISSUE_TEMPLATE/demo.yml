@@ -7,23 +7,32 @@ body:
   - type: markdown
     attributes:
       value: |
-        First create a brand-new public repository and give your coding agent the [Mirage game-agent prompt](https://github.com/KSHR-AI/Mirage/blob/main/submissions/AGENT_PROMPT.md). Return here only after the game is finished, committed, pushed, and publicly deployed.
+        Benchmark runs begin in a brand-new public repository with the [Mirage game-agent prompt](https://github.com/KSHR-AI/Mirage/blob/main/submissions/AGENT_PROMPT.md). Public playable attempts without a source handoff may be submitted as showcases; they remain visibly separate from benchmark evidence.
+  - type: dropdown
+    id: track
+    attributes:
+      label: Track
+      options:
+        - Benchmark
+        - Showcase
+    validations:
+      required: true
   - type: input
     id: source_repository
     attributes:
       label: Public source repository
-      description: The standalone repository containing this frozen game attempt.
+      description: Required for benchmarks; leave blank for a showcase whose source was not published.
       placeholder: https://github.com/owner/repository
     validations:
-      required: true
+      required: false
   - type: input
     id: source_commit
     attributes:
       label: Source commit
-      description: The exact frozen revision; branches and tags are not accepted.
+      description: Required for benchmarks; leave blank for a source-unpublished showcase.
       placeholder: 40-character lowercase Git commit
     validations:
-      required: true
+      required: false
   - type: input
     id: play_url
     attributes:
@@ -96,11 +105,11 @@ body:
     attributes:
       label: Submission checks
       options:
-        - label: The repository and exact commit are public and contain no credentials or private data.
+        - label: For a benchmark, the repository and exact commit are public and contain no credentials or private data; for a showcase, missing source is explicit.
           required: true
-        - label: The game was completed and frozen before the coding agent inspected Mirage or previous benchmark runs.
+        - label: Any independent-run claim is supported by an isolation record; otherwise lineage is unverified.
           required: true
-        - label: The public deployment and cover return directly without authentication or redirects and permit mirageml.com framing.
+        - label: The public deployment returns directly without authentication or redirects and permits mirageml.com framing; a declared cover does too.
           required: true
         - label: I will keep the accepted deployment online and unchanged, or submit a deployment-only relocation.
           required: true

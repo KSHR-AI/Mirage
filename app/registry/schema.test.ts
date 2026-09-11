@@ -6,6 +6,7 @@ const SEED_DIGEST = `sha256:${"c".repeat(64)}`;
 
 function makeGame(overrides: Record<string, unknown> = {}) {
   return {
+    track: "benchmark",
     id: "night-drive-001",
     title: "Night Drive",
     tagline: "One city, one clean attempt",
@@ -63,6 +64,48 @@ describe("runtime registry schema", () => {
       schemaVersion: 1,
       games: [],
     });
+  });
+
+  it("accepts explicit showcase evidence gaps but not benchmark gaps", () => {
+    const showcase = makeGame({
+      track: "showcase",
+      source: null,
+      builtOn: null,
+      presentation: {
+        coverPath: null,
+        coverAlt: "No cover was published",
+        controls: ["WASD"],
+        limitations: ["Source was not published"],
+        protocolVersion: 1,
+      },
+    });
+    expect(
+      parseRegistryDocument({ schemaVersion: 1, games: [showcase] }).games[0],
+    ).toMatchObject({ track: "showcase", source: null, builtOn: null });
+
+    expect(() =>
+      parseRegistryDocument({
+        schemaVersion: 1,
+        games: [makeGame({ source: null })],
+      }),
+    ).toThrow(/source/);
+
+    expect(() =>
+      parseRegistryDocument({
+        schemaVersion: 1,
+        games: [
+          makeGame({
+            presentation: {
+              coverPath: "/showcase-covers/public-attempt.png",
+              coverAlt: "A captured public attempt",
+              controls: ["WASD"],
+              limitations: ["Showcase capture"],
+              protocolVersion: 1,
+            },
+          }),
+        ],
+      }),
+    ).toThrow(/showcase/);
   });
 
   it("rejects unknown fields and mutable source identities", () => {

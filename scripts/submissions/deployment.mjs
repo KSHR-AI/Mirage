@@ -8,7 +8,7 @@ export async function verifySubmissionDeployment(
   submission,
   { fetcher = fetch, lookup = dnsLookup } = {},
 ) {
-  await verifySourceCommit(submission.source, fetcher);
+  if (submission.source) await verifySourceCommit(submission.source, fetcher);
 
   const playUrl = new URL(submission.deployment.url);
   await assertPublicHostname(playUrl.hostname, lookup);
@@ -27,10 +27,15 @@ export async function verifySubmissionDeployment(
   assertFrameable(page.headers, playUrl);
   await page.body?.cancel();
 
-  const coverUrl = new URL(
-    submission.presentation.coverPath,
-    submission.deployment.url,
-  );
+  const coverPath = submission.presentation.coverPath;
+  if (coverPath === null || coverPath.startsWith("/showcase-covers/")) {
+    return Object.freeze({
+      source: submission.source,
+      deployment: submission.deployment,
+      coverUrl: coverPath,
+    });
+  }
+  const coverUrl = new URL(coverPath, submission.deployment.url);
   invariant(
     coverUrl.origin === playUrl.origin,
     "Cover image must use the deployment origin",

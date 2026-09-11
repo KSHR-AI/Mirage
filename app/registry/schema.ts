@@ -37,7 +37,7 @@ export type GameLineage =
     };
 
 export type GamePresentation = {
-  coverPath: string;
+  coverPath: string | null;
   coverAlt: string;
   controls: readonly string[];
   limitations: readonly string[];
@@ -45,13 +45,14 @@ export type GamePresentation = {
 };
 
 export type PublishedGame = {
+  track: "benchmark" | "showcase";
   id: string;
   title: string;
   tagline: string;
   description: string;
   model: string;
-  builtOn: string;
-  source: GameSource;
+  builtOn: string | null;
+  source: GameSource | null;
   deployment: GameDeployment;
   lineage: GameLineage;
   provenance: JsonObject;
@@ -93,6 +94,7 @@ function parseGame(value: unknown, index: number): PublishedGame {
     !isPlainObject(value) ||
     !hasExactKeys(value, [
       "id",
+      "track",
       "title",
       "tagline",
       "description",
@@ -115,6 +117,10 @@ function parseGame(value: unknown, index: number): PublishedGame {
     throw new Error(`Invalid registry: ${label}.id is malformed`);
   }
 
+  if (value.track !== "benchmark" && value.track !== "showcase") {
+    throw new Error(`Invalid registry: ${label}.track is unsupported`);
+  }
+  const track = value.track;
   const title = requiredString(value.title, `${label}.title`, 160);
   const tagline = requiredString(value.tagline, `${label}.tagline`, 280);
   const description = requiredString(
@@ -123,19 +129,26 @@ function parseGame(value: unknown, index: number): PublishedGame {
     4_000,
   );
   const model = requiredString(value.model, `${label}.model`, 200);
-  const builtOn = parseIsoDate(value.builtOn, `${label}.builtOn`);
-  const source = parseSource(value.source, label);
+  const builtOn =
+    value.builtOn === null && track === "showcase"
+      ? null
+      : parseIsoDate(value.builtOn, `${label}.builtOn`);
+  const source =
+    value.source === null && track === "showcase"
+      ? null
+      : parseSource(value.source, label);
   const deployment = parseDeployment(value.deployment, label);
   const lineage = parseLineage(value.lineage, id, label);
   const provenance = parseJsonObject(value.provenance, `${label}.provenance`);
   const licenses = parseJsonObject(value.licenses, `${label}.licenses`);
-  const presentation = parsePresentation(value.presentation, label);
+  const presentation = parsePresentation(value.presentation, label, track);
   const features = parseFeatures(value.features, label);
 
   // Construct a new object instead of spreading accepted records so unknown
   // fields cannot cross the server-to-client boundary.
   return {
     id,
+    track,
     title,
     tagline,
     description,
@@ -272,6 +285,7 @@ function parseFeatures(value: unknown, gameLabel: string): readonly string[] {
 function parsePresentation(
   value: unknown,
   gameLabel: string,
+  track: PublishedGame["track"],
 ): GamePresentation {
   const label = `${gameLabel}.presentation`;
   if (
@@ -286,8 +300,27 @@ function parsePresentation(
   ) {
     throw new Error(`Invalid registry: ${label} has an invalid shape`);
   }
-  const coverPath = requiredString(value.coverPath, `${label}.coverPath`, 300);
-  if (!isSafeRelativePath(coverPath) || !isSafeImagePath(coverPath)) {
+  const coverPath = value.coverPath;
+  if (coverPath === null && track !== "showcase") {
+    throw new Error(
+      `Invalid registry: ${label}.coverPath may be null only for a showcase`,
+    );
+  }
+  if (
+    typeof coverPath === "string" &&
+    coverPath.startsWith("/showcase-covers/") &&
+    track !== "showcase"
+  ) {
+    throw new Error(
+      `Invalid registry: ${label}.coverPath may be Mirage-hosted only for a showcase`,
+    );
+  }
+  if (
+    coverPath !== null &&
+    (typeof coverPath !== "string" ||
+      ((!isSafeRelativePath(coverPath) || !isSafeImagePath(coverPath)) &&
+        !isShowcaseCoverPath(coverPath)))
+  ) {
     throw new Error(
       `Invalid registry: ${label}.coverPath must be a safe relative image path`,
     );
@@ -309,6 +342,12 @@ function parsePresentation(
     ),
     protocolVersion: 1,
   };
+}
+
+function isShowcaseCoverPath(value: string) {
+  return /^\/showcase-covers\/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:png|jpe?g|webp)$/.test(
+    value,
+  );
 }
 
 function parseJsonObject(value: unknown, label: string): JsonObject {
@@ -376,6 +415,7 @@ function assertLineageGraph(games: readonly PublishedGame[]) {
         );
       }
       if (
+        !parent.source ||
         parent.source.repositoryUrl !==
           game.lineage.parentSource.repositoryUrl ||
         parent.source.commit !== game.lineage.parentSource.commit

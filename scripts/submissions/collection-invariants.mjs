@@ -16,14 +16,16 @@ export function assertCollectionInvariants(
     );
     byId.set(record.id, record);
 
-    const sourceIdentity =
-      `${record.source.repositoryUrl}@${record.source.commit}`.toLowerCase();
-    const existingId = sourceOwners.get(sourceIdentity);
-    invariant(
-      existingId === undefined,
-      `${label} reuses source revision ${record.source.repositoryUrl}@${record.source.commit} for IDs ${existingId} and ${record.id}`,
-    );
-    sourceOwners.set(sourceIdentity, record.id);
+    if (record.source) {
+      const sourceIdentity =
+        `${record.source.repositoryUrl}@${record.source.commit}`.toLowerCase();
+      const existingId = sourceOwners.get(sourceIdentity);
+      invariant(
+        existingId === undefined,
+        `${label} reuses source revision ${record.source.repositoryUrl}@${record.source.commit} for IDs ${existingId} and ${record.id}`,
+      );
+      sourceOwners.set(sourceIdentity, record.id);
+    }
 
     const deploymentIdentity = record.deployment.url.toLowerCase();
     const existingDeploymentId = deploymentOwners.get(deploymentIdentity);
@@ -42,8 +44,9 @@ export function assertCollectionInvariants(
       `${label} derived game "${record.id}" references missing parent "${record.lineage.parentId}"`,
     );
     invariant(
-      record.lineage.parentSource.repositoryUrl ===
-        parent.source.repositoryUrl &&
+      parent.source &&
+        record.lineage.parentSource.repositoryUrl ===
+          parent.source.repositoryUrl &&
         record.lineage.parentSource.commit === parent.source.commit,
       `${label} derived game "${record.id}" parentSource does not match active parent "${record.lineage.parentId}"`,
     );

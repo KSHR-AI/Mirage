@@ -82,7 +82,10 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
   const selectedIndex = games.findIndex((game) => game.id === selectedGame.id);
   const neighboringGames = getNeighboringGames(games, selectedIndex);
   const updatedOn = games.reduce(
-    (latest, game) => (game.builtOn > latest ? game.builtOn : latest),
+    (latest, game) =>
+      game.builtOn && (!latest || game.builtOn > latest)
+        ? game.builtOn
+        : latest,
     games[0].builtOn,
   );
   const recordDownload = useMemo(
@@ -237,9 +240,7 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
                 <div className={styles.cardHeading}>
                   <strong>{selectedGame.model}</strong>
                   <span>{selectedGame.title}</span>
-                  <time dateTime={selectedGame.builtOn}>
-                    Built {formatDate(selectedGame.builtOn)}
-                  </time>
+                  <BuildDate game={selectedGame} />
                 </div>
                 <GameCover game={selectedGame} selected />
                 <p>{selectedGame.tagline}</p>
@@ -290,7 +291,9 @@ function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
           <button type="button" onClick={() => deckRef.current?.focus()}>
             Browse submissions
           </button>
-          <time dateTime={updatedOn}>Updated {formatDate(updatedOn)}</time>
+          {updatedOn ? (
+            <time dateTime={updatedOn}>Updated {formatDate(updatedOn)}</time>
+          ) : null}
           <nav aria-label="Project links">
             <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">
               <GithubLogo aria-hidden="true" weight="fill" />
@@ -405,7 +408,10 @@ function GameDetailDrawer({
       </header>
 
       <div className={styles.drawerStatus}>
-        <EvidenceStatus published label="Source pinned" />
+        <EvidenceStatus
+          published={game.source !== null}
+          label={game.source ? "Source pinned" : "Showcase only"}
+        />
         <EvidenceStatus published label="Deployment verified" />
         <EvidenceStatus
           published={game.lineage.kind !== "unverified"}
@@ -429,8 +435,12 @@ function GameDetailDrawer({
           <DetailList
             rows={[
               ["Model", game.model],
-              ["Built", formatDate(game.builtOn)],
-              ["Source commit", game.source.commit],
+              ["Track", game.track === "benchmark" ? "Benchmark" : "Showcase"],
+              [
+                "Built",
+                game.builtOn ? formatDate(game.builtOn) : "Not recorded",
+              ],
+              ["Source commit", game.source?.commit ?? "Not published"],
               ["Deployment provider", game.deployment.provider],
               ["Deployment URL", game.deployment.url],
               ["Lineage", formatLineage(game)],
@@ -452,26 +462,40 @@ function GameDetailDrawer({
       </div>
 
       <div className={styles.drawerActions}>
-        <button
-          type="button"
-          onClick={() => void onCopy("Source commit", game.source.commit)}
-        >
-          <Copy aria-hidden="true" />
-          Copy commit
-        </button>
+        {game.source ? (
+          <button
+            type="button"
+            onClick={() => void onCopy("Source commit", game.source!.commit)}
+          >
+            <Copy aria-hidden="true" />
+            Copy commit
+          </button>
+        ) : null}
         <a href={recordDownload} download={`${game.id}.json`}>
           <DownloadSimple aria-hidden="true" />
           Download record
         </a>
-        <a
-          className={styles.primaryDrawerAction}
-          href={getSourceRevisionUrl(game.source)}
-          target="_blank"
-          rel="noreferrer"
-        >
-          View source
-          <ArrowSquareOut aria-hidden="true" />
-        </a>
+        {game.source ? (
+          <a
+            className={styles.primaryDrawerAction}
+            href={getSourceRevisionUrl(game.source)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View source
+            <ArrowSquareOut aria-hidden="true" />
+          </a>
+        ) : (
+          <a
+            className={styles.primaryDrawerAction}
+            href={game.deployment.url}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open deployment
+            <ArrowSquareOut aria-hidden="true" />
+          </a>
+        )}
         <p className={styles.copyFeedback} role="status" aria-live="polite">
           {feedback}
         </p>
@@ -550,7 +574,7 @@ function SideGameCard({
       <span className={styles.cardHeading}>
         <strong>{game.model}</strong>
         <span>{game.title}</span>
-        <time dateTime={game.builtOn}>Built {formatDate(game.builtOn)}</time>
+        <BuildDate game={game} />
       </span>
       <GameCover game={game} />
       <small>{game.tagline}</small>
@@ -568,7 +592,7 @@ function OpenGameSlot({ position }: { position: "previous" | "next" }) {
       <PaperPlaneTilt aria-hidden="true" weight="bold" />
       <span>Open slot</span>
       <strong>Submit your GTA-in-SF build</strong>
-      <small>GitHub source + live URL</small>
+      <small>Benchmark source or public showcase</small>
     </a>
   );
 }
@@ -605,6 +629,14 @@ function formatDate(date: string) {
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(`${date}T00:00:00Z`));
+}
+
+function BuildDate({ game }: { game: PublishedGame }) {
+  return game.builtOn ? (
+    <time dateTime={game.builtOn}>Built {formatDate(game.builtOn)}</time>
+  ) : (
+    <time>Build date not recorded</time>
+  );
 }
 
 function isFormControl(target: EventTarget | null) {
