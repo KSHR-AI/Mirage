@@ -25,7 +25,7 @@
     "note": "The public source and PR #1 preserve implementation history but no neutral seed digest, runner isolation record, or accepted parent. Independence cannot be established."
   },
   "provenance": {
-    "builtOn": null,
+    "builtOn": "2026-10-08",
     "model": "Claude Opus 5.5",
     "modelSnapshot": null,
     "reasoning": null,
@@ -88,12 +88,19 @@
         "license": "CC0-1.0",
         "sourceUrl": "https://kenney.nl",
         "attribution": "Attributed to Kenney under CC0 in the pinned README; a separate kit license is not included."
+      },
+      {
+        "name": "Port Solano showcase cover",
+        "creator": "MirageML Bench (browser capture); game assets attributed above",
+        "license": "NOASSERTION",
+        "sourceUrl": "https://kshr-ai.github.io/gta-v-opus-v-v/",
+        "attribution": "Unaltered browser screenshot of the public GitHub Pages deployment captured on 2026-10-08. This records observable gameplay; it does not establish rights clearance for the underlying game."
       }
     ]
   },
   "presentation": {
-    "coverPath": null,
-    "coverAlt": "No contributor-published gameplay cover is available",
+    "coverPath": "/showcase-covers/port-solano-001.jpg",
+    "coverAlt": "A red sports car beside traffic and pedestrians on a low-poly coastal neighborhood street at sunset, with a minimap and driving HUD",
     "controls": [
       "WASD to move or drive; mouse to look",
       "Shift to sprint; Space to jump or use the handbrake",
@@ -108,11 +115,12 @@
       "Showcase only: no benchmark handoff, exact prompt, model snapshot, reasoning level, agent counts, or isolation evidence is published.",
       "The fictional coastal city is Port Solano, not a documented reconstruction of San Francisco.",
       "The source uses npm and package-lock.json, without the required pnpm lockfile or build:mirage command.",
-      "The source was committed on October 7–8, 2026; the original production build date is not recorded.",
+      "The recorded build date is the GitHub Pages build on 2026-10-08: frozen source d49675b1dac0c2b784f98f8cd740a7743ad30d11, Node.js 24.19.0, npm ci --ignore-scripts, and npm run build -- --base=./. The original development build date is not recorded.",
       "No first-party code license is published; complete asset license clearance is unknown.",
-      "Features and controls are recorded from source and README. Live deployment and opaque-origin sandbox playability remain unverified.",
-      "Source PR #1 reports headless tests at about 1 FPS using injected game inputs. That does not verify real-time keyboard and mouse playability.",
-      "No contributor cover, touch support, or gamepad support is recorded."
+      "On 2026-10-08 the public deployment loaded in Mirage's opaque-origin iframe; vehicle entry and the map toggle worked. Mission completion, combat, and sustained driving were not verified.",
+      "The Codex browser logged a Chromium UnknownError at game start, but gameplay continued. Mouse-look and pointer-lock behavior remain unverified.",
+      "Source PR #1 reports headless tests at about 1 FPS using injected game inputs. No comprehensive frame-rate or gameplay qualification is claimed.",
+      "The cover is an unaltered Mirage browser capture of the public deployment. Touch and gamepad support are not claimed."
     ],
     "protocolVersion": 1
   }
