@@ -1,14 +1,18 @@
 import { isIP } from "node:net";
 import { lookup as dnsLookup } from "node:dns/promises";
+import { access as fsAccess } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { invariant } from "./errors.mjs";
 
 const REQUEST_TIMEOUT_MS = 15_000;
+const PROJECT_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 export async function verifySubmissionDeployment(
   submission,
-  { fetcher = fetch, lookup = dnsLookup } = {},
+  { fetcher = fetch, lookup = dnsLookup, access = fsAccess } = {},
 ) {
-  await verifySourceCommit(submission.source, fetcher);
+  if (submission.source) await verifySourceCommit(submission.source, fetcher);
 
   const playUrl = new URL(submission.deployment.url);
   await assertPublicHostname(playUrl.hostname, lookup);
@@ -27,10 +31,28 @@ export async function verifySubmissionDeployment(
   assertFrameable(page.headers, playUrl);
   await page.body?.cancel();
 
-  const coverUrl = new URL(
-    submission.presentation.coverPath,
-    submission.deployment.url,
-  );
+  const coverPath = submission.presentation.coverPath;
+  if (coverPath?.startsWith("/showcase-covers/")) {
+    const expectedPrefix = `/showcase-covers/${submission.id}.`;
+    invariant(
+      coverPath.startsWith(expectedPrefix),
+      `Mirage-hosted showcase cover must be named after submission ${submission.id}`,
+    );
+    const localCover = path.join(PROJECT_ROOT, "public", coverPath.slice(1));
+    await access(localCover).catch(() => {
+      throw new Error(
+        `Mirage-hosted showcase cover does not exist: ${coverPath}`,
+      );
+    });
+  }
+  if (coverPath === null || coverPath.startsWith("/showcase-covers/")) {
+    return Object.freeze({
+      source: submission.source,
+      deployment: submission.deployment,
+      coverUrl: coverPath,
+    });
+  }
+  const coverUrl = new URL(coverPath, submission.deployment.url);
   invariant(
     coverUrl.origin === playUrl.origin,
     "Cover image must use the deployment origin",

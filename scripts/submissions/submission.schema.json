@@ -20,6 +20,10 @@
   ],
   "properties": {
     "schemaVersion": { "const": 2 },
+    "track": {
+      "enum": ["benchmark", "showcase"],
+      "default": "benchmark"
+    },
     "id": {
       "type": "string",
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
@@ -40,19 +44,24 @@
       "items": { "type": "string", "minLength": 1, "maxLength": 120 }
     },
     "source": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["repositoryUrl", "commit"],
-      "properties": {
-        "repositoryUrl": {
-          "type": "string",
-          "pattern": "^https://github\\.com/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9][A-Za-z0-9._-]{0,99}$"
-        },
-        "commit": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{40}$"
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repositoryUrl", "commit"],
+          "properties": {
+            "repositoryUrl": {
+              "type": "string",
+              "pattern": "^https://github\\.com/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9][A-Za-z0-9._-]{0,99}$"
+            },
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          }
         }
-      }
+      ]
     },
     "deployment": {
       "type": "object",
@@ -144,7 +153,7 @@
       ],
       "properties": {
         "builtOn": {
-          "type": "string",
+          "type": ["string", "null"],
           "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
         },
         "model": { "type": "string", "minLength": 1, "maxLength": 200 },
@@ -266,7 +275,7 @@
       ],
       "properties": {
         "coverPath": {
-          "type": "string",
+          "type": ["string", "null"],
           "minLength": 1,
           "maxLength": 300
         },
@@ -292,5 +301,25 @@
         "protocolVersion": { "const": 1 }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "track": { "const": "showcase" } },
+        "required": ["track"]
+      },
+      "then": {},
+      "else": {
+        "properties": {
+          "source": { "type": "object" },
+          "provenance": {
+            "properties": { "builtOn": { "type": "string" } }
+          },
+          "presentation": {
+            "properties": { "coverPath": { "type": "string" } }
+          }
+        }
+      }
+    }
+  ]
 }

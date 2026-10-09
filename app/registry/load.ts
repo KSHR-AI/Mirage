@@ -99,6 +99,7 @@ function projectSubmission(value: unknown) {
   delete record.schemaVersion;
   return {
     ...record,
+    track: value.track ?? "benchmark",
     model: value.provenance.model,
     builtOn: value.provenance.builtOn,
   };

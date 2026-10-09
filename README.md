@@ -6,10 +6,14 @@
 
 ## Can a coding model build GTA in San Francisco?
 
-MirageML Bench is an open, playable benchmark organized around that question.
-It asks coding models to turn a brand-new repository into a complete browser
-game: a city you can move through, a vehicle you can meaningfully control,
-systems that interact, and objectives that make the world worth playing.
+MirageML Bench is an open, playable registry organized around that question. It
+publishes reproducible benchmark runs and clearly labeled public showcases.
+Benchmark runs ask coding models to turn a brand-new repository into a complete
+browser game: a city you can move through, a vehicle you can meaningfully
+control, systems that interact, and objectives that make the world worth
+playing. Showcases let people play relevant public attempts whose source or
+production evidence was not published, without treating them as benchmark
+proof.
 
 The target is deliberately bigger than a code-generation exercise. An
 open-world game requires software architecture, simulation, controls, visual
@@ -26,18 +30,22 @@ Interactive.
 [Give the prompt to a coding agent](submissions/AGENT_PROMPT.md) ·
 [Submit a run](submissions/README.md)
 
-## The playable run is the evidence
+## Playability and evidence are separate
 
 MirageML Bench does not award capability points for claimed features or turn a
-subjective impression into a percentage. Every accepted run is:
+subjective impression into a percentage. Every accepted entry is playable in a
+restrictive cross-origin iframe from a verified public HTTPS URL. Each entry is
+then labeled as one of two tracks:
 
-- playable in the browser at a dedicated `mirageml.com/play/GAME_ID` URL;
-- tied to a public GitHub repository and exact source commit;
-- accompanied by its model, harness, prompt, tools, interventions, and build
-  date when known;
-- labeled with its relationship to earlier work;
-- deployed by its contributor at a verified public HTTPS URL; and
-- isolated from Mirage inside a restrictive cross-origin iframe.
+- `benchmark`: tied to a public GitHub repository and exact source commit, with
+  recorded model, harness, prompt, tools, interventions, build date, lineage,
+  licenses, and cover;
+- `showcase`: a public playable attempt with explicit unknowns where source,
+  build evidence, cover, or rights evidence was not supplied.
+
+Deployment verification proves availability and framing safety, not source
+identity, reproducibility, independence, provenance, license clearance, or
+model capability. Those claims appear only when their evidence is published.
 
 The current benchmark publishes inspectable evidence rather than a ranked
 leaderboard. A defensible comparison must freeze the task, model snapshot,
@@ -101,6 +109,10 @@ benchmark run.
 4. Open a pull request.
 5. Pass source, deployment, cover, framing, lineage, provenance, and rights
    review.
+
+Already have a public game but not its source or handoff? Submit it on the
+`showcase` track. Mirage will verify the deployment and display the missing
+evidence instead of rejecting the playable attempt or filling gaps.
 
 The [submission guide](submissions/README.md) contains the exact JSON contract,
 hosting rules, lineage examples, and review process. You can also open a

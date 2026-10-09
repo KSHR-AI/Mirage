@@ -7,7 +7,11 @@ MirageML Bench is the public registry, evidence layer, and sandboxed player for
 coding-model attempts to build GTA in San Francisco. It is not the workspace,
 seed, host, or template for a game.
 
-- Author each game attempt in its own brand-new public repository.
+- Keep `benchmark` and `showcase` distinct. A benchmark pins public source and
+  production evidence; a showcase may publish a safe playable deployment with
+  explicit unknowns and must never be described as benchmark proof.
+
+- Author each benchmark attempt in its own brand-new public repository.
 - For an independent attempt, do not expose Mirage source, history, previous
   runs, prompts, screenshots, tests, assets, worktrees, build output, or caches
   until the game is finished, deployed, and frozen.
@@ -16,12 +20,14 @@ seed, host, or template for a game.
   cannot be established.
 - A rerun, dependency rebuild, source change, prompt correction, or material
   gameplay change gets a new ID and exact 40-character source commit.
-- A game contribution is one `submissions/ID.json` record. It contains source,
-  deployment, lineage, provenance, licenses, and presentation evidence—never
-  copied game source, generated bundles, credentials, submodules, or subtrees.
+- A game contribution is one `submissions/ID.json` record. It contains source or
+  an explicit absence, deployment, lineage, provenance, licenses, and
+  presentation evidence—never copied game source, generated bundles,
+  credentials, submodules, or subtrees.
 - Contributors deploy their own static game. Accept only a stable public HTTPS
-  URL that returns the game directly, exposes its cover, permits Mirage framing,
-  and works in the opaque-origin player.
+  URL that returns the game directly, permits Mirage framing, and works in the
+  opaque-origin player. Benchmarks expose their cover from the deployment;
+  showcases may use a clearly attributed Mirage capture.
 - Mirage verifies external deployments but does not call them immutable. A
   deployment-only update may relocate the same frozen run; any benchmark
   evidence change requires a new ID.

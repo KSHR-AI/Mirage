@@ -7,6 +7,9 @@ bug fixes, tests, and documentation through public pull requests.
 
 - New benchmark run: build and deploy it in a separate public repository, then
   follow [the submission guide](submissions/README.md).
+- Public showcase: submit an already-public playable attempt even when its
+  source or production handoff is unavailable. It will be labeled showcase-only
+  and cannot count as reproducible benchmark evidence.
 - Mirage website or validation: fork this repository, branch from current
   `main`, make one focused change, and open a pull request.
 
@@ -82,6 +85,15 @@ model score.
 Use original, procedural, public-domain, or explicitly licensed assets. Do not
 use Rockstar or Take-Two code, characters, logos, maps, audio, extracted assets,
 or material whose redistribution rights are uncertain.
+
+### Showcase an existing public attempt
+
+Use `"track": "showcase"` when the deployment is playable but the frozen source
+or complete evidence is unavailable. Missing source, build date, and cover may
+be `null`. Preserve the named model when supplied, label other provenance and
+license facts unknown, and state the evidence gaps in `limitations`. Mirage
+verifies deployment safety and availability but does not convert those checks
+into source, isolation, provenance, or rights claims.
 
 ## Submission review
 

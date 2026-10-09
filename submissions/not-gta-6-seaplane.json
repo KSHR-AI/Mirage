@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 2,
+  "track": "showcase",
+  "id": "not-gta-6-seaplane",
+  "title": "not GTA 6",
+  "tagline": "A tropical coastal metropolis, from the cockpit of a seaplane",
+  "description": "A public browser flight experience set above a procedural tropical coastal metropolis. Start a seaplane, fly across islands, bays, settlements, roads, and vegetation, switch viewpoints, and change the time of day.",
+  "features": [
+    "Flyable seaplane with pitch, roll, rudder, throttle, flaps, brakes, and reset controls",
+    "Procedural tropical islands, bays, settlements, roads, vegetation, and water",
+    "Chase and cockpit cameras with mouse-controlled chase orbit",
+    "Adjustable time of day, camera shake, and flight HUD"
+  ],
+  "source": null,
+  "deployment": {
+    "url": "https://gta6.love.chatgpt.site/",
+    "provider": "ChatGPT Sites"
+  },
+  "lineage": {
+    "kind": "unverified",
+    "note": "The public deployment was submitted without a source repository, frozen commit, seed digest, runner record, or parent record, so lineage cannot be established."
+  },
+  "provenance": {
+    "builtOn": null,
+    "model": "GPT-6-Astra",
+    "modelSnapshot": "gpt-6-astra",
+    "reasoning": null,
+    "harness": "ChatGPT Sites (inferred from deployment)",
+    "tools": [
+      "Three.js r170 (observed in deployed bundle)",
+      "WebGL",
+      "Web Audio API"
+    ],
+    "agentCount": null,
+    "subagentCount": null,
+    "humanInterventions": null,
+    "prompt": {
+      "status": "not-recorded",
+      "text": null,
+      "note": "The build prompt and harness transcript were not supplied with the public deployment."
+    }
+  },
+  "licenses": {
+    "code": "NOASSERTION",
+    "assetStatement": "The deployed bundle contains Three.js r170 under MIT and visibly renders procedural geometry and materials. Source and complete asset provenance were not supplied, so license clearance for the full build cannot be established.",
+    "assets": [
+      {
+        "name": "Three.js r170",
+        "creator": "Three.js authors",
+        "license": "MIT",
+        "sourceUrl": "https://github.com/mrdoob/three.js",
+        "attribution": "The deployed JavaScript bundle preserves the Three.js copyright and MIT license header."
+      },
+      {
+        "name": "not GTA 6 showcase cover",
+        "creator": "MirageML Bench",
+        "license": "CC0-1.0",
+        "sourceUrl": "https://gta6.love.chatgpt.site/",
+        "attribution": "Unaltered browser capture of the public deployment on 2026-09-11."
+      }
+    ]
+  },
+  "presentation": {
+    "coverPath": "/showcase-covers/not-gta-6-seaplane.png",
+    "coverAlt": "A white seaplane taxis across bright blue water toward a coastal skyline and long bridge beneath a flight HUD",
+    "controls": [
+      "W and S to pitch; S pulls up",
+      "A and D to roll",
+      "Q and E to control the rudder",
+      "Shift and Control to change throttle",
+      "F for flaps and B for brakes",
+      "C to switch chase and cockpit cameras",
+      "Mouse drag to orbit the chase camera",
+      "V for camera shake, T for time of day, H to hide the HUD, and R to reset"
+    ],
+    "limitations": [
+      "Showcase only: no public source commit was supplied, so reproducibility and source identity are not verified.",
+      "The deployment was first submitted publicly on 2026-09-09; the build date was not recorded.",
+      "The ChatGPT Sites harness is inferred from the deployment host; the reasoning level, agent counts, interventions, and prompt were not recorded.",
+      "Code and asset license clearance could not be established from the deployment.",
+      "The cover is an unaltered Mirage browser capture of the public deployment, not a contributor-published asset.",
+      "Desktop keyboard and mouse controls are claimed by the deployment; touch and gamepad support are not claimed."
+    ],
+    "protocolVersion": 1
+  }
+}

@@ -33,6 +33,56 @@ describe("submission validation", () => {
       protocolVersion: 1,
     });
     expect(Object.hasOwn(submission, "artifact")).toBe(false);
+    expect(submission.track).toBe("benchmark");
+  });
+
+  it("accepts missing source, build date, and cover only for showcases", () => {
+    const showcase = validateSubmission(
+      makeSubmission({
+        track: "showcase",
+        source: null,
+        lineage: {
+          kind: "unverified",
+          note: "The source and runner record were not published.",
+        },
+        provenance: { builtOn: null },
+        presentation: { coverPath: null },
+      }),
+    );
+    expect(showcase).toMatchObject({
+      track: "showcase",
+      source: null,
+      provenance: { builtOn: null },
+      presentation: { coverPath: null },
+    });
+
+    expect(() => validateSubmission(makeSubmission({ source: null }))).toThrow(
+      /showcase/,
+    );
+    expect(() =>
+      validateSubmission(makeSubmission({ provenance: { builtOn: null } })),
+    ).toThrow(/showcase/);
+    expect(() =>
+      validateSubmission(makeSubmission({ presentation: { coverPath: null } })),
+    ).toThrow(/showcase/);
+  });
+
+  it("accepts a tightly scoped Mirage-hosted cover for a showcase", () => {
+    expect(
+      validateSubmission(
+        makeSubmission({
+          track: "showcase",
+          presentation: {
+            coverPath: "/showcase-covers/public-attempt.png",
+          },
+        }),
+      ).presentation.coverPath,
+    ).toBe("/showcase-covers/public-attempt.png");
+    expect(() =>
+      validateSubmission(
+        makeSubmission({ presentation: { coverPath: "/other/cover.png" } }),
+      ),
+    ).toThrow(/coverPath/);
   });
 
   it.each([
