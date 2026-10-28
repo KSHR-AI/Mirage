@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 2,
+  "track": "showcase",
+  "id": "slop-newyork",
+  "title": "Slop New York",
+  "tagline": "Manhattan on foot, by car, by bike, or by helicopter",
+  "description": "A browser simulation of Manhattan built with three.js WebGPURenderer and TSL. Explore surveyed building footprints, street trees, subway entrances, traffic, and pedestrians on foot, by car, by bicycle, or by helicopter, with multiple cameras and times of day.",
+  "features": [
+    "Manhattan streets, building footprints, heights, and street trees from NYC open data",
+    "Walking, driving, cycling, and helicopter modes",
+    "Street traffic, buses, pedestrians, signals, and subway entrances",
+    "Chase, action, first-person, and landmark cameras",
+    "Selectable times of day, full map, minimap, and synthesized city audio"
+  ],
+  "source": {
+    "repositoryUrl": "https://github.com/mrdoob/slop-newyork",
+    "commit": "13dd142b480bcfa01a6b18e36127c87e41cb4d80"
+  },
+  "deployment": {
+    "url": "https://mrdoob.github.io/slop-newyork/",
+    "provider": "GitHub Pages"
+  },
+  "lineage": {
+    "kind": "unverified",
+    "note": "The public source preserves implementation history from 2026-10-20 but no neutral seed digest, runner isolation record, or accepted parent. Independence cannot be established."
+  },
+  "provenance": {
+    "builtOn": "2026-10-28",
+    "model": "unknown",
+    "modelSnapshot": null,
+    "reasoning": null,
+    "harness": "unknown",
+    "tools": [
+      "three.js WebGPURenderer and TSL (observed in deployment)",
+      "Other tools not recorded"
+    ],
+    "agentCount": null,
+    "subagentCount": null,
+    "humanInterventions": null,
+    "prompt": {
+      "status": "not-recorded",
+      "text": null,
+      "note": "The public source and commit history name no model, harness, prompt, or agent transcript."
+    }
+  },
+  "licenses": {
+    "code": "MIT",
+    "assetStatement": "The pinned source is MIT licensed. Its README credits NYC Open Data, MTA subway entrance data, and OpenStreetMap contributors (ODbL) for geographic data. three.js and web fonts load from public CDNs. Complete per-asset license clearance is not established.",
+    "assets": [
+      {
+        "name": "three.js (dev build b3396270682287470d161658ac01084d25e8dba6)",
+        "creator": "three.js authors",
+        "license": "MIT",
+        "sourceUrl": "https://github.com/mrdoob/three.js",
+        "attribution": "Loaded from jsDelivr through the deployment import map."
+      },
+      {
+        "name": "NYC building footprints and tree locations",
+        "creator": "City of New York",
+        "license": "NOASSERTION",
+        "sourceUrl": "https://data.cityofnewyork.us/",
+        "attribution": "Credited to NYC Open Data in the pinned README."
+      },
+      {
+        "name": "MTA subway entrances and exits",
+        "creator": "Metropolitan Transportation Authority",
+        "license": "NOASSERTION",
+        "sourceUrl": "https://data.ny.gov/Transportation/MTA-Subway-Entrances-and-Exits-2024/i9wp-a4ja",
+        "attribution": "Credited in the pinned README."
+      },
+      {
+        "name": "OpenStreetMap data",
+        "creator": "OpenStreetMap contributors",
+        "license": "ODbL-1.0",
+        "sourceUrl": "https://www.openstreetmap.org/copyright",
+        "attribution": "© OpenStreetMap contributors, credited in the pinned README."
+      },
+      {
+        "name": "Inter and Overpass fonts",
+        "creator": "Rasmus Andersson; Delve Withrington and contributors",
+        "license": "OFL-1.1",
+        "sourceUrl": "https://fonts.google.com/",
+        "attribution": "Loaded from Google Fonts by the deployment."
+      },
+      {
+        "name": "Slop New York showcase cover",
+        "creator": "MirageML Bench (browser capture)",
+        "license": "NOASSERTION",
+        "sourceUrl": "https://mrdoob.github.io/slop-newyork/",
+        "attribution": "Unaltered browser capture of the public GitHub Pages deployment on 2026-10-28. It records observable gameplay and does not establish rights clearance for the underlying game."
+      }
+    ]
+  },
+  "presentation": {
+    "coverPath": "/showcase-covers/slop-newyork.png",
+    "coverAlt": "COVER_ALT_PENDING",
+    "controls": [
+      "WASD or arrow keys to move, drive, pedal, or fly",
+      "Space to jump; Space or E to ascend and Q or C to descend in the helicopter",
+      "1–4 to walk, drive, cycle, or fly",
+      "V or 5–0 to change camera; mouse drag to orbit",
+      "B for horn, N for sound, H to hide the HUD, and M for the map",
+      "Touch and gamepad controls are claimed by the deployment"
+    ],
+    "limitations": [
+      "Showcase only: no benchmark handoff, model, prompt, harness, agent counts, or isolation evidence is published.",
+      "The city is New York, not San Francisco.",
+      "The source is unbundled static files with no package manifest, pnpm lockfile, or build:mirage command.",
+      "The deployment loads three.js and fonts from jsDelivr and Google Fonts at runtime.",
+      "The recorded build date is the deployed commit 13dd142b480bcfa01a6b18e36127c87e41cb4d80 on 2026-10-28; the source history began on 2026-10-20.",
+      "The deployment is actively updated; the live game may differ from the pinned commit.",
+      "The deployment has no ?embed=mirage mode.",
+      "The cover is an unaltered Mirage browser capture of the public deployment. Touch and gamepad support were not verified."
+    ],
+    "protocolVersion": 1
+  }
+}
