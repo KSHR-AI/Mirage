@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
+const isDevelopment = process.env.NODE_ENV === "development";
+
+// Development previews are framed and proxied by Niteshift.
+const frameHeader = isDevelopment
+  ? {
+      key: "Content-Security-Policy",
+      value:
+        "frame-ancestors 'self' https://niteshift.dev https://*.niteshift.dev",
+    }
+  : { key: "X-Frame-Options", value: "SAMEORIGIN" };
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["*.preview.niteshift.dev"],
   outputFileTracingIncludes: {
     "/*": ["./submissions/**/*"],
   },
@@ -18,7 +30,7 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",
           },
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          frameHeader,
         ],
       },
     ];

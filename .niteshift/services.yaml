@@ -1,0 +1,10 @@
+services:
+  - name: web
+    # Node from .niteshift/setup, matching .node-version.
+    command: |
+      export PATH="/opt/node-mirage/bin:$PATH"
+      exec pnpm exec next dev --port "$PORT"
+    port: 3000
+    environment:
+      - name: COREPACK_ENABLE_DOWNLOAD_PROMPT
+        value: "0"
