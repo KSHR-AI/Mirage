@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Installs the Node.js version pinned in .node-version beside the sandbox's
+# Node (Niteshift tools keep /usr/local/bin/node), then the pnpm dependencies.
+set -euo pipefail
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo"
+
+node_version="$(tr -d '[:space:]' < .node-version)"
+node_dir="/opt/node-v${node_version}"
+if [ ! -x "$node_dir/bin/node" ]; then
+  tmp="$(mktemp -d)"
+  curl -fsSL --retry 3 \
+    "https://nodejs.org/dist/v${node_version}/node-v${node_version}-linux-x64.tar.xz" \
+    | tar -xJ -C "$tmp"
+  rm -rf "$node_dir"
+  mv "$tmp/node-v${node_version}-linux-x64" "$node_dir"
+  rmdir "$tmp"
+fi
+ln -sfn "$node_dir" /opt/node-mirage
+export PATH="/opt/node-mirage/bin:$PATH"
+
+# pnpm comes from package.json's packageManager through Corepack.
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+corepack enable --install-directory /opt/node-mirage/bin pnpm
+pnpm --version
+
+# A no-op when node_modules already matches the lockfile.
+pnpm install --frozen-lockfile --prefer-offline
