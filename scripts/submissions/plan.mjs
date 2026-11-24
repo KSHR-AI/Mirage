@@ -239,6 +239,17 @@ function validateRemovedSubmission(value, index) {
   invariant(SUBMISSION_ID_PATTERN.test(id), `${label}.id is invalid`);
   const filePath = assertString(entry.path, `${label}.path`, { max: 200 });
   invariant(filePath === `submissions/${id}.json`, `${label}.path is invalid`);
+  if (entry.source === null) {
+    return Object.freeze({
+      id,
+      path: filePath,
+      source: null,
+      submissionDigest: assertDigest(
+        entry.submissionDigest,
+        `${label}.submissionDigest`,
+      ),
+    });
+  }
   const source = assertPlainObject(entry.source, `${label}.source`);
   assertExactKeys(source, ["repositoryUrl", "commit"], [], `${label}.source`);
   invariant(
@@ -268,13 +279,15 @@ function validatePlanIdentities(submissions, removed) {
     const { id, source } = entry.submission;
     invariant(!ids.has(id), `Duplicate submission ID in plan: ${id}`);
     ids.add(id);
-    const sourceIdentity =
-      `${source.repositoryUrl}@${source.commit}`.toLowerCase();
-    invariant(
-      !sources.has(sourceIdentity),
-      `Duplicate source revision in plan: ${source.repositoryUrl}@${source.commit}`,
-    );
-    sources.add(sourceIdentity);
+    if (source) {
+      const sourceIdentity =
+        `${source.repositoryUrl}@${source.commit}`.toLowerCase();
+      invariant(
+        !sources.has(sourceIdentity),
+        `Duplicate source revision in plan: ${source.repositoryUrl}@${source.commit}`,
+      );
+      sources.add(sourceIdentity);
+    }
   }
   for (const entry of removed) {
     invariant(

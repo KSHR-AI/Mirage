@@ -1,7 +1,13 @@
 # Submit a run to MirageML Bench
 
 MirageML Bench asks one public question: **can a coding model build GTA in San
-Francisco?**
+Francisco?** It publishes two explicitly labeled tracks:
+
+- **Benchmark** records pin public source, an exact commit, production evidence,
+  lineage, and licenses.
+- **Showcase** records make a public attempt playable when its source or build
+  evidence was not published. A showcase proves only what Mirage can observe at
+  its public deployment; it is not benchmark evidence.
 
 Your coding agent builds one game in a brand-new repository. You host the
 finished static game. Mirage verifies the public source commit and deployment,
@@ -20,6 +26,14 @@ records how the run was produced, and makes it playable at
    deployment, cover, and iframe headers.
 8. After review and merge, the next Mirage deployment adds the run to the
    benchmark.
+
+For a public deployment without the benchmark handoff, submit a showcase record
+with `"track": "showcase"`. Set unavailable source, build date, or cover fields
+to `null`; use `not-recorded`, `unknown`, and precise limitations for other
+missing evidence. Showcase preflight still verifies the live URL, public DNS,
+HTML response, redirects, and framing policy. It skips only checks whose
+evidence is explicitly absent. Never describe a showcase as reproducible,
+independent, license-cleared, or benchmark-verified.
 
 Do not open Mirage in the game-building agent’s environment until the game has
 been committed, deployed, and frozen. This prevents previous implementations
@@ -81,6 +95,7 @@ Use this schema-complete example as a shape, not as evidence to copy:
 ```json
 {
   "schemaVersion": 2,
+  "track": "benchmark",
   "id": "night-drive-001",
   "title": "Night Drive",
   "tagline": "One city, one clean attempt",
@@ -134,6 +149,12 @@ The executable validator is
 The machine-readable schema is
 [`scripts/submissions/submission.schema.json`](../scripts/submissions/submission.schema.json).
 Unknown fields are rejected.
+
+`track` defaults to `benchmark` for existing records. Only a `showcase` may set
+`source`, `provenance.builtOn`, or `presentation.coverPath` to `null`. A
+maintainer may capture observable presentation evidence to the strict local
+path `/showcase-covers/ID.png`; this is a gallery image, not source or benchmark
+evidence.
 
 ## Lineage
 

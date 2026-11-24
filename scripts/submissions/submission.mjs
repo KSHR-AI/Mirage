@@ -40,7 +40,7 @@ export function validateSubmission(value, { filePath } = {}) {
       "licenses",
       "presentation",
     ],
-    [],
+    ["track"],
     "submission",
   );
   invariant(
@@ -62,8 +62,22 @@ export function validateSubmission(value, { filePath } = {}) {
     );
   }
 
+  const track = submission.track ?? "benchmark";
+  invariant(
+    track === "benchmark" || track === "showcase",
+    'submission.track must be "benchmark" or "showcase"',
+  );
+
+  const source = validateSubmissionSource(submission.source, track);
+  const lineage = validateLineage(submission.lineage, id);
+  invariant(
+    source !== null || lineage.kind === "unverified",
+    "A showcase without source must use unverified lineage",
+  );
+
   return Object.freeze({
     schemaVersion: SUBMISSION_SCHEMA_VERSION,
+    track,
     id,
     title: assertString(submission.title, "submission.title", { max: 120 }),
     tagline: assertString(submission.tagline, "submission.tagline", {
@@ -83,13 +97,24 @@ export function validateSubmission(value, { filePath } = {}) {
         itemMax: 120,
       }),
     ),
-    source: validateSource(submission.source),
+    source,
     deployment: validateDeployment(submission.deployment),
-    lineage: validateLineage(submission.lineage, id),
-    provenance: validateProvenance(submission.provenance),
+    lineage,
+    provenance: validateProvenance(submission.provenance, track),
     licenses: validateLicenses(submission.licenses),
-    presentation: validatePresentation(submission.presentation),
+    presentation: validatePresentation(submission.presentation, track),
   });
+}
+
+function validateSubmissionSource(value, track) {
+  if (value === null) {
+    invariant(
+      track === "showcase",
+      "Only showcase submissions may omit submission.source",
+    );
+    return null;
+  }
+  return validateSource(value);
 }
 
 function validateSource(value, label = "submission.source") {
@@ -191,7 +216,7 @@ function validateLineage(value, id) {
   return Object.freeze({ kind, note });
 }
 
-function validateProvenance(value) {
+function validateProvenance(value, track) {
   const provenance = assertPlainObject(value, "submission.provenance");
   assertExactKeys(
     provenance,
@@ -211,15 +236,22 @@ function validateProvenance(value) {
     "submission.provenance",
   );
 
-  const builtOn = assertString(
-    provenance.builtOn,
-    "submission.provenance.builtOn",
-    { min: 10, max: 10 },
-  );
-  invariant(
-    isIsoDate(builtOn),
-    "submission.provenance.builtOn must be a real YYYY-MM-DD date",
-  );
+  const builtOn = provenance.builtOn;
+  if (builtOn === null) {
+    invariant(
+      track === "showcase",
+      "Only showcase submissions may omit submission.provenance.builtOn",
+    );
+  } else {
+    assertString(builtOn, "submission.provenance.builtOn", {
+      min: 10,
+      max: 10,
+    });
+    invariant(
+      isIsoDate(builtOn),
+      "submission.provenance.builtOn must be a real YYYY-MM-DD date or null for a showcase",
+    );
+  }
 
   return Object.freeze({
     builtOn,
@@ -370,7 +402,7 @@ function validateAssetLicense(value, index) {
   });
 }
 
-function validatePresentation(value) {
+function validatePresentation(value, track) {
   const presentation = assertPlainObject(value, "submission.presentation");
   assertExactKeys(
     presentation,
@@ -384,7 +416,10 @@ function validatePresentation(value) {
     { min: 1, max: 1 },
   );
   return Object.freeze({
-    coverPath: validateCoverPath(presentation.coverPath),
+    coverPath:
+      presentation.coverPath === null
+        ? validateMissingCover(track)
+        : validateCoverPath(presentation.coverPath, track),
     coverAlt: assertString(
       presentation.coverAlt,
       "submission.presentation.coverAlt",
@@ -408,17 +443,32 @@ function validatePresentation(value) {
   });
 }
 
-function validateCoverPath(value) {
+function validateMissingCover(track) {
+  invariant(
+    track === "showcase",
+    "Only showcase submissions may omit submission.presentation.coverPath",
+  );
+  return null;
+}
+
+function validateCoverPath(value, track) {
   const relativePath = assertString(
     value,
     "submission.presentation.coverPath",
     { max: 300 },
   );
-  invariant(
+  const isDeploymentPath =
     SAFE_RELATIVE_PATH_PATTERN.test(relativePath) &&
-      !relativePath.startsWith("/") &&
-      path.posix.normalize(relativePath) === relativePath,
-    "submission.presentation.coverPath must be a normalized relative deployment path",
+    !relativePath.startsWith("/") &&
+    path.posix.normalize(relativePath) === relativePath;
+  const isShowcasePath =
+    track === "showcase" &&
+    /^\/showcase-covers\/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:png|jpe?g|webp)$/.test(
+      relativePath,
+    );
+  invariant(
+    isDeploymentPath || isShowcasePath,
+    "submission.presentation.coverPath must be a normalized deployment path or /showcase-covers/ image",
   );
   return relativePath;
 }

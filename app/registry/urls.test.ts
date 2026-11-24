@@ -8,6 +8,7 @@ import {
 } from "./urls";
 
 const game: PublishedGame = {
+  track: "benchmark",
   id: "night-drive-001",
   title: "Night Drive",
   tagline: "Drive",
@@ -53,8 +54,33 @@ describe("runtime deployment URL derivation", () => {
   });
 
   it("derives the immutable source revision link", () => {
-    expect(getSourceRevisionUrl(game.source)).toBe(
+    expect(getSourceRevisionUrl(game.source!)).toBe(
       `https://github.com/example/night-drive/tree/${"1".repeat(40)}`,
     );
+  });
+
+  it("returns no cover URL when a showcase did not publish one", () => {
+    expect(
+      getPresentationCoverUrl({
+        ...game,
+        track: "showcase",
+        source: null,
+        builtOn: null,
+        presentation: { ...game.presentation, coverPath: null },
+      }),
+    ).toBeNull();
+  });
+
+  it("keeps Mirage-hosted showcase covers on the registry origin", () => {
+    expect(
+      getPresentationCoverUrl({
+        ...game,
+        track: "showcase",
+        presentation: {
+          ...game.presentation,
+          coverPath: "/showcase-covers/public-attempt.png",
+        },
+      }),
+    ).toBe("/showcase-covers/public-attempt.png");
   });
 });

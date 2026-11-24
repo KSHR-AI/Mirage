@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 2,
+  "track": "showcase",
+  "id": "port-solano-001",
+  "title": "Port Solano",
+  "tagline": "Five jobs and a five-star chase across a coastal city",
+  "description": "An open-world browser crime sandbox set in the fictional coastal city of Port Solano. The source implements driving, vehicle theft, on-foot combat, police pursuit, five jobs, a day/night cycle, and synthesized audio. Submitted as a showcase with incomplete production evidence.",
+  "features": [
+    "Coastal city with downtown, suburbs, parks, harbor, and beach",
+    "Fifteen vehicle types, traffic, pedestrians, and vehicle theft",
+    "Five-star wanted system with police pursuit and arrest",
+    "Five jobs spanning theft, delivery, racing, combat, and demolition",
+    "Day/night cycle, minimap, full map, and synthesized radio"
+  ],
+  "source": {
+    "repositoryUrl": "https://github.com/KSHR-AI/gta-v-opus-v-v",
+    "commit": "d49675b1dac0c2b784f98f8cd740a7743ad30d11"
+  },
+  "deployment": {
+    "url": "https://kshr-ai.github.io/gta-v-opus-v-v/",
+    "provider": "GitHub Pages"
+  },
+  "lineage": {
+    "kind": "unverified",
+    "note": "The public source and PR #1 preserve implementation history but no neutral seed digest, runner isolation record, or accepted parent. Independence cannot be established."
+  },
+  "provenance": {
+    "builtOn": "2026-10-08",
+    "model": "Claude Opus 5.5",
+    "modelSnapshot": null,
+    "reasoning": null,
+    "harness": "Claude Code on Niteshift (reported in source PR #1)",
+    "tools": [
+      "Headless Chromium (reported in source PR #1)",
+      "Other agent tools not recorded"
+    ],
+    "agentCount": null,
+    "subagentCount": null,
+    "humanInterventions": null,
+    "prompt": {
+      "status": "not-recorded",
+      "text": null,
+      "note": "The build prompt and complete agent transcript are absent from the public source and PR #1. Model attribution comes from commit co-author trailers; the exact snapshot and reasoning level are not recorded."
+    }
+  },
+  "licenses": {
+    "code": "NOASSERTION",
+    "assetStatement": "README.md attributes imported models to Kenney under CC0 and describes remaining textures and audio as original or procedural. The bundled license file specifically identifies Car Kit 3.1. No first-party code license or complete per-asset provenance inventory is published; full license clearance is unknown.",
+    "assets": [
+      {
+        "name": "Car Kit",
+        "creator": "Kenney",
+        "license": "CC0-1.0",
+        "sourceUrl": "https://kenney.nl",
+        "attribution": "Car Kit 3.1 is identified in public/assets/LICENSE-Kenney-CC0.txt."
+      },
+      {
+        "name": "City Kit (Commercial)",
+        "creator": "Kenney",
+        "license": "CC0-1.0",
+        "sourceUrl": "https://kenney.nl",
+        "attribution": "Attributed to Kenney under CC0 in the pinned README; a separate kit license is not included."
+      },
+      {
+        "name": "City Kit (Roads)",
+        "creator": "Kenney",
+        "license": "CC0-1.0",
+        "sourceUrl": "https://kenney.nl",
+        "attribution": "Attributed to Kenney under CC0 in the pinned README; a separate kit license is not included."
+      },
+      {
+        "name": "City Kit (Suburban)",
+        "creator": "Kenney",
+        "license": "CC0-1.0",
+        "sourceUrl": "https://kenney.nl",
+        "attribution": "Attributed to Kenney under CC0 in the pinned README; a separate kit license is not included."
+      },
+      {
+        "name": "Blocky Characters",
+        "creator": "Kenney",
+        "license": "CC0-1.0",
+        "sourceUrl": "https://kenney.nl",
+        "attribution": "Attributed to Kenney under CC0 in the pinned README; a separate kit license is not included."
+      },
+      {
+        "name": "Nature Kit",
+        "creator": "Kenney",
+        "license": "CC0-1.0",
+        "sourceUrl": "https://kenney.nl",
+        "attribution": "Attributed to Kenney under CC0 in the pinned README; a separate kit license is not included."
+      },
+      {
+        "name": "Port Solano showcase cover",
+        "creator": "MirageML Bench (browser capture); game assets attributed above",
+        "license": "NOASSERTION",
+        "sourceUrl": "https://kshr-ai.github.io/gta-v-opus-v-v/",
+        "attribution": "Unaltered browser screenshot of the public GitHub Pages deployment captured on 2026-10-08. This records observable gameplay; it does not establish rights clearance for the underlying game."
+      }
+    ]
+  },
+  "presentation": {
+    "coverPath": "/showcase-covers/port-solano-001.jpg",
+    "coverAlt": "A red sports car beside traffic and pedestrians on a low-poly coastal neighborhood street at sunset, with a minimap and driving HUD",
+    "controls": [
+      "WASD to move or drive; mouse to look",
+      "Shift to sprint; Space to jump or use the handbrake",
+      "F to enter, exit, or steal a vehicle",
+      "Left mouse to attack; right mouse to aim; R to reload",
+      "1–5 or mouse wheel to select a weapon",
+      "E to start a job at a contact marker",
+      "H for horn or siren; Q for radio; C for camera distance",
+      "M for full map; Escape to pause"
+    ],
+    "limitations": [
+      "Showcase only: no benchmark handoff, exact prompt, model snapshot, reasoning level, agent counts, or isolation evidence is published.",
+      "The fictional coastal city is Port Solano, not a documented reconstruction of San Francisco.",
+      "The source uses npm and package-lock.json, without the required pnpm lockfile or build:mirage command.",
+      "The recorded build date is the GitHub Pages build on 2026-10-08: frozen source d49675b1dac0c2b784f98f8cd740a7743ad30d11, Node.js 24.19.0, npm ci --ignore-scripts, and npm run build -- --base=./. The original development build date is not recorded.",
+      "No first-party code license is published; complete asset license clearance is unknown.",
+      "On 2026-10-08 the public deployment loaded in Mirage's opaque-origin iframe; vehicle entry and the map toggle worked. Mission completion, combat, and sustained driving were not verified.",
+      "The Codex browser logged a Chromium UnknownError at game start, but gameplay continued. Mouse-look and pointer-lock behavior remain unverified.",
+      "Source PR #1 reports headless tests at about 1 FPS using injected game inputs. No comprehensive frame-rate or gameplay qualification is claimed.",
+      "The cover is an unaltered Mirage browser capture of the public deployment. Touch and gamepad support are not claimed."
+    ],
+    "protocolVersion": 1
+  }
+}

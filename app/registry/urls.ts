@@ -11,6 +11,10 @@ export function getCanonicalPlayPath(game: Pick<PublishedGame, "id">) {
 }
 
 export function getPresentationCoverUrl(game: PublishedGame) {
+  if (game.presentation.coverPath === null) return null;
+  if (game.presentation.coverPath.startsWith("/showcase-covers/")) {
+    return game.presentation.coverPath;
+  }
   return new URL(game.presentation.coverPath, game.deployment.url).toString();
 }
 
