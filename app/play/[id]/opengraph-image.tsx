@@ -13,7 +13,12 @@ import { loadPublishedRegistry } from "../../registry/load";
 export const alt = "A MirageML Bench run card";
 export const size = OG_SIZE;
 export const contentType = "image/png";
-export const dynamic = "force-dynamic";
+
+// Every accepted run is known at build time, so its card is prerendered.
+export async function generateStaticParams() {
+  const registry = await loadPublishedRegistry();
+  return registry.games.map((game) => ({ id: game.id }));
+}
 
 export default async function Image({
   params,
