@@ -1,410 +1,208 @@
-.shell {
-  --ink: #eee9d8;
-  --soft-ink: #d0cbb9;
-  --muted: #a39f90;
-  --mint: #a8d0c8;
-  --rule: rgba(238, 233, 216, 0.25);
-  position: fixed;
-  inset: 0;
+.page {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+.page > footer {
+  margin-top: 0;
+}
+
+.hero {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
   overflow: hidden;
   isolation: isolate;
-  background: #07100e;
-  color: var(--ink);
-  font-family: "Inter", Arial, sans-serif;
 }
 
 .heroImage,
-.imageVeil,
-.lowerScrim {
+.heroVeil {
   position: absolute;
   inset: 0;
 }
 
 .heroImage {
-  z-index: -4;
+  z-index: -2;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 45%;
-  filter: saturate(0.82) contrast(1.04) brightness(0.86);
-  transform: scale(1.012);
+  object-position: center 38%;
+  filter: saturate(0.9) contrast(1.06) brightness(0.9);
 }
 
-.imageVeil {
-  z-index: -3;
+.heroVeil {
+  z-index: -1;
   background:
     linear-gradient(
       90deg,
-      rgba(3, 8, 7, 0.82) 0%,
-      rgba(4, 9, 8, 0.56) 30%,
-      rgba(4, 9, 8, 0.08) 66%,
-      rgba(4, 9, 8, 0.34) 100%
+      rgba(10, 14, 12, 0.94) 0%,
+      rgba(10, 14, 12, 0.74) 34%,
+      rgba(10, 14, 12, 0.3) 68%,
+      rgba(10, 14, 12, 0.5) 100%
     ),
-    linear-gradient(180deg, rgba(4, 8, 7, 0.05), rgba(4, 8, 7, 0.18));
+    linear-gradient(180deg, rgba(10, 14, 12, 0.2) 0%, var(--bg) 100%);
 }
 
-.lowerScrim {
-  z-index: -2;
-  top: auto;
-  height: 38%;
-  background: rgba(5, 10, 9, 0.93);
-  box-shadow: 0 -80px 110px rgba(5, 10, 9, 0.9);
-}
-
-.masthead {
-  position: absolute;
-  z-index: 3;
-  top: 25px;
-  left: 50%;
-  display: flex;
-  width: min(650px, calc(100% - 72px));
+.inner {
+  display: grid;
+  width: 100%;
+  max-width: var(--page-width);
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  transform: translateX(-50%);
-}
-
-.mastRule {
-  height: 1px;
-  flex: 1 1 90px;
-  background: rgba(238, 233, 216, 0.54);
-}
-
-.wordmark {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--ink);
-  text-decoration: none;
-}
-
-.wordmark img {
-  width: 27px;
-  height: 30px;
-  object-fit: contain;
-}
-
-.wordmark strong {
-  font-family: "Barlow Condensed", Impact, sans-serif;
-  font-size: 23px;
-  font-style: italic;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  line-height: 1;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.collectionWord {
-  color: rgba(238, 233, 216, 0.76);
-  font-size: 8px;
-  font-weight: 600;
-  letter-spacing: 0.42em;
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.72);
-  text-transform: uppercase;
-  white-space: nowrap;
+  gap: clamp(28px, 5vw, 72px);
+  margin: 0 auto;
+  padding: clamp(40px, 8vh, 96px) var(--page-gutter);
 }
 
 .message {
-  position: absolute;
-  z-index: 2;
-  top: clamp(134px, 16vh, 180px);
-  left: clamp(34px, 5vw, 76px);
   display: grid;
-  width: min(680px, calc(100% - 68px));
-  justify-items: start;
-  text-align: left;
-  text-wrap: balance;
+  gap: 22px;
 }
 
 .eyebrow {
-  margin-bottom: 16px;
-  color: var(--mint);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-}
-
-.message h1 {
-  max-width: 9ch;
   margin: 0;
-  font-family: "Barlow Condensed", Impact, sans-serif;
-  font-size: clamp(72px, 9vw, 124px);
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 0.82;
-  text-transform: uppercase;
-}
-
-.message > p {
-  max-width: 38ch;
-  margin: 18px 0 0;
-  color: var(--soft-ink);
-  font-size: clamp(15px, 1.45vw, 20px);
-  line-height: 1.52;
-}
-
-.launchDeck {
-  position: absolute;
-  z-index: 4;
-  right: 24px;
-  bottom: 66px;
-  left: 24px;
-  display: flex;
-  justify-content: center;
-}
-
-.launchCard {
-  position: relative;
-  display: grid;
-  width: min(620px, calc(100% - 96px));
-  justify-items: center;
-  overflow: hidden;
-  border: 1px solid rgba(238, 233, 216, 0.78);
-  border-radius: 7px;
-  padding: 17px 20px 13px;
-  background: rgba(6, 12, 11, 0.95);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
-  text-align: center;
-}
-
-.launchCard::before {
-  position: absolute;
-  top: -1px;
-  left: 50%;
-  width: 58%;
-  height: 2px;
-  background: var(--mint);
-  content: "";
-  transform: translateX(-50%);
-}
-
-.cardHeading {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--mint);
-  font-size: 9px;
-  font-weight: 600;
+  color: var(--lime);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
-.cardHeading small {
-  color: var(--muted);
-  font-size: inherit;
-  letter-spacing: inherit;
+.page[data-registry-state="unavailable"] .eyebrow {
+  color: var(--amber);
 }
 
-.cardHeading svg {
-  width: 16px;
-  height: 16px;
+.message h1 {
+  max-width: 10.5em;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(54px, 7.4vw, 118px);
+  font-weight: 800;
+  line-height: 0.86;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.45);
+  text-transform: uppercase;
+  text-wrap: balance;
 }
 
-.launchCard h2 {
-  margin: 14px 0 5px;
-  font-family: "Barlow Condensed", Impact, sans-serif;
-  font-size: clamp(28px, 3vw, 38px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1;
+.message h1 em {
+  color: var(--lime);
+  font-style: normal;
+  white-space: nowrap;
 }
 
-.launchCard > p {
-  max-width: 52ch;
-  margin: 0 0 15px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
+.card {
+  overflow: hidden;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  background: rgba(12, 17, 15, 0.88);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(16px);
 }
 
-.primary {
-  display: grid;
-  width: 100%;
-  min-height: 48px;
-  grid-template-columns: 20px 1fr 20px;
+.card header {
+  display: flex;
+  min-height: 40px;
   align-items: center;
-  gap: 10px;
-  border-radius: 4px;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--rule);
   padding: 0 16px;
-  background: #e2e7dc;
-  color: #101614;
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-  transition:
-    background-color 140ms ease,
-    transform 140ms ease;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
-.primary:hover {
-  background: var(--mint);
-  transform: translateY(-1px);
-}
-
-.primary svg {
+.card header svg {
   width: 16px;
   height: 16px;
+  color: var(--amber);
 }
 
-.primary svg:last-child {
-  justify-self: end;
+.card h2 {
+  margin: 22px 20px 0;
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 0.98;
 }
 
+.card p {
+  margin: 12px 20px 0;
+  color: var(--soft-ink);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.actions {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+}
+
+.primary,
 .secondary {
   display: inline-flex;
-  min-height: 32px;
+  min-height: 48px;
   align-items: center;
-  gap: 8px;
-  margin-top: 5px;
-  border-bottom: 1px solid rgba(238, 233, 216, 0.55);
-  color: var(--ink);
-  font-family: "Barlow Condensed", Impact, sans-serif;
-  font-size: 15px;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 0 16px;
+  font-size: 14px;
   font-weight: 600;
   text-decoration: none;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease;
 }
 
-.secondary:hover {
-  border-bottom-color: var(--mint);
-  color: var(--mint);
-}
-
+.primary svg,
 .secondary svg {
   width: 15px;
   height: 15px;
 }
 
-.footer {
-  position: absolute;
-  z-index: 5;
-  right: 26px;
-  bottom: 18px;
-  left: 26px;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  color: var(--muted);
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.primary {
+  background: var(--lime);
+  color: var(--lime-ink);
 }
 
-.footer a {
+.primary:hover {
+  background: #dcff7a;
+}
+
+.secondary {
+  border-color: var(--rule-strong);
   color: var(--ink);
-  text-underline-offset: 5px;
 }
 
-.footer > span {
-  text-align: center;
+.secondary:hover {
+  border-color: var(--ink);
+  background: rgba(236, 229, 208, 0.08);
 }
 
-.footer nav {
-  display: flex;
-  justify-content: flex-end;
-  gap: 18px;
-}
-
-.footer nav a {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.footer svg {
-  width: 14px;
-  height: 14px;
-}
-
-@media (max-width: 780px) {
-  .mastRule,
-  .collectionWord {
-    display: none;
+@media (max-width: 1000px) {
+  .inner {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
   }
 
-  .masthead {
-    width: auto;
+  .card {
+    max-width: 520px;
   }
+}
 
-  .message {
-    top: 112px;
-    left: 22px;
-    width: calc(100% - 44px);
-  }
-
+@media (max-width: 560px) {
   .message h1 {
-    max-width: 8ch;
-    font-size: clamp(58px, 18vw, 88px);
-  }
-
-  .message > p {
-    max-width: 30ch;
-    font-size: 15px;
-  }
-
-  .imageVeil {
-    background:
-      linear-gradient(180deg, rgba(3, 8, 7, 0.3), rgba(3, 8, 7, 0.7)),
-      linear-gradient(90deg, rgba(3, 8, 7, 0.75), rgba(3, 8, 7, 0.18));
-  }
-
-  .lowerScrim {
-    height: 45%;
-  }
-
-  .launchDeck {
-    right: 14px;
-    bottom: 56px;
-    left: 14px;
-  }
-
-  .launchCard {
-    width: 100%;
-    padding: 15px 14px 10px;
-  }
-
-  .launchCard h2 {
-    margin-top: 11px;
-  }
-
-  .launchCard > p {
-    margin-bottom: 11px;
-  }
-
-  .footer {
-    right: 18px;
-    left: 18px;
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .footer > span,
-  .footer > a,
-  .footer nav a:first-child {
-    display: none;
-  }
-}
-
-@media (max-height: 760px) and (min-width: 781px) {
-  .message {
-    top: 92px;
-  }
-
-  .message h1 {
-    font-size: clamp(62px, 8vw, 92px);
-  }
-
-  .message > p {
-    font-size: 15px;
-  }
-
-  .launchCard {
-    padding-top: 12px;
-  }
-
-  .launchCard h2 {
-    margin-top: 9px;
+    font-size: clamp(46px, 14.5vw, 72px);
   }
 }

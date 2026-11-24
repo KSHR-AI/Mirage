@@ -3,8 +3,15 @@ import { loadPublishedRegistry } from "./registry/load";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
-  const registry = await loadPublishedRegistry();
+type PageProps = {
+  searchParams: Promise<{ run?: string | string[] }>;
+};
+
+export default async function Page({ searchParams }: PageProps) {
+  const [registry, { run }] = await Promise.all([
+    loadPublishedRegistry(),
+    searchParams,
+  ]);
   return (
     <DemoGallery
       games={registry.games}
@@ -12,6 +19,7 @@ export default async function Page() {
         kind: registry.kind,
         message: registry.message,
       }}
+      initialRunId={typeof run === "string" ? run : null}
     />
   );
 }

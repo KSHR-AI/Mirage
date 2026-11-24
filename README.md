@@ -132,7 +132,8 @@ Open `http://localhost:3000`. The main areas are:
 
 | Path                                           | Purpose                                             |
 | ---------------------------------------------- | --------------------------------------------------- |
-| [`app/gallery/`](app/gallery/)                 | Playable run gallery and selected-run evidence      |
+| [`app/gallery/`](app/gallery/)                 | Run board, featured run, and run-record drawer      |
+| [`app/og/`](app/og/)                           | Share cards for the site and each run               |
 | [`app/play/`](app/play/)                       | Stable Mirage player routes                         |
 | [`app/registry/`](app/registry/)               | Accepted-record loader and strict runtime schema    |
 | [`submissions/`](submissions/)                 | Source, deployment, provenance, and lineage records |

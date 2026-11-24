@@ -1,44 +1,81 @@
 "use client";
 
 import {
+  ArrowDown,
   ArrowRight,
-  ArrowSquareOut,
+  ArrowUpRight,
   CaretLeft,
   CaretRight,
-  CheckCircle,
-  Copy,
-  DownloadSimple,
-  GithubLogo,
-  PaperPlaneTilt,
   Play,
-  WarningCircle,
-  X,
+  Plus,
 } from "@phosphor-icons/react";
 import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type RefObject,
-} from "react";
+  formatBuildDate,
+  getBoardEvidence,
+  getModelLabel,
+  getRecordedHarness,
+  getRegistryStats,
+  sortByBuildDate,
+} from "../registry/evidence";
 import type { PublishedGame } from "../registry/schema";
+import { getRecordPath } from "../registry/share";
+import { getCanonicalPlayPath } from "../registry/urls";
 import {
-  getCanonicalPlayPath,
-  getPresentationCoverUrl,
-  getSourceRevisionUrl,
-} from "../registry/urls";
+  AGENT_PROMPT_URL,
+  CONTRIBUTION_URL,
+  ROADMAP_URL,
+  SUBMISSION_GUIDE_URL,
+} from "../site/links";
+import { SiteFooter, SiteHeader } from "../site/SiteChrome";
 import benchmarkCover from "./mirage-bench-sf-chase.jpg";
 import { getDefaultGameId } from "./default-game";
 import { RegistryNotice, type RegistryNoticeKind } from "./RegistryNotice";
+import { RunDrawer } from "./RunDrawer";
+import {
+  EvidenceGlyph,
+  EvidenceLegend,
+  GameCover,
+  ShareLinkButton,
+  TrackPill,
+} from "./RunParts";
 import styles from "./DemoGallery.module.css";
 
-const REPOSITORY_URL = "https://github.com/KSHR-AI/Mirage";
-const CONTRIBUTION_URL = `${REPOSITORY_URL}/issues/new?template=demo.yml`;
-const DRAWER_FOCUSABLE =
-  'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+type Track = PublishedGame["track"];
+type TrackFilter = "all" | Track;
+
+const TRACKS: readonly { track: Track; title: string; note: string }[] = [
+  {
+    track: "benchmark",
+    title: "Benchmark",
+    note: "Public source pinned to an exact commit, with recorded build evidence.",
+  },
+  {
+    track: "showcase",
+    title: "Showcase",
+    note: "Playable public attempts with stated unknowns. Not benchmark proof.",
+  },
+];
+
+const METHOD_STEPS = [
+  {
+    title: "Start empty",
+    body: "Open a coding agent in a brand-new public repository. No Mirage source, no earlier runs.",
+  },
+  {
+    title: "Build the game",
+    body: "Paste one prompt. The model builds, plays, and fixes a browser game set in San Francisco.",
+  },
+  {
+    title: "Deploy and freeze",
+    body: "Ship the static build to a public HTTPS host and record the exact source commit.",
+  },
+  {
+    title: "Submit the record",
+    body: "One JSON record carries source, deployment, lineage, provenance, and licenses. Mirage verifies it and plays the game in a sandbox.",
+  },
+] as const;
 
 type DemoGalleryProps = {
   games: readonly PublishedGame[];
@@ -46,9 +83,14 @@ type DemoGalleryProps = {
     kind: "ready" | RegistryNoticeKind;
     message: string | null;
   };
+  initialRunId?: string | null;
 };
 
-export function DemoGallery({ games, registryState }: DemoGalleryProps) {
+export function DemoGallery({
+  games,
+  registryState,
+  initialRunId = null,
+}: DemoGalleryProps) {
   if (games.length === 0 || registryState.kind !== "ready") {
     return (
       <RegistryNotice
@@ -61,595 +103,548 @@ export function DemoGallery({ games, registryState }: DemoGalleryProps) {
     );
   }
 
-  return <PopulatedGallery games={games} />;
+  return <Board games={games} initialRunId={initialRunId} />;
 }
 
-function PopulatedGallery({ games }: { games: readonly PublishedGame[] }) {
-  const [selectedGameId, setSelectedGameId] = useState(
-    () => getDefaultGameId(games) ?? games[0].id,
-  );
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [feedback, setFeedback] = useState("");
-  const deckRef = useRef<HTMLElement>(null);
-  const detailTriggerRef = useRef<HTMLButtonElement>(null);
-  const drawerRef = useRef<HTMLElement>(null);
-  const closeRef = useRef<HTMLButtonElement>(null);
-
-  const selectedGame = useMemo(
-    () => games.find((game) => game.id === selectedGameId) ?? games[0],
-    [games, selectedGameId],
-  );
-  const selectedIndex = games.findIndex((game) => game.id === selectedGame.id);
-  const neighboringGames = getNeighboringGames(games, selectedIndex);
-  const updatedOn = games.reduce(
-    (latest, game) =>
-      game.builtOn && (!latest || game.builtOn > latest)
-        ? game.builtOn
-        : latest,
-    games[0].builtOn,
-  );
-  const recordDownload = useMemo(
+function Board({
+  games,
+  initialRunId,
+}: {
+  games: readonly PublishedGame[];
+  initialRunId: string | null;
+}) {
+  // Benchmark runs lead; each track lists its newest build first.
+  const ordered = useMemo(
     () =>
-      `data:application/json;charset=utf-8,${encodeURIComponent(
-        JSON.stringify(selectedGame, null, 2),
-      )}`,
-    [selectedGame],
+      TRACKS.flatMap(({ track }) =>
+        sortByBuildDate(games.filter((game) => game.track === track)),
+      ),
+    [games],
   );
+  const stats = useMemo(() => getRegistryStats(games), [games]);
+
+  const [featuredId, setFeaturedId] = useState(
+    () => getDefaultGameId(ordered) ?? ordered[0].id,
+  );
+  const [detailId, setDetailId] = useState(() =>
+    games.some((game) => game.id === initialRunId) ? initialRunId : null,
+  );
+  const [filter, setFilter] = useState<TrackFilter>("all");
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  const featuredIndex = Math.max(
+    0,
+    ordered.findIndex((game) => game.id === featuredId),
+  );
+  const featured = ordered[featuredIndex];
+  const detailGame = detailId
+    ? (games.find((game) => game.id === detailId) ?? null)
+    : null;
+  const detailOpen = detailGame !== null;
+
+  const openDetail = useCallback((game: PublishedGame) => {
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setDetailId(game.id);
+    window.history.replaceState(null, "", getRecordPath(game));
+  }, []);
 
   const closeDetail = useCallback(() => {
-    setDetailOpen(false);
-    setFeedback("");
-    requestAnimationFrame(() => detailTriggerRef.current?.focus());
+    setDetailId(null);
+    window.history.replaceState(null, "", window.location.pathname);
+    const target = returnFocusRef.current;
+    requestAnimationFrame(() => target?.focus());
   }, []);
 
-  const openDetail = useCallback(() => {
-    setDetailOpen(true);
-    setFeedback("");
-  }, []);
-
-  const moveSelection = useCallback(
+  const moveFeatured = useCallback(
     (direction: -1 | 1) => {
-      if (games.length < 2) return;
-      const nextIndex =
-        (selectedIndex + direction + games.length) % games.length;
-      setSelectedGameId(games[nextIndex].id);
-      setFeedback("");
+      if (ordered.length < 2) return;
+      const next =
+        (featuredIndex + direction + ordered.length) % ordered.length;
+      setFeaturedId(ordered[next].id);
     },
-    [games, selectedIndex],
+    [featuredIndex, ordered],
   );
-
-  useEffect(() => {
-    if (!detailOpen) return;
-    requestAnimationFrame(() => closeRef.current?.focus());
-  }, [detailOpen, selectedGame.id]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (detailOpen && event.key === "Escape") {
-        event.preventDefault();
-        closeDetail();
-        return;
-      }
       if (
         detailOpen ||
         event.metaKey ||
         event.ctrlKey ||
         event.altKey ||
-        isFormControl(event.target)
+        isInteractive(event.target)
       ) {
         return;
       }
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        moveSelection(-1);
+        moveFeatured(-1);
       }
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        moveSelection(1);
+        moveFeatured(1);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [closeDetail, detailOpen, moveSelection]);
+  }, [detailOpen, moveFeatured]);
 
-  const copyText = async (label: string, value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setFeedback(`${label} copied.`);
-    } catch {
-      setFeedback(`Could not copy ${label.toLowerCase()}.`);
-    }
-  };
+  const groups = TRACKS.filter(
+    ({ track }) => filter === "all" || filter === track,
+  ).map((group) => ({
+    ...group,
+    games: ordered.filter((game) => game.track === group.track),
+  }));
 
   return (
-    <main
-      className={styles.shell}
-      data-detail-open={detailOpen ? "true" : "false"}
-    >
-      <section
-        className={styles.stage}
-        data-has-cover="true"
-        aria-label="MirageML Bench GTA-in-San-Francisco submissions"
-        inert={detailOpen ? true : undefined}
-      >
-        {/* The benchmark keeps one cinematic identity; run-specific evidence
-            stays inside each submission card. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          className={styles.heroImage}
-          src={benchmarkCover.src}
-          alt=""
-          aria-hidden="true"
-        />
-        <div className={styles.imageVeil} aria-hidden="true" />
-        <div className={styles.lowerScrim} aria-hidden="true" />
-
-        <header className={styles.masthead}>
-          <span className={styles.mastRule} aria-hidden="true" />
-          <Link
-            href="/"
-            className={styles.wordmark}
-            aria-label="MirageML Bench home"
-          >
+    <div className={styles.page} data-detail-open={detailOpen}>
+      <div className={styles.content} inert={detailOpen ? true : undefined}>
+        <SiteHeader onBoard />
+        <main>
+          <section className={styles.hero} aria-labelledby="hero-title">
+            {/* The benchmark keeps one cinematic identity; run-specific
+                evidence stays with each run. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className={styles.brandMark} src="/icon.png" alt="" />
-            <span>MirageML Bench</span>
-          </Link>
-          <span className={styles.collectionWord}>GTA in SF</span>
-          <span className={styles.mastRule} aria-hidden="true" />
-        </header>
+            <img
+              className={styles.heroImage}
+              src={benchmarkCover.src}
+              alt=""
+              aria-hidden="true"
+            />
+            <div className={styles.heroVeil} aria-hidden="true" />
 
-        <div className={styles.heroCopy}>
-          <span>MirageML Bench</span>
-          <h1>GTA in SF</h1>
-        </div>
-
-        <section
-          ref={deckRef}
-          id="game-deck"
-          className={styles.runDeck}
-          aria-label="Accepted submissions"
-          tabIndex={-1}
-        >
-          <div className={styles.deckRow}>
-            <button
-              className={styles.deckArrow}
-              type="button"
-              aria-label="Previous submission"
-              disabled={games.length < 2}
-              onClick={() => moveSelection(-1)}
-            >
-              <CaretLeft aria-hidden="true" weight="bold" />
-            </button>
-
-            <div className={styles.cards}>
-              {neighboringGames.previous ? (
-                <SideGameCard
-                  game={neighboringGames.previous}
-                  onSelect={setSelectedGameId}
-                />
-              ) : (
-                <OpenGameSlot position="previous" />
-              )}
-
-              <article
-                className={styles.selectedCard}
-                aria-current="true"
-                data-game-id={selectedGame.id}
-              >
-                <div className={styles.cardHeading}>
-                  <strong>{selectedGame.model}</strong>
-                  <span>{selectedGame.title}</span>
-                  <TrackLabel game={selectedGame} />
-                  <BuildDate game={selectedGame} />
+            <div className={styles.heroInner}>
+              <div className={styles.heroCopy}>
+                <p className={styles.eyebrow}>
+                  A playable benchmark for coding models
+                </p>
+                <h1 id="hero-title">
+                  Can coding models build <em>GTA in SF?</em>
+                </h1>
+                <p className={styles.lede}>
+                  Every entry is a browser game you can play right now.
+                  Benchmark runs pin public source and build evidence; showcases
+                  state what is unknown.
+                </p>
+                <div className={styles.heroActions}>
+                  <a className={styles.ghostAction} href="#runs">
+                    Browse {stats.runs} {stats.runs === 1 ? "run" : "runs"}
+                    <ArrowDown aria-hidden="true" weight="bold" />
+                  </a>
+                  <a className={styles.textAction} href="#method">
+                    How a run gets here
+                    <ArrowRight aria-hidden="true" weight="bold" />
+                  </a>
                 </div>
-                <GameCover game={selectedGame} selected />
-                <p>{selectedGame.tagline}</p>
-                <Link
-                  className={styles.playButton}
-                  href={getCanonicalPlayPath(selectedGame)}
-                >
-                  <Play aria-hidden="true" weight="fill" />
-                  Play
-                  <ArrowRight aria-hidden="true" weight="bold" />
-                </Link>
-                <button
-                  ref={detailTriggerRef}
-                  className={styles.detailButton}
-                  type="button"
-                  aria-haspopup="dialog"
-                  aria-expanded={detailOpen}
-                  onClick={openDetail}
-                >
-                  Submission details
-                  <ArrowRight aria-hidden="true" weight="bold" />
-                </button>
-              </article>
+              </div>
 
-              {neighboringGames.next ? (
-                <SideGameCard
-                  game={neighboringGames.next}
-                  onSelect={setSelectedGameId}
-                />
-              ) : (
-                <OpenGameSlot position="next" />
-              )}
+              <FeaturedRun
+                game={featured}
+                position={featuredIndex + 1}
+                total={ordered.length}
+                onMove={moveFeatured}
+                onOpenDetail={openDetail}
+              />
             </div>
 
-            <button
-              className={styles.deckArrow}
-              type="button"
-              aria-label="Next submission"
-              disabled={games.length < 2}
-              onClick={() => moveSelection(1)}
-            >
-              <CaretRight aria-hidden="true" weight="bold" />
-            </button>
-          </div>
-        </section>
+            <dl className={styles.stats}>
+              <Stat label="Playable runs" value={stats.runs} />
+              <Stat label="Benchmark" value={stats.benchmark} />
+              <Stat label="Showcase" value={stats.showcase} />
+              <Stat label="Models recorded" value={stats.models} />
+              <Stat
+                label="Latest build"
+                value={
+                  stats.latestBuild ? formatBuildDate(stats.latestBuild) : "—"
+                }
+                dateTime={stats.latestBuild}
+              />
+            </dl>
+          </section>
 
-        <footer className={styles.stageFooter}>
-          <button type="button" onClick={() => deckRef.current?.focus()}>
-            Browse submissions
-          </button>
-          {updatedOn ? (
-            <time dateTime={updatedOn}>Updated {formatDate(updatedOn)}</time>
-          ) : null}
-          <nav aria-label="Project links">
-            <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">
-              <GithubLogo aria-hidden="true" weight="fill" />
-              GitHub
-            </a>
-            <a href={CONTRIBUTION_URL}>
-              <PaperPlaneTilt aria-hidden="true" weight="bold" />
-              Submit
-            </a>
-          </nav>
-        </footer>
-      </section>
+          <section
+            id="runs"
+            className={styles.board}
+            aria-labelledby="runs-title"
+          >
+            <header className={styles.sectionHead}>
+              <div>
+                <p className={styles.eyebrow}>The board</p>
+                <h2 id="runs-title">Every accepted run</h2>
+              </div>
+              <div
+                className={styles.segmented}
+                role="group"
+                aria-label="Filter runs by track"
+              >
+                <FilterButton
+                  value="all"
+                  label="All"
+                  count={stats.runs}
+                  filter={filter}
+                  onChange={setFilter}
+                />
+                <FilterButton
+                  value="benchmark"
+                  label="Benchmark"
+                  count={stats.benchmark}
+                  filter={filter}
+                  onChange={setFilter}
+                />
+                <FilterButton
+                  value="showcase"
+                  label="Showcase"
+                  count={stats.showcase}
+                  filter={filter}
+                  onChange={setFilter}
+                />
+              </div>
+            </header>
 
-      {detailOpen ? (
-        <GameDetailDrawer
-          ref={drawerRef}
-          closeRef={closeRef}
-          game={selectedGame}
-          feedback={feedback}
-          recordDownload={recordDownload}
-          onClose={closeDetail}
-          onCopy={copyText}
-        />
+            <p className={styles.unranked}>
+              <strong>Unranked.</strong> Mirage publishes evidence, not scores:
+              unlike runs are not comparable until the task, budget, and harness
+              are frozen.{" "}
+              <a href={ROADMAP_URL} target="_blank" rel="noreferrer">
+                Evaluation roadmap
+                <ArrowUpRight aria-hidden="true" weight="bold" />
+              </a>
+            </p>
+
+            <div className={styles.table}>
+              <div className={styles.tableHead} aria-hidden="true">
+                <span>Run</span>
+                <span>Model</span>
+                <span>Built</span>
+                <span>Source</span>
+                <span>Prompt</span>
+                <span>Lineage</span>
+                <span>License</span>
+                <span />
+              </div>
+
+              {groups.map((group) => (
+                <section
+                  key={group.track}
+                  className={styles.group}
+                  aria-labelledby={`track-${group.track}`}
+                >
+                  <header className={styles.groupHead}>
+                    <h3 id={`track-${group.track}`}>
+                      <TrackPill track={group.track} />
+                      <span className={styles.groupCount}>
+                        {group.games.length}{" "}
+                        {group.games.length === 1 ? "run" : "runs"}
+                      </span>
+                    </h3>
+                    <p>{group.note}</p>
+                  </header>
+                  {group.games.length ? (
+                    <ul className={styles.rows}>
+                      {group.games.map((game) => (
+                        <RunRow
+                          key={game.id}
+                          game={game}
+                          onOpenDetail={openDetail}
+                        />
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className={styles.emptyGroup}>
+                      No {group.title.toLowerCase()} run has been accepted yet.
+                    </p>
+                  )}
+                </section>
+              ))}
+
+              <a className={styles.openSlot} href={CONTRIBUTION_URL}>
+                <Plus aria-hidden="true" weight="bold" />
+                <strong>Open slot</strong>
+                <span>Submit your GTA-in-SF build</span>
+                <ArrowRight aria-hidden="true" weight="bold" />
+              </a>
+            </div>
+
+            <div className={styles.tableFoot}>
+              <EvidenceLegend />
+              <p>A gap stays a gap: Mirage never infers missing evidence.</p>
+            </div>
+          </section>
+
+          <section
+            id="method"
+            className={styles.method}
+            aria-labelledby="method-title"
+          >
+            <header className={styles.sectionHead}>
+              <div>
+                <p className={styles.eyebrow}>Method</p>
+                <h2 id="method-title">How a run gets on the board</h2>
+              </div>
+            </header>
+
+            <ol className={styles.steps}>
+              {METHOD_STEPS.map((step, index) => (
+                <li key={step.title}>
+                  <span aria-hidden="true">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </li>
+              ))}
+            </ol>
+
+            <div className={styles.callout}>
+              <div>
+                <h3>Put your model on the board.</h3>
+                <p>
+                  Have a playable game but no source or handoff? Submit it as a
+                  showcase; Mirage displays the missing evidence instead of
+                  filling it in.
+                </p>
+              </div>
+              <div className={styles.calloutActions}>
+                <a
+                  className={styles.primaryAction}
+                  href={AGENT_PROMPT_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Get the agent prompt
+                  <ArrowUpRight aria-hidden="true" weight="bold" />
+                </a>
+                <a
+                  className={styles.ghostAction}
+                  href={SUBMISSION_GUIDE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Submission guide
+                  <ArrowUpRight aria-hidden="true" weight="bold" />
+                </a>
+              </div>
+            </div>
+          </section>
+        </main>
+        <SiteFooter />
+      </div>
+
+      {detailGame ? (
+        <RunDrawer game={detailGame} onClose={closeDetail} />
       ) : null}
-    </main>
+    </div>
   );
 }
 
-function GameCover({
+function FeaturedRun({
   game,
-  selected = false,
+  position,
+  total,
+  onMove,
+  onOpenDetail,
 }: {
   game: PublishedGame;
-  selected?: boolean;
+  position: number;
+  total: number;
+  onMove: (direction: -1 | 1) => void;
+  onOpenDetail: (game: PublishedGame) => void;
 }) {
-  const coverUrl = getPresentationCoverUrl(game);
-  if (!coverUrl) {
-    return (
-      <div
-        className={selected ? styles.cardFallback : styles.sideFallback}
-        aria-label="No cover image was published"
-      >
-        <span>{game.id}</span>
-      </div>
-    );
-  }
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={coverUrl}
-      alt={game.presentation.coverAlt}
-      referrerPolicy="no-referrer"
-    />
-  );
-}
-
-type GameDetailDrawerProps = {
-  ref: RefObject<HTMLElement | null>;
-  closeRef: RefObject<HTMLButtonElement | null>;
-  game: PublishedGame;
-  feedback: string;
-  recordDownload: string;
-  onClose: () => void;
-  onCopy: (label: string, value: string) => Promise<void>;
-};
-
-function GameDetailDrawer({
-  ref,
-  closeRef,
-  game,
-  feedback,
-  recordDownload,
-  onClose,
-  onCopy,
-}: GameDetailDrawerProps) {
-  const trapFocus = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (event.key !== "Tab") return;
-    const focusable = Array.from(
-      event.currentTarget.querySelectorAll<HTMLElement>(DRAWER_FOCUSABLE),
-    );
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  };
+  const playPath = getCanonicalPlayPath(game);
 
   return (
-    <aside
-      ref={ref}
-      className={styles.drawer}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="game-detail-title"
-      onKeyDown={trapFocus}
+    <article
+      className={styles.featured}
+      aria-label="Featured run"
+      data-game-id={game.id}
     >
-      <header className={styles.drawerHeader}>
-        <h2 id="game-detail-title">Submission details</h2>
+      <header className={styles.featuredHead}>
+        <span>Featured run</span>
+        <span className={styles.featuredCount} aria-live="polite">
+          {String(position).padStart(2, "0")}
+          <i aria-hidden="true">/</i>
+          <span className={styles.srOnly}>of</span>
+          {String(total).padStart(2, "0")}
+        </span>
         <button
-          ref={closeRef}
           type="button"
-          aria-label="Close submission details"
-          onClick={onClose}
+          aria-label="Previous run"
+          disabled={total < 2}
+          onClick={() => onMove(-1)}
         >
-          <X aria-hidden="true" />
+          <CaretLeft aria-hidden="true" weight="bold" />
+        </button>
+        <button
+          type="button"
+          aria-label="Next run"
+          disabled={total < 2}
+          onClick={() => onMove(1)}
+        >
+          <CaretRight aria-hidden="true" weight="bold" />
         </button>
       </header>
 
-      <div className={styles.drawerStatus}>
-        <EvidenceStatus
-          published={game.source !== null}
-          label={game.source ? "Source pinned" : "Showcase only"}
-        />
-        <EvidenceStatus published label="Deployment verified" />
-        <EvidenceStatus
-          published={game.lineage.kind !== "unverified"}
-          label={formatLineage(game)}
-        />
-      </div>
+      <Link
+        className={styles.featuredCover}
+        href={playPath}
+        aria-label={`Play ${game.title}`}
+      >
+        <GameCover key={game.id} game={game} />
+        <span className={styles.featuredTrack}>
+          <TrackPill track={game.track} />
+        </span>
+        <span className={styles.playBadge} aria-hidden="true">
+          <Play weight="fill" />
+        </span>
+      </Link>
 
-      <div className={styles.drawerScroll}>
-        <DetailSection title="About">
-          <p>{game.description}</p>
-          {game.features.length ? (
-            <ul className={styles.featureList}>
-              {game.features.map((feature) => (
-                <li key={feature}>{feature}</li>
-              ))}
-            </ul>
-          ) : null}
-        </DetailSection>
-
-        <DetailSection title="Accepted record">
-          <DetailList
-            rows={[
-              ["Model", game.model],
-              ["Track", game.track === "benchmark" ? "Benchmark" : "Showcase"],
-              [
-                "Built",
-                game.builtOn ? formatDate(game.builtOn) : "Not recorded",
-              ],
-              ["Source commit", game.source?.commit ?? "Not published"],
-              ["Deployment provider", game.deployment.provider],
-              ["Deployment URL", game.deployment.url],
-              ["Lineage", formatLineage(game)],
-            ]}
-          />
-        </DetailSection>
-
-        <DetailSection title="Provenance">
-          <JsonBlock value={game.provenance} />
-        </DetailSection>
-
-        <DetailSection title="Licenses">
-          <JsonBlock value={game.licenses} />
-        </DetailSection>
-
-        <DetailSection title="Presentation">
-          <JsonBlock value={game.presentation} />
-        </DetailSection>
-      </div>
-
-      <div className={styles.drawerActions}>
-        {game.source ? (
+      <div className={styles.featuredBody}>
+        <p className={styles.featuredModel}>{getModelLabel(game)}</p>
+        <h2>{game.title}</h2>
+        <p className={styles.featuredTagline}>{game.tagline}</p>
+        <div className={styles.featuredActions}>
+          <Link className={styles.playAction} href={playPath}>
+            <Play aria-hidden="true" weight="fill" />
+            Play now
+          </Link>
           <button
+            className={styles.ghostAction}
             type="button"
-            onClick={() => void onCopy("Source commit", game.source!.commit)}
+            aria-haspopup="dialog"
+            onClick={() => onOpenDetail(game)}
           >
-            <Copy aria-hidden="true" />
-            Copy commit
+            Record
           </button>
-        ) : null}
-        <a href={recordDownload} download={`${game.id}.json`}>
-          <DownloadSimple aria-hidden="true" />
-          Download record
-        </a>
-        {game.source ? (
-          <a
-            className={styles.primaryDrawerAction}
-            href={getSourceRevisionUrl(game.source)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            View source
-            <ArrowSquareOut aria-hidden="true" />
-          </a>
-        ) : (
-          <a
-            className={styles.primaryDrawerAction}
-            href={game.deployment.url}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open deployment
-            <ArrowSquareOut aria-hidden="true" />
-          </a>
-        )}
-        <p className={styles.copyFeedback} role="status" aria-live="polite">
-          {feedback}
-        </p>
-      </div>
-    </aside>
-  );
-}
-
-function JsonBlock({ value }: { value: object }) {
-  return (
-    <pre className={styles.jsonBlock}>{JSON.stringify(value, null, 2)}</pre>
-  );
-}
-
-function DetailSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className={styles.detailSection}>
-      <h3>{title}</h3>
-      {children}
-    </section>
-  );
-}
-
-function DetailList({ rows }: { rows: Array<[string, string | number]> }) {
-  return (
-    <dl className={styles.detailList}>
-      {rows.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd>{value}</dd>
+          <ShareLinkButton
+            className={styles.ghostAction}
+            game={game}
+            label="Share"
+          />
         </div>
-      ))}
-    </dl>
+      </div>
+    </article>
   );
 }
 
-function EvidenceStatus({
-  published,
-  label,
-}: {
-  published: boolean;
-  label: string;
-}) {
-  return (
-    <span data-published={published ? "true" : "false"}>
-      {published ? (
-        <CheckCircle aria-hidden="true" weight="fill" />
-      ) : (
-        <WarningCircle aria-hidden="true" weight="fill" />
-      )}
-      {label}
-    </span>
-  );
-}
-
-function SideGameCard({
+function RunRow({
   game,
-  onSelect,
+  onOpenDetail,
 }: {
   game: PublishedGame;
-  onSelect: (id: string) => void;
+  onOpenDetail: (game: PublishedGame) => void;
+}) {
+  const harness = getRecordedHarness(game);
+
+  return (
+    <li className={styles.row} data-game-id={game.id}>
+      <div className={styles.cellRun}>
+        <span className={styles.thumb}>
+          <GameCover game={game} />
+        </span>
+        <div>
+          <button
+            className={styles.rowTitle}
+            type="button"
+            aria-haspopup="dialog"
+            aria-label={`${game.title}: open run record`}
+            onClick={() => onOpenDetail(game)}
+          >
+            {game.title}
+          </button>
+          <p>{game.tagline}</p>
+        </div>
+      </div>
+
+      <div className={styles.cellModel}>
+        <span className={styles.cellLabel}>Model</span>
+        <strong>{getModelLabel(game)}</strong>
+        <small title={harness ?? undefined}>
+          {harness ?? "Harness not recorded"}
+        </small>
+      </div>
+
+      <div className={styles.cellBuilt}>
+        <span className={styles.cellLabel}>Built</span>
+        {game.builtOn ? (
+          <time dateTime={game.builtOn}>{formatBuildDate(game.builtOn)}</time>
+        ) : (
+          <span className={styles.unknown}>Not recorded</span>
+        )}
+      </div>
+
+      {getBoardEvidence(game).map((signal) => (
+        <div
+          key={signal.key}
+          className={styles.cellEvidence}
+          data-state={signal.state}
+          title={`${signal.label}: ${signal.value}`}
+        >
+          <span className={styles.cellLabel}>{signal.label}</span>
+          <EvidenceGlyph state={signal.state} />
+          <span className={styles.cellValue}>{signal.value}</span>
+        </div>
+      ))}
+
+      <div className={styles.cellActions}>
+        <Link
+          className={styles.rowPlay}
+          href={getCanonicalPlayPath(game)}
+          aria-label={`Play ${game.title}`}
+        >
+          <Play aria-hidden="true" weight="fill" />
+          Play
+        </Link>
+      </div>
+    </li>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  dateTime,
+}: {
+  label: string;
+  value: string | number;
+  dateTime?: string | null;
+}) {
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>{dateTime ? <time dateTime={dateTime}>{value}</time> : value}</dd>
+    </div>
+  );
+}
+
+function FilterButton({
+  value,
+  label,
+  count,
+  filter,
+  onChange,
+}: {
+  value: TrackFilter;
+  label: string;
+  count: number;
+  filter: TrackFilter;
+  onChange: (value: TrackFilter) => void;
 }) {
   return (
     <button
-      className={styles.sideCard}
       type="button"
-      onClick={() => onSelect(game.id)}
-      aria-label={`Select ${game.title}`}
+      aria-pressed={filter === value}
+      onClick={() => onChange(value)}
     >
-      <span className={styles.cardHeading}>
-        <strong>{game.model}</strong>
-        <span>{game.title}</span>
-        <TrackLabel game={game} />
-        <BuildDate game={game} />
-      </span>
-      <GameCover game={game} />
-      <small>{game.tagline}</small>
+      {label}
+      <span>{count}</span>
     </button>
   );
 }
 
-function OpenGameSlot({ position }: { position: "previous" | "next" }) {
-  return (
-    <a
-      className={styles.openSlot}
-      href={CONTRIBUTION_URL}
-      aria-label={`${position === "previous" ? "Previous" : "Next"} submission slot is open`}
-    >
-      <PaperPlaneTilt aria-hidden="true" weight="bold" />
-      <span>Open slot</span>
-      <strong>Submit your GTA-in-SF build</strong>
-      <small>Benchmark source or public showcase</small>
-    </a>
-  );
-}
-
-function getNeighboringGames(
-  games: readonly PublishedGame[],
-  selectedIndex: number,
-) {
-  if (games.length === 1) return { previous: null, next: null };
-  if (games.length === 2) {
-    return {
-      previous: games[(selectedIndex + 1) % games.length],
-      next: null,
-    };
-  }
-  return {
-    previous: games[(selectedIndex - 1 + games.length) % games.length],
-    next: games[(selectedIndex + 1) % games.length],
-  };
-}
-
-function formatLineage(game: PublishedGame) {
-  if (game.lineage.kind === "independent") return "Independent";
-  if (game.lineage.kind === "derived") {
-    return `Derived from ${game.lineage.parentId}`;
-  }
-  return "Unverified lineage";
-}
-
-function formatDate(date: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${date}T00:00:00Z`));
-}
-
-function BuildDate({ game }: { game: PublishedGame }) {
-  return game.builtOn ? (
-    <time dateTime={game.builtOn}>Built {formatDate(game.builtOn)}</time>
-  ) : (
-    <time>Build date not recorded</time>
-  );
-}
-
-function TrackLabel({ game }: { game: PublishedGame }) {
-  return (
-    <small className={styles.trackLabel} data-track={game.track}>
-      {game.track === "benchmark" ? "Benchmark" : "Showcase"}
-    </small>
-  );
-}
-
-function isFormControl(target: EventTarget | null) {
+function isInteractive(target: EventTarget | null) {
   return (
     target instanceof HTMLInputElement ||
     target instanceof HTMLSelectElement ||
