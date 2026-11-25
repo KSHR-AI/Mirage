@@ -52,6 +52,8 @@ Rules for the whole task
      second because your browser renders in software (SwiftShader, llvmpipe),
      limit the playtest to loading, starting, movement, and one vehicle, and
      tell me the playtest was shallow.
+   - Open any credits, licences, or about page the game links to. What it
+     publishes is evidence for the record; quote it as the deployment's claim.
    - Keep notes: the title shown in the game, what works, what fails, the
      controls that respond, the controls you did not test, the renderer and
      rough frame rate, and whether the city is San Francisco.
@@ -143,9 +145,10 @@ Rules for the whole task
    - Licenses are SPDX identifiers, or NOASSERTION when unknown. The cover is
      CC0-1.0 only if I said yes; otherwise keep NOASSERTION and say so at the
      top of the pull request.
-   - Add one "assets" entry for each third-party library or asset you can
-     identify in the deployment: its name and version, its authors as
-     "creator", its SPDX license, where it comes from, and the notice you saw.
+   - Add one "assets" entry for each third-party library or asset the
+     deployment credits or you can identify: its name and version, its authors
+     as "creator", its SPDX license, where it comes from, and the notice you
+     saw. Say in "assetStatement" where the credits came from.
    - In "limitations", state: each evidence gap; each control or system that
      failed; the controls and input modes you did not test; the renderer and
      frame rate if the playtest was shallow; that the city is not San
