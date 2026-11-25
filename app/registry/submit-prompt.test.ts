@@ -27,6 +27,19 @@ describe("agent submission prompt", () => {
     );
   });
 
+  it("inserts replacement-pattern characters in a link literally", () => {
+    const prompt = `PLAY_URL=${PLAY_URL_PLACEHOLDER}\nPlay it.`;
+    for (const link of [
+      "https://example.com/$&/",
+      "https://example.com/$'/",
+      "https://example.com/$1/$$/",
+    ]) {
+      expect(fillSubmitPrompt(prompt, link), link).toBe(
+        `PLAY_URL=${link}\nPlay it.`,
+      );
+    }
+  });
+
   it("rejects links Mirage cannot accept", () => {
     for (const link of [
       "http://you.github.io/game/",

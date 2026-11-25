@@ -13,7 +13,9 @@ export function extractSubmitPrompt(markdown: string) {
  */
 export function fillSubmitPrompt(prompt: string, link: string) {
   const playUrl = normalizePlayUrl(link);
-  return playUrl ? prompt.replace(PLAY_URL_PLACEHOLDER, playUrl) : null;
+  // A callback inserts the link literally; a string would expand `$&` or `$'`,
+  // which are valid in a URL path.
+  return playUrl ? prompt.replace(PLAY_URL_PLACEHOLDER, () => playUrl) : null;
 }
 
 export function normalizePlayUrl(link: string) {
