@@ -6,7 +6,6 @@ const SEED_DIGEST = `sha256:${"c".repeat(64)}`;
 
 function makeGame(overrides: Record<string, unknown> = {}) {
   return {
-    track: "benchmark",
     id: "night-drive-001",
     title: "Night Drive",
     tagline: "One city, one clean attempt",
@@ -66,9 +65,8 @@ describe("runtime registry schema", () => {
     });
   });
 
-  it("accepts explicit showcase evidence gaps but not benchmark gaps", () => {
-    const showcase = makeGame({
-      track: "showcase",
+  it("accepts a run with explicit evidence gaps", () => {
+    const run = makeGame({
       source: null,
       builtOn: null,
       presentation: {
@@ -80,32 +78,42 @@ describe("runtime registry schema", () => {
       },
     });
     expect(
-      parseRegistryDocument({ schemaVersion: 1, games: [showcase] }).games[0],
-    ).toMatchObject({ track: "showcase", source: null, builtOn: null });
+      parseRegistryDocument({ schemaVersion: 1, games: [run] }).games[0],
+    ).toMatchObject({ source: null, builtOn: null });
+  });
 
+  it("accepts a Mirage-hosted cover and rejects other absolute paths", () => {
+    const withCover = (coverPath: string) =>
+      makeGame({
+        presentation: {
+          coverPath,
+          coverAlt: "A captured run",
+          controls: ["WASD"],
+          limitations: ["Mirage capture"],
+          protocolVersion: 1,
+        },
+      });
+    expect(
+      parseRegistryDocument({
+        schemaVersion: 1,
+        games: [withCover("/showcase-covers/public-attempt.png")],
+      }).games[0].presentation.coverPath,
+    ).toBe("/showcase-covers/public-attempt.png");
     expect(() =>
       parseRegistryDocument({
         schemaVersion: 1,
-        games: [makeGame({ source: null })],
+        games: [withCover("/other/cover.png")],
       }),
-    ).toThrow(/source/);
+    ).toThrow(/coverPath/);
+  });
 
+  it("rejects the retired track field on a projected game", () => {
     expect(() =>
       parseRegistryDocument({
         schemaVersion: 1,
-        games: [
-          makeGame({
-            presentation: {
-              coverPath: "/showcase-covers/public-attempt.png",
-              coverAlt: "A captured public attempt",
-              controls: ["WASD"],
-              limitations: ["Showcase capture"],
-              protocolVersion: 1,
-            },
-          }),
-        ],
+        games: [{ ...makeGame(), track: "showcase" }],
       }),
-    ).toThrow(/showcase/);
+    ).toThrow(/must be an object/);
   });
 
   it("rejects unknown fields and mutable source identities", () => {

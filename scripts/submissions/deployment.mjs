@@ -36,13 +36,11 @@ export async function verifySubmissionDeployment(
     const expectedPrefix = `/showcase-covers/${submission.id}.`;
     invariant(
       coverPath.startsWith(expectedPrefix),
-      `Mirage-hosted showcase cover must be named after submission ${submission.id}`,
+      `Mirage-hosted cover must be named after submission ${submission.id}`,
     );
     const localCover = path.join(PROJECT_ROOT, "public", coverPath.slice(1));
     await access(localCover).catch(() => {
-      throw new Error(
-        `Mirage-hosted showcase cover does not exist: ${coverPath}`,
-      );
+      throw new Error(`Mirage-hosted cover does not exist: ${coverPath}`);
     });
   }
   if (coverPath === null || coverPath.startsWith("/showcase-covers/")) {

@@ -21,10 +21,8 @@ export async function generateMetadata({
   if (!game) return {};
 
   const title = `${game.title} — MirageML Bench`;
-  // A share card names the run, its model, and its track; it grades nothing.
-  const summary = `${getModelLabel(game)} · ${
-    game.track === "benchmark" ? "Benchmark run" : "Showcase"
-  }. ${game.tagline}. Play it in your browser.`;
+  // A share card names the run and its model; it grades nothing.
+  const summary = `${getModelLabel(game)} · ${game.tagline}. Play it in your browser.`;
 
   return {
     title,

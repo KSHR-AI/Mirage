@@ -11,10 +11,6 @@
   margin-top: 0;
 }
 
-.page > section + footer {
-  margin-top: 96px;
-}
-
 .hero {
   position: relative;
   display: flex;

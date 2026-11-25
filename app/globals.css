@@ -42,7 +42,8 @@ body {
 
 html:has([data-fullscreen-game]),
 body:has([data-fullscreen-game]),
-html:has([data-detail-open="true"]) {
+html:has([data-detail-open="true"]),
+html:has(dialog[open]) {
   overflow: hidden;
 }
 

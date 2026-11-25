@@ -9,7 +9,6 @@ import {
 import type { PublishedGame } from "./schema";
 
 const benchmark: PublishedGame = {
-  track: "benchmark",
   id: "night-drive-001",
   title: "Night Drive",
   tagline: "Drive",
@@ -47,7 +46,6 @@ const benchmark: PublishedGame = {
 
 const showcase: PublishedGame = {
   ...benchmark,
-  track: "showcase",
   id: "harbor-showcase",
   model: "unknown",
   builtOn: null,

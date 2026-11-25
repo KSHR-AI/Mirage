@@ -1,12 +1,47 @@
-.submit {
-  display: grid;
-  max-width: var(--page-width);
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-  align-items: start;
-  gap: clamp(28px, 5vw, 72px);
-  margin: 0 auto;
-  padding: 96px var(--page-gutter) 0;
+.dialog {
+  width: min(720px, calc(100vw - 24px));
+  max-height: min(820px, calc(100dvh - 24px));
+  overflow: hidden;
+  border: 1px solid var(--rule-strong);
+  border-radius: 10px;
+  padding: 0;
+  background: var(--surface);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.7);
+  color: var(--ink);
   font-family: var(--font-body);
+}
+
+.dialog[open] {
+  display: flex;
+  animation: rise 200ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.dialog::backdrop {
+  background: rgba(4, 7, 6, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.body {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: 14px 24px 22px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-right: -10px;
 }
 
 .eyebrow {
@@ -19,85 +54,45 @@
   text-transform: uppercase;
 }
 
-.intro h2 {
-  margin: 10px 0 0;
+.head button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--soft-ink);
+}
+
+.head button:hover {
+  background: rgba(236, 229, 208, 0.08);
+  color: var(--ink);
+}
+
+.head svg {
+  width: 16px;
+  height: 16px;
+}
+
+.body h2 {
+  margin: 6px 0 0;
   font-family: var(--font-display);
-  font-size: clamp(38px, 4.4vw, 60px);
+  font-size: clamp(34px, 5vw, 46px);
   font-weight: 800;
-  line-height: 0.92;
+  line-height: 0.95;
   text-transform: uppercase;
 }
 
-.intro > p:not(.eyebrow) {
-  max-width: 420px;
-  margin: 18px 0 0;
+.lede {
+  max-width: 520px;
+  margin: 12px 0 22px;
   color: var(--soft-ink);
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.55;
 }
 
-.steps {
-  display: grid;
-  gap: 14px;
-  margin: 28px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.steps li {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  color: var(--ink);
-  font-size: 14.5px;
-  line-height: 1.45;
-}
-
-.steps span {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border: 1px solid var(--rule-strong);
-  border-radius: 50%;
-  color: var(--lime);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.aside {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 28px;
-  color: var(--muted);
-  font-size: 13px;
-  text-decoration-color: var(--rule-strong);
-  text-underline-offset: 4px;
-}
-
-.aside:hover {
-  color: var(--lime);
-}
-
-.aside svg,
-.fallback svg {
-  width: 13px;
-  height: 13px;
-}
-
-.panel {
-  display: grid;
-  min-width: 0;
-  border: 1px solid var(--rule-strong);
-  border-radius: 8px;
-  padding: 22px;
-  background: var(--surface);
-}
-
-.panel label {
+.body label {
   color: var(--muted);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -168,7 +163,7 @@
 
 .feedback {
   min-height: 20px;
-  margin: 8px 0 0;
+  margin: 8px 0 6px;
   color: var(--lime);
   font-size: 12.5px;
   line-height: 1.5;
@@ -179,9 +174,10 @@
 }
 
 .prompt {
+  min-height: 120px;
+  flex: 1 1 auto;
   overflow: auto;
-  max-height: 300px;
-  margin: 6px 0 0;
+  margin: 0;
   border: 1px solid var(--rule);
   border-radius: 4px;
   padding: 16px;
@@ -199,25 +195,41 @@
   outline-offset: 2px;
 }
 
+.aside,
 .fallback {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  align-self: flex-start;
+  gap: 6px;
+}
+
+.aside {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 4px;
+}
+
+.aside:hover {
+  color: var(--lime);
+}
+
+.aside svg,
+.fallback svg {
+  width: 13px;
+  height: 13px;
+}
+
+.fallback {
   color: var(--lime);
   font-size: 14px;
   font-weight: 600;
 }
 
-@media (max-width: 900px) {
-  .submit {
-    grid-template-columns: minmax(0, 1fr);
-    padding-top: 72px;
-  }
-}
-
 @media (max-width: 560px) {
-  .panel {
-    padding: 16px;
+  .body {
+    padding: 10px 16px 18px;
   }
 
   .field {
@@ -226,6 +238,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .dialog[open] {
+    animation: none;
+  }
+
   .field button {
     transition: none;
   }

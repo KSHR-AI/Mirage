@@ -42,12 +42,11 @@ describe("external deployment verification", () => {
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
 
-  it("verifies only the public deployment for a coverless showcase", async () => {
+  it("verifies only the public deployment for a coverless run", async () => {
     const fetcher = successfulFetcher();
     await expect(
       verifySubmissionDeployment(
         makeSubmission({
-          track: "showcase",
           source: null,
           presentation: { coverPath: null },
         }),
@@ -57,13 +56,12 @@ describe("external deployment verification", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it("does not fetch a Mirage-hosted showcase cover from the contributor", async () => {
+  it("does not fetch a Mirage-hosted cover from the contributor", async () => {
     const fetcher = successfulFetcher();
     const access = vi.fn(async () => undefined);
     await expect(
       verifySubmissionDeployment(
         makeSubmission({
-          track: "showcase",
           source: null,
           lineage: {
             kind: "unverified",
@@ -83,11 +81,10 @@ describe("external deployment verification", () => {
     expect(access).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects a missing Mirage-hosted showcase cover", async () => {
+  it("rejects a missing Mirage-hosted cover", async () => {
     await expect(
       verifySubmissionDeployment(
         makeSubmission({
-          track: "showcase",
           source: null,
           lineage: {
             kind: "unverified",

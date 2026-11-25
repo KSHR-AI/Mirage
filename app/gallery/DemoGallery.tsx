@@ -26,7 +26,7 @@ import { getDefaultGameId } from "./default-game";
 import { RegistryNotice, type RegistryNoticeKind } from "./RegistryNotice";
 import { RunDrawer } from "./RunDrawer";
 import { GameCover, ShareLinkButton } from "./RunParts";
-import { SubmitRun } from "./SubmitRun";
+import { SUBMIT_HASH, SubmitDialog } from "./SubmitDialog";
 import styles from "./DemoGallery.module.css";
 
 type DemoGalleryProps = {
@@ -129,6 +129,7 @@ function Board({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         detailOpen ||
+        document.querySelector("dialog[open]") ||
         event.metaKey ||
         event.ctrlKey ||
         event.altKey ||
@@ -152,7 +153,7 @@ function Board({
   return (
     <div className={styles.page} data-detail-open={detailOpen}>
       <div className={styles.content} inert={detailOpen ? true : undefined}>
-        <SiteHeader onBoard submitHref="#submit" />
+        <SiteHeader onBoard submitHref={SUBMIT_HASH} />
         <main>
           <section className={styles.hero} aria-labelledby="hero-title">
             {/* The benchmark keeps one cinematic identity; run-specific
@@ -183,7 +184,7 @@ function Board({
                     Browse {stats.runs} {stats.runs === 1 ? "run" : "runs"}
                     <ArrowDown aria-hidden="true" weight="bold" />
                   </a>
-                  <a className={styles.textAction} href="#submit">
+                  <a className={styles.textAction} href={SUBMIT_HASH}>
                     Submit yours
                     <ArrowRight aria-hidden="true" weight="bold" />
                   </a>
@@ -235,7 +236,7 @@ function Board({
                   <RunRow key={game.id} game={game} onOpenDetail={openDetail} />
                 ))}
               </ul>
-              <a className={styles.openSlot} href="#submit">
+              <a className={styles.openSlot} href={SUBMIT_HASH}>
                 <Plus aria-hidden="true" weight="bold" />
                 <strong>Your run here</strong>
                 <span>Submit a hosted game</span>
@@ -243,8 +244,6 @@ function Board({
               </a>
             </div>
           </section>
-
-          <SubmitRun prompt={submitPrompt} />
         </main>
         <SiteFooter />
       </div>
@@ -252,6 +251,7 @@ function Board({
       {detailGame ? (
         <RunDrawer game={detailGame} onClose={closeDetail} />
       ) : null}
+      <SubmitDialog prompt={submitPrompt} />
     </div>
   );
 }

@@ -8,7 +8,7 @@ import Link from "next/link";
 import { AGENT_PROMPT_URL } from "../site/links";
 import { SiteFooter, SiteHeader } from "../site/SiteChrome";
 import sfChaseImage from "./mirage-bench-sf-chase.jpg";
-import { SubmitRun } from "./SubmitRun";
+import { SUBMIT_HASH, SubmitDialog } from "./SubmitDialog";
 import styles from "./RegistryNotice.module.css";
 
 export type RegistryNoticeKind = "empty" | "unavailable";
@@ -26,7 +26,7 @@ export function RegistryNotice({
 
   return (
     <div className={styles.page} data-registry-state={kind}>
-      <SiteHeader submitHref={isEmpty ? "#submit" : undefined} />
+      <SiteHeader submitHref={isEmpty ? SUBMIT_HASH : undefined} />
       <main className={styles.hero}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -80,7 +80,7 @@ export function RegistryNotice({
             <div className={styles.actions}>
               {isEmpty ? (
                 <>
-                  <a className={styles.primary} href="#submit">
+                  <a className={styles.primary} href={SUBMIT_HASH}>
                     <PaperPlaneTilt aria-hidden="true" weight="fill" />
                     Submit the first run
                   </a>
@@ -104,8 +104,8 @@ export function RegistryNotice({
           </article>
         </div>
       </main>
-      {isEmpty ? <SubmitRun prompt={submitPrompt} /> : null}
       <SiteFooter />
+      {isEmpty ? <SubmitDialog prompt={submitPrompt} /> : null}
     </div>
   );
 }

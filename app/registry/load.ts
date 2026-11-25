@@ -97,9 +97,10 @@ function projectSubmission(value: unknown) {
 
   const record = { ...value };
   delete record.schemaVersion;
+  // `track` is a retired label on earlier records; the registry ignores it.
+  delete record.track;
   return {
     ...record,
-    track: value.track ?? "benchmark",
     model: value.provenance.model,
     builtOn: value.provenance.builtOn,
   };
