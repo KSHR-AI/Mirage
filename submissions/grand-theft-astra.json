@@ -9,7 +9,10 @@
     "Captioned mission dialogue and a distance marker for the current objective",
     "Vehicle entry with a dashboard speedometer"
   ],
-  "source": null,
+  "source": {
+    "repositoryUrl": "https://github.com/KSHR-AI/gta-astra-6-xhigh-iter",
+    "commit": "e765b1b1b8dd30a4f40ea4357c27c7e52cb69eec"
+  },
   "deployment": {
     "url": "https://kshr-ai.github.io/gta-astra-6-xhigh-iter/",
     "provider": "GitHub Pages"
@@ -36,7 +39,7 @@
   },
   "licenses": {
     "code": "NOASSERTION",
-    "assetStatement": "The public game repository’s ASSETS.md credits contributors including EmoPreben, MakeHuman, Mixamo and Poly Haven. The credits have not been matched to the exact deployed source, and the full deployed asset inventory and code license are unverified.",
+    "assetStatement": "The public game repository’s ASSETS.md credits contributors including EmoPreben, MakeHuman, Mixamo and Poly Haven. The full deployed asset inventory and code license are unverified.",
     "assets": [
       {
         "name": "Grand Theft Astra gameplay cover",
@@ -56,7 +59,7 @@
     ],
     "limitations": [
       "The setting is labeled Los Pacificos. The playtest reached vehicle entry; driving and mission completion were not verified.",
-      "GitHub Pages published build output at KSHR-AI/gta-astra-6-xhigh-iter commit 3930a61ca8a0fc772cdee3dc162522eef573a69b on November 25. The exact corresponding source revision is unconfirmed. The build date is submitter-reported.",
+      "The submitter reports a November 24 build date. GitHub Pages published the matching build on November 25 at commit 3930a61ca8a0fc772cdee3dc162522eef573a69b.",
       "Agent counts, tools, reasoning setting and screenshot license were not supplied."
     ],
     "protocolVersion": 1
