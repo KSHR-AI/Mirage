@@ -169,15 +169,14 @@ function Board({
 
             <div className={styles.heroInner}>
               <div className={styles.heroCopy}>
-                <p className={styles.eyebrow}>
-                  The vibe benchmark for coding models
-                </p>
                 <h1 id="hero-title">
-                  Can coding models build <em>GTA in SF?</em>
+                  GTA in <em>SF</em>
                 </h1>
                 <p className={styles.lede}>
-                  Each run is a game a coding model built. Play them and judge
-                  for yourself.
+                  The original mission of MirageML was to make building GTA in
+                  any city a reality. Coding models have come a long way since
+                  2022 and turns out that&apos;s all you need to create a AAA
+                  game. We&apos;re getting close so we&apos;re tracking it here!
                 </p>
                 <div className={styles.heroActions}>
                   <a className={styles.ghostAction} href="#runs">

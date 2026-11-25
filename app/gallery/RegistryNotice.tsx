@@ -39,15 +39,13 @@ export function RegistryNotice({
 
         <div className={styles.inner}>
           <section className={styles.message}>
-            <p className={styles.eyebrow}>
-              {isEmpty
-                ? "The vibe benchmark for coding models"
-                : "Registry unavailable"}
-            </p>
+            {isEmpty ? null : (
+              <p className={styles.eyebrow}>Registry unavailable</p>
+            )}
             <h1>
               {isEmpty ? (
                 <>
-                  Can coding models build <em>GTA in SF?</em>
+                  GTA in <em>SF</em>
                 </>
               ) : (
                 "Runs unavailable."

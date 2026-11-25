@@ -78,10 +78,9 @@
 }
 
 .message h1 {
-  max-width: 10.5em;
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(54px, 7.4vw, 118px);
+  font-size: clamp(84px, 11.5vw, 168px);
   font-weight: 800;
   line-height: 0.86;
   text-shadow: 0 2px 30px rgba(0, 0, 0, 0.45);
@@ -203,6 +202,6 @@
 
 @media (max-width: 560px) {
   .message h1 {
-    font-size: clamp(46px, 14.5vw, 72px);
+    font-size: clamp(64px, 21vw, 96px);
   }
 }
