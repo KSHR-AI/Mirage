@@ -33,14 +33,10 @@ Interactive.
 
 MirageML Bench does not award capability points for claimed features or turn a
 subjective impression into a percentage. Every accepted entry is a run, playable
-in a restrictive cross-origin iframe from a verified public HTTPS URL. A
-record's `track` states how much evidence was published:
-
-- `benchmark`: tied to a public GitHub repository and exact source commit, with
-  recorded model, harness, prompt, tools, interventions, build date, lineage,
-  licenses, and cover;
-- `showcase`: a public playable run with explicit unknowns where source, build
-  evidence, cover, or rights evidence was not supplied.
+in a restrictive cross-origin iframe from a verified public HTTPS URL. Its
+record states the evidence that was published: public source and exact commit,
+model, harness, prompt, tools, interventions, build date, lineage, licenses,
+and cover. Anything not published is recorded as unknown, never filled in.
 
 Deployment verification proves availability and framing safety, not source
 identity, reproducibility, independence, provenance, license clearance, or

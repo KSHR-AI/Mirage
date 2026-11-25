@@ -2,14 +2,8 @@
 
 MirageML Bench asks one public question: **can a coding model build GTA in San
 Francisco?** Every accepted game is a run that people play at
-`mirageml.com/play/GAME_ID`. A record's `track` states how much evidence was
-published:
-
-- **`benchmark`** records pin public source, an exact commit, production
-  evidence, lineage, and licenses.
-- **`showcase`** records make a hosted run playable when its source or build
-  evidence was not published. They establish only what Mirage can observe at
-  the public deployment.
+`mirageml.com/play/GAME_ID`. A run's record states the evidence that was
+published—source, prompt, lineage, licenses—and leaves every gap explicit.
 
 ## Fast path: hand your agent a link
 
@@ -21,13 +15,13 @@ published:
 4. Mirage checks the record, live deployment, and iframe headers. After review
    and merge, the next Mirage deployment adds the run.
 
-This path writes a `"track": "showcase"` record with the cover committed at
+The record sets `presentation.coverPath` to the cover the agent commits at
 `public/showcase-covers/GAME_ID.png`. It pins `source` when a public repository
-and commit exist. Set unavailable source or build date to `null`; use
-`not-recorded`, `unknown`, and precise limitations for other missing evidence.
-Preflight still verifies the live URL, public DNS, HTML response, redirects,
-and framing policy. Never describe such a run as reproducible, independent, or
-license-cleared.
+and commit exist. Unavailable source or build date is `null`; other missing
+evidence is `not-recorded` or `unknown`, with precise limitations. Preflight
+verifies the live URL, public DNS, HTML response, redirects, and framing
+policy. Never describe a run as reproducible, independent, or license-cleared
+unless its record establishes that.
 
 ## Build a run from an empty repository
 
@@ -36,8 +30,8 @@ license-cleared.
 3. Paste the complete [Mirage game-agent prompt](AGENT_PROMPT.md).
 4. Let the agent build, test, push, and deploy the game.
 5. Freeze the source commit and save the agent’s `MIRAGE_RUN_HANDOFF`.
-6. Fork Mirage and add exactly one `submissions/GAME_ID.json` file with
-   `"track": "benchmark"`.
+6. Fork Mirage and add exactly one `submissions/GAME_ID.json` file that pins
+   the source commit and serves its cover from the deployment.
 7. Open a pull request. Mirage checks the record, exact GitHub commit, live
    deployment, cover, and iframe headers.
 
@@ -101,7 +95,6 @@ Use this schema-complete example as a shape, not as evidence to copy:
 ```json
 {
   "schemaVersion": 2,
-  "track": "benchmark",
   "id": "night-drive-001",
   "title": "Night Drive",
   "tagline": "One city, one clean attempt",
@@ -156,16 +149,20 @@ The machine-readable schema is
 [`scripts/submissions/submission.schema.json`](../scripts/submissions/submission.schema.json).
 Unknown fields are rejected.
 
-`track` defaults to `benchmark` for existing records. Only a `showcase` may set
-`source`, `provenance.builtOn`, or `presentation.coverPath` to `null`. The
-submitting agent or a maintainer may capture observable presentation evidence
-to the strict local path `/showcase-covers/ID.png`; this is a cover image, not
-source evidence.
+`source`, `provenance.builtOn`, and `presentation.coverPath` may be `null` when
+that evidence was not published. A run without source must use `unverified`
+lineage. `track` is a retired label: earlier records keep it, and new records
+omit it.
+
+A cover is either a path inside the deployment, such as `assets/cover.webp`, or
+a capture committed to Mirage at the strict local path
+`/showcase-covers/GAME_ID.png`. A capture is a cover image, not source
+evidence.
 
 Share cards at `mirageml.com/play/GAME_ID` use the reviewed cover committed at
-`public/showcase-covers/GAME_ID.png` or `.jpg`. A `benchmark` record still
-serves its cover from the deployment; add an unaltered copy at that path so its
-share card shows the run's own cover.
+`public/showcase-covers/GAME_ID.png` or `.jpg`. When a record serves its cover
+from the deployment, add an unaltered copy at that path so its share card shows
+the run's own cover.
 
 ## Lineage
 

@@ -87,18 +87,19 @@ Use original, procedural, public-domain, or explicitly licensed assets. Do not
 use Rockstar or Take-Two code, characters, logos, maps, audio, extracted assets,
 or material whose redistribution rights are uncertain.
 
-### Showcase an existing public attempt
+### Submit a hosted game without a handoff
 
-Use `"track": "showcase"` when the deployment is playable but the frozen source
-or complete evidence is unavailable. Missing source, build date, and cover may
-be `null`. Preserve the named model when supplied, label other provenance and
-license facts unknown, and state the evidence gaps in `limitations`. Mirage
-verifies deployment safety and availability but does not convert those checks
-into source, isolation, provenance, or rights claims.
+A playable deployment is enough to submit. Give a coding agent the
+[agent submission prompt](submissions/SUBMIT_PROMPT.md) and your link. Missing
+source and build date are `null`. Preserve the named model when supplied, label
+other provenance and license facts unknown, and state the evidence gaps in
+`limitations`. Mirage verifies deployment safety and availability but does not
+convert those checks into source, isolation, provenance, or rights claims.
 
 ## Submission review
 
-1. A pull request adds `submissions/GAME_ID.json`.
+1. A pull request adds `submissions/GAME_ID.json` and, when Mirage hosts the
+   cover, `public/showcase-covers/GAME_ID.*`.
 2. Read-only preflight validates the changed record and the complete active
    lineage graph.
 3. Preflight confirms that the exact GitHub commit exists.
