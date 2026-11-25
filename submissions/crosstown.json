@@ -27,8 +27,8 @@
     "note": "No source repository, starting state, seed digest, or runner record was supplied with the public deployment, so lineage cannot be established."
   },
   "provenance": {
-    "builtOn": null,
-    "model": "unknown",
+    "builtOn": "2026-11-18",
+    "model": "Claude Fable 5.2",
     "modelSnapshot": null,
     "reasoning": null,
     "harness": "unknown",
@@ -39,7 +39,7 @@
     "prompt": {
       "status": "not-recorded",
       "text": null,
-      "note": "No build prompt, model, or harness was supplied with the submission, and the deployment does not publish them."
+      "note": "No build prompt or harness was supplied with the submission, and the deployment does not publish them."
     }
   },
   "licenses": {
@@ -158,7 +158,7 @@
     ],
     "limitations": [
       "The city is New York (Midtown Manhattan), not San Francisco",
-      "No model, harness, build date, prompt, source repository, or starting state was supplied",
+      "The model and build date are as stated by the submitter; no harness, prompt, source repository, or starting state was supplied",
       "No code license is stated, asset credits come from the deployment's own credits file and were not independently checked, and no license was granted for the cover",
       "The deployment shows a build stamp and a dated change list, so the game served at this URL may change",
       "Played only in Chromium with software WebGL at under one frame per second; speed and feel on a graphics card were not observed",
