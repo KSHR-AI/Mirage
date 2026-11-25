@@ -47,6 +47,19 @@ describe("runtime registry loading", () => {
     );
   });
 
+  it("puts the newest build first for the gallery and player", async () => {
+    const result = await loadPublishedRegistry({
+      records: [
+        makeSubmission({ id: "older" }),
+        makeSubmission({
+          id: "newer",
+          provenance: { model: "example-model", builtOn: "2026-11-24" },
+        }),
+      ],
+    });
+    expect(result.games.map((game) => game.id)).toEqual(["newer", "older"]);
+  });
+
   it("projects accepted submission provenance into the gallery record", async () => {
     const result = await loadPublishedRegistry({
       records: [makeSubmission()],
