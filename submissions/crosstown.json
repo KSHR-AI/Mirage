@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 2,
+  "id": "crosstown",
+  "title": "CROSSTOWN",
+  "tagline": "Walk, drive, and shoot through Midtown Manhattan on a courier job",
+  "description": "You start on foot on 5th Avenue beside Madison Square Park with a pistol and a first job: get into a red coupe and collect a package at Broadway and E 23rd St. You can walk, run, jump, take the car, drive through traffic, crash, draw weapons, and attract police heat. A full-screen map, a fly camera, a grappling hook, rain, and a pause menu with graphics and key settings are also available.",
+  "features": [
+    "Third-person movement on foot with mouse look, running, and jumping",
+    "Entering, driving, reversing, and leaving a car, with a speedometer and a body-damage bar",
+    "Job 01 objective chain with subtitles, a distance readout, and a route on the minimap",
+    "Moving traffic, cyclists, and pedestrians on streets labelled 5th Ave, Broadway, and Madison Av",
+    "Pistol and carbine with ammo counts, firing, aiming, and reloading",
+    "Police heat meter that rose after a crash and gunfire, with police shouts in subtitles",
+    "Collisions that stalled the engine and deformed the parked car that was hit",
+    "Full map of Manhattan with a legend for jobs, landmarks, subway stations, and pickups",
+    "Grappling hook that pulled the player through the air above the street",
+    "Fly camera above the city and a rain toggle",
+    "Pause menu with quality presets from Lowest to High and a rebindable key list"
+  ],
+  "source": null,
+  "deployment": {
+    "url": "https://nyc.somethingbig.ai/",
+    "provider": "GitHub Pages behind Cloudflare"
+  },
+  "lineage": {
+    "kind": "unverified",
+    "note": "No source repository, starting state, seed digest, or runner record was supplied with the public deployment, so lineage cannot be established."
+  },
+  "provenance": {
+    "builtOn": null,
+    "model": "unknown",
+    "modelSnapshot": null,
+    "reasoning": null,
+    "harness": "unknown",
+    "tools": ["Not recorded"],
+    "agentCount": null,
+    "subagentCount": null,
+    "humanInterventions": null,
+    "prompt": {
+      "status": "not-recorded",
+      "text": null,
+      "note": "No build prompt, model, or harness was supplied with the submission, and the deployment does not publish them."
+    }
+  },
+  "licenses": {
+    "code": "NOASSERTION",
+    "assetStatement": "The deployment publishes asset credits at https://nyc.somethingbig.ai/credits/ and https://nyc.somethingbig.ai/assets/ATTRIBUTION.md; the entries below are taken from that file as read on 2026-11-25 and were not independently checked. It lists further photographs, sounds, and per-model vehicle credits that are not repeated here. No code license is stated. The cover is a Mirage browser capture with no license grant from the game's owner.",
+    "assets": [
+      {
+        "name": "CROSSTOWN cover",
+        "creator": "MirageML Bench (browser capture)",
+        "license": "NOASSERTION",
+        "sourceUrl": "https://nyc.somethingbig.ai/",
+        "attribution": "Unaltered browser capture of the public deployment on 2026-11-25. It records observable gameplay and does not establish rights clearance for the underlying game."
+      },
+      {
+        "name": "three.js r170",
+        "creator": "three.js authors",
+        "license": "MIT",
+        "sourceUrl": "https://github.com/mrdoob/three.js",
+        "attribution": "Copyright 2010-2024 Three.js Authors. MIT license header observed in the file the deployment serves."
+      },
+      {
+        "name": "Basis Universal and KTX-Software",
+        "creator": "Binomial LLC and The Khronos Group",
+        "license": "Apache-2.0",
+        "sourceUrl": "https://github.com/KhronosGroup/KTX-Software",
+        "attribution": "Credited as texture compression under Apache-2.0 in the deployment's ATTRIBUTION.md."
+      },
+      {
+        "name": "HSRD-100 human scans",
+        "creator": "Digital Reality Lab (HumanScanRepository)",
+        "license": "CC-BY-4.0",
+        "sourceUrl": "https://huggingface.co/datasets/digitalrealitylab/HSRD-100",
+        "attribution": "Credited in the deployment's ATTRIBUTION.md as simplified, cleaned, re-lit, rigged, and animated."
+      },
+      {
+        "name": "MakeHuman and MPFB2 bodies, clothes, and hair",
+        "creator": "MakeHuman community",
+        "license": "CC0-1.0",
+        "sourceUrl": null,
+        "attribution": "Credited as CC0 in the deployment's ATTRIBUTION.md."
+      },
+      {
+        "name": "CMU Graphics Lab motion capture data",
+        "creator": "Carnegie Mellon University",
+        "license": "NOASSERTION",
+        "sourceUrl": "https://mocap.cs.cmu.edu/",
+        "attribution": "Credited in the deployment's ATTRIBUTION.md: data obtained from mocap.cs.cmu.edu, created with funding from NSF EIA-0196217; BVH conversion by Bruce Hahne."
+      },
+      {
+        "name": "OpenStreetMap data",
+        "creator": "OpenStreetMap contributors",
+        "license": "ODbL-1.0",
+        "sourceUrl": "https://www.openstreetmap.org/copyright",
+        "attribution": "© OpenStreetMap contributors, credited as map data in the deployment's ATTRIBUTION.md."
+      },
+      {
+        "name": "NYC 3D Model, street tree census, and lidar",
+        "creator": "City of New York",
+        "license": "NOASSERTION",
+        "sourceUrl": "https://data.cityofnewyork.us/",
+        "attribution": "Credited to NYC Open Data and the NYC Department of City Planning in the deployment's ATTRIBUTION.md."
+      },
+      {
+        "name": "OpenX Assets vehicles",
+        "creator": "OpenX Assets authors",
+        "license": "MPL-2.0 AND CC-BY-4.0",
+        "sourceUrl": "https://github.com/vevalabs/openx-assets",
+        "attribution": "Credited as modified for this game in the deployment's ATTRIBUTION.md, which points to a per-model author list."
+      },
+      {
+        "name": "Wikimedia Commons building and road photographs",
+        "creator": "Epicgenius, Kidfly182, Billie Grace Ward, Paul Sableman, Paul Lowry, and others",
+        "license": "NOASSERTION",
+        "sourceUrl": "https://commons.wikimedia.org/",
+        "attribution": "The deployment's ATTRIBUTION.md credits individual photographs under CC BY 2.0, CC BY 4.0, CC BY-SA 3.0, CC BY-SA 4.0, and the public domain, and shares its derived wall textures under CC BY-SA 4.0."
+      },
+      {
+        "name": "Poly Haven and ambientCG textures and models",
+        "creator": "Poly Haven and ambientCG",
+        "license": "CC0-1.0",
+        "sourceUrl": "https://polyhaven.com",
+        "attribution": "Credited as CC0 in the deployment's ATTRIBUTION.md."
+      },
+      {
+        "name": "Free Firearm Sound Library and OpenGameArt sounds",
+        "creator": "freefirearmsfx.com, zer0_sol, SpringySpringo, BMacZero, and TinyWorlds",
+        "license": "CC0-1.0",
+        "sourceUrl": "https://opengameart.org/content/the-free-firearm-sound-library",
+        "attribution": "Credited as CC0 in the deployment's ATTRIBUTION.md."
+      }
+    ]
+  },
+  "presentation": {
+    "coverPath": "/showcase-covers/crosstown.png",
+    "coverAlt": "A red coupe driving at 34 mph up 5th Avenue beside Madison Square Park, next to a white work van and other traffic.",
+    "controls": [
+      "Click the game to capture the mouse, then move the mouse to look",
+      "W to walk forward or accelerate",
+      "S to brake and reverse",
+      "A and D to sidestep on foot and steer in a car",
+      "Left Shift with a move key to run",
+      "Space to jump",
+      "F to get in or out of a car when the Get in prompt shows",
+      "1 for the pistol, 2 for the carbine, Q to put the gun away",
+      "Left mouse button to fire, right mouse button to aim, R to reload",
+      "C for the next camera in a car",
+      "Tab to open and close the city map",
+      "V to toggle the fly camera, W to move it forward",
+      "X to fire the grappling hook",
+      "Y to toggle rain",
+      "M to toggle sound",
+      "0 to show the frame-rate counter",
+      "P to open the pause menu",
+      "B to open the feedback form",
+      "Backslash to toggle full screen"
+    ],
+    "limitations": [
+      "The city is New York (Midtown Manhattan), not San Francisco",
+      "No model, harness, build date, prompt, source repository, or starting state was supplied",
+      "No code license is stated, asset credits come from the deployment's own credits file and were not independently checked, and no license was granted for the cover",
+      "The deployment shows a build stamp and a dated change list, so the game served at this URL may change",
+      "Played only in Chromium with software WebGL at under one frame per second; speed and feel on a graphics card were not observed",
+      "Audio was not heard; the sound toggle was confirmed only by its on-screen label",
+      "Job 01 was not finished: after getting in the car, it hit a parked car before reaching the package, directly and in the Mirage frame",
+      "No restart control was found; a fresh run needs a page reload and a download of about 150 MB",
+      "Played directly, the 3D view went black for two captures after the pistol fired while the HUD stayed, then recovered",
+      "Played directly, one asset request failed with HTTP 404: assets/hero/tsq-ads.webp",
+      "In the Mirage frame, the console reported two tainted-canvas texture errors, a failed tree-model worker, and one ground texture replaced by flat grey; play continued",
+      "N (time of day) and Z (flashlight) showed no clear change; G (horn) could not be judged without audio",
+      "Not tested: helicopter, motorcycles, buses, subway, radio, SMG, shotgun, punching, mouse wheel, arrow keys, key rebinding, and the three other maps",
+      "Controller and touch input were not tested"
+    ],
+    "protocolVersion": 1
+  }
+}
