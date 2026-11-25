@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 2,
+  "id": "grand-theft-astra",
+  "title": "Grand Theft Astra",
+  "tagline": "Meet Mara at the Paloma and take the keys to her convertible",
+  "description": "Last Light at the Paloma opens on foot in Los Pacificos. Mara offers a delivery job with a bonus for keeping her teal Aurora in good condition. Follow the minimap to the convertible and inspect its rear lamp before driving.",
+  "features": [
+    "Third-person exploration of a fictional California coastal city",
+    "Captioned mission dialogue and a distance marker for the current objective",
+    "Vehicle entry with a dashboard speedometer"
+  ],
+  "source": null,
+  "deployment": {
+    "url": "https://kshr-ai.github.io/gta-astra-6-xhigh-iter/",
+    "provider": "GitHub Pages"
+  },
+  "lineage": {
+    "kind": "unverified",
+    "note": "The submitter identified the model and harness. No starting-state evidence or accepted parent run was supplied."
+  },
+  "provenance": {
+    "builtOn": "2026-11-24",
+    "model": "GPT-6.2-Astra",
+    "modelSnapshot": null,
+    "reasoning": null,
+    "harness": "Niteshift",
+    "tools": ["Not recorded"],
+    "agentCount": null,
+    "subagentCount": null,
+    "humanInterventions": null,
+    "prompt": {
+      "status": "not-recorded",
+      "text": null,
+      "note": "The submitter did not provide the build prompt."
+    }
+  },
+  "licenses": {
+    "code": "NOASSERTION",
+    "assetStatement": "The public game repository’s ASSETS.md credits contributors including EmoPreben, MakeHuman, Mixamo and Poly Haven. The credits have not been matched to the exact deployed source, and the full deployed asset inventory and code license are unverified.",
+    "assets": [
+      {
+        "name": "Grand Theft Astra gameplay cover",
+        "creator": "Codex",
+        "license": "NOASSERTION",
+        "sourceUrl": "https://kshr-ai.github.io/gta-astra-6-xhigh-iter/",
+        "attribution": "Unaltered browser capture of the public deployment on 2026-11-25."
+      }
+    ]
+  },
+  "presentation": {
+    "coverPath": "/showcase-covers/grand-theft-astra.png",
+    "coverAlt": "The player stands beneath the Paloma Office awning facing Mara beside a palm-lined intersection.",
+    "controls": [
+      "W to walk forward",
+      "E to speak to Mara or enter a nearby vehicle"
+    ],
+    "limitations": [
+      "The setting is labeled Los Pacificos. The playtest reached vehicle entry; driving and mission completion were not verified.",
+      "GitHub Pages published build output at KSHR-AI/gta-astra-6-xhigh-iter commit 3930a61ca8a0fc772cdee3dc162522eef573a69b on November 25. The exact corresponding source revision is unconfirmed. The build date is submitter-reported.",
+      "Agent counts, tools, reasoning setting and screenshot license were not supplied."
+    ],
+    "protocolVersion": 1
+  }
+}
