@@ -1,9 +1,32 @@
 :root {
   color-scheme: dark;
+  --bg: #0a0e0c;
+  --surface: #0f1512;
+  --surface-raised: #151c18;
+  --ink: #ece5d0;
+  --soft-ink: #cbc5af;
+  --muted: #9c9a88;
+  --rule: rgba(236, 229, 208, 0.12);
+  --rule-strong: rgba(236, 229, 208, 0.26);
+  --lime: #c9f45a;
+  --lime-ink: #10160a;
+  --amber: #f2b45c;
+  --mint: #9cc1b9;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "Inter", Arial, Helvetica, sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --page-width: 1280px;
+  --page-gutter: clamp(18px, 3.4vw, 44px);
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 76px;
 }
 
 html,
@@ -12,17 +35,15 @@ body {
   min-height: 100%;
   margin: 0;
   overflow-x: hidden;
-  background: #111613;
-  color: #fff2cf;
-  font-family:
-    Arial Narrow,
-    Arial,
-    Helvetica,
-    sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
 }
 
 html:has([data-fullscreen-game]),
-body:has([data-fullscreen-game]) {
+body:has([data-fullscreen-game]),
+html:has([data-detail-open="true"]),
+html:has(dialog[open]) {
   overflow: hidden;
 }
 
@@ -35,10 +56,16 @@ textarea {
 
 a:focus-visible,
 button:focus-visible {
-  outline: 2px solid #c9f45a;
+  outline: 2px solid var(--lime);
   outline-offset: 3px;
 }
 
 button:not(:disabled) {
   cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }

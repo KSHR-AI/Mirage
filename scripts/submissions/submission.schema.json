@@ -19,18 +19,29 @@
     "presentation"
   ],
   "properties": {
-    "schemaVersion": { "const": 2 },
+    "schemaVersion": {
+      "const": 2
+    },
     "track": {
       "enum": ["benchmark", "showcase"],
-      "default": "benchmark"
+      "deprecated": true,
+      "description": "Retired label kept on earlier records. New records omit it."
     },
     "id": {
       "type": "string",
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
       "maxLength": 80
     },
-    "title": { "type": "string", "minLength": 1, "maxLength": 120 },
-    "tagline": { "type": "string", "minLength": 1, "maxLength": 180 },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "tagline": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 180
+    },
     "description": {
       "type": "string",
       "minLength": 1,
@@ -41,11 +52,17 @@
       "minItems": 1,
       "maxItems": 30,
       "uniqueItems": true,
-      "items": { "type": "string", "minLength": 1, "maxLength": 120 }
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      }
     },
     "source": {
       "oneOf": [
-        { "type": "null" },
+        {
+          "type": "null"
+        },
         {
           "type": "object",
           "additionalProperties": false,
@@ -87,7 +104,9 @@
           "additionalProperties": false,
           "required": ["kind", "seedDigest"],
           "properties": {
-            "kind": { "const": "independent" },
+            "kind": {
+              "const": "independent"
+            },
             "seedDigest": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
@@ -99,7 +118,9 @@
           "additionalProperties": false,
           "required": ["kind", "parentId", "parentSource"],
           "properties": {
-            "kind": { "const": "derived" },
+            "kind": {
+              "const": "derived"
+            },
             "parentId": {
               "type": "string",
               "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
@@ -126,7 +147,9 @@
           "additionalProperties": false,
           "required": ["kind", "note"],
           "properties": {
-            "kind": { "const": "unverified" },
+            "kind": {
+              "const": "unverified"
+            },
             "note": {
               "type": "string",
               "minLength": 10,
@@ -156,7 +179,11 @@
           "type": ["string", "null"],
           "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
         },
-        "model": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
         "modelSnapshot": {
           "type": ["string", "null"],
           "minLength": 1,
@@ -167,13 +194,21 @@
           "minLength": 1,
           "maxLength": 100
         },
-        "harness": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "harness": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
         "tools": {
           "type": "array",
           "minItems": 1,
           "maxItems": 50,
           "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1, "maxLength": 100 }
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
         },
         "agentCount": {
           "type": ["integer", "null"],
@@ -218,7 +253,11 @@
       "additionalProperties": false,
       "required": ["code", "assetStatement", "assets"],
       "properties": {
-        "code": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
         "assetStatement": {
           "type": "string",
           "minLength": 10,
@@ -238,7 +277,11 @@
               "attribution"
             ],
             "properties": {
-              "name": { "type": "string", "minLength": 1, "maxLength": 300 },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 300
+              },
               "creator": {
                 "type": "string",
                 "minLength": 1,
@@ -289,37 +332,27 @@
           "minItems": 1,
           "maxItems": 50,
           "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1, "maxLength": 200 }
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
         },
         "limitations": {
           "type": "array",
           "minItems": 1,
           "maxItems": 50,
           "uniqueItems": true,
-          "items": { "type": "string", "minLength": 1, "maxLength": 500 }
-        },
-        "protocolVersion": { "const": 1 }
-      }
-    }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": { "track": { "const": "showcase" } },
-        "required": ["track"]
-      },
-      "then": {},
-      "else": {
-        "properties": {
-          "source": { "type": "object" },
-          "provenance": {
-            "properties": { "builtOn": { "type": "string" } }
-          },
-          "presentation": {
-            "properties": { "coverPath": { "type": "string" } }
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
           }
+        },
+        "protocolVersion": {
+          "const": 1
         }
       }
     }
-  ]
+  }
 }

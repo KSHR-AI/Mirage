@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { RegistryNotice } from "../../gallery/RegistryNotice";
 import { GamePlayer } from "../../player/GamePlayer";
 import { loadPublishedRegistry } from "../../registry/load";
+import { getModelLabel } from "../../registry/evidence";
 import { getCanonicalPlayPath } from "../../registry/urls";
 
 type GamePageProps = {
@@ -19,11 +20,26 @@ export async function generateMetadata({
   const game = registry.games.find((candidate) => candidate.id === id);
   if (!game) return {};
 
+  const title = `${game.title} — MirageML Bench`;
+  // A share card names the run and its model; it grades nothing.
+  const summary = `${getModelLabel(game)} · ${game.tagline}. Play it in your browser.`;
+
   return {
-    title: `${game.title} — MirageML Bench`,
+    title,
     description: game.description,
     alternates: {
       canonical: getCanonicalPlayPath(game),
+    },
+    openGraph: {
+      title,
+      description: summary,
+      type: "website",
+      url: getCanonicalPlayPath(game),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: summary,
     },
   };
 }

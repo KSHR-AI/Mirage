@@ -12,6 +12,10 @@ const frameHeader = isDevelopment
   : { key: "X-Frame-Options", value: "SAMEORIGIN" };
 
 const nextConfig: NextConfig = {
+  // AGENTS.md is hand-written project policy. Without this, `next dev` appends
+  // a managed block whenever a coding agent runs it, which dirties the tree of
+  // every agent that playtests a submission.
+  agentRules: false,
   allowedDevOrigins: ["*.preview.niteshift.dev"],
   outputFileTracingIncludes: {
     "/*": ["./submissions/**/*"],

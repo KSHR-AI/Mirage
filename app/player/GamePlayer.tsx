@@ -3,6 +3,8 @@
 import { ArrowLeft, ArrowSquareOut } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { ShareLinkButton } from "../gallery/RunParts";
+import { getModelLabel } from "../registry/evidence";
 import type { PublishedGame } from "../registry/schema";
 import { getCanonicalPlayPath, getDeploymentEntryUrl } from "../registry/urls";
 import { GAME_IFRAME_SANDBOX } from "./sandbox";
@@ -61,12 +63,15 @@ export function GamePlayer({ game, onExit }: GamePlayerProps) {
         <span>
           <strong>{game.title}</strong>
           <i aria-hidden="true" />
-          {game.model}
+          {getModelLabel(game)}
         </span>
-        <Link href={canonicalPath} target="_blank" rel="noreferrer">
-          Open full screen
-          <ArrowSquareOut aria-hidden="true" />
-        </Link>
+        <div className={styles.actions}>
+          <ShareLinkButton game={game} label="Share" />
+          <Link href={canonicalPath} target="_blank" rel="noreferrer">
+            Open full screen
+            <ArrowSquareOut aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     </main>
   );

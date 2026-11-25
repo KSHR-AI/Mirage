@@ -8,12 +8,15 @@ import "@fontsource/barlow-condensed/800.css";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/500.css";
+import "@fontsource/jetbrains-mono/700.css";
 import "./globals.css";
 
 const SITE_METADATA = {
   title: "MirageML Bench — Can coding models build GTA in SF?",
   description:
-    "A playable benchmark tracking how far coding models can get toward building GTA in San Francisco from clean-room repositories.",
+    "A vibe benchmark for coding models: every run is a game a model built toward GTA in San Francisco. Play them and judge for yourself.",
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -45,7 +48,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: SITE_METADATA.title,
       description: SITE_METADATA.description,
     },

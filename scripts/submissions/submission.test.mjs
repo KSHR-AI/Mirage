@@ -33,13 +33,12 @@ describe("submission validation", () => {
       protocolVersion: 1,
     });
     expect(Object.hasOwn(submission, "artifact")).toBe(false);
-    expect(submission.track).toBe("benchmark");
+    expect(Object.hasOwn(submission, "track")).toBe(false);
   });
 
-  it("accepts missing source, build date, and cover only for showcases", () => {
-    const showcase = validateSubmission(
+  it("accepts a link-only run with explicit gaps", () => {
+    const run = validateSubmission(
       makeSubmission({
-        track: "showcase",
         source: null,
         lineage: {
           kind: "unverified",
@@ -49,29 +48,34 @@ describe("submission validation", () => {
         presentation: { coverPath: null },
       }),
     );
-    expect(showcase).toMatchObject({
-      track: "showcase",
+    expect(run).toMatchObject({
       source: null,
       provenance: { builtOn: null },
       presentation: { coverPath: null },
     });
-
-    expect(() => validateSubmission(makeSubmission({ source: null }))).toThrow(
-      /showcase/,
-    );
-    expect(() =>
-      validateSubmission(makeSubmission({ provenance: { builtOn: null } })),
-    ).toThrow(/showcase/);
-    expect(() =>
-      validateSubmission(makeSubmission({ presentation: { coverPath: null } })),
-    ).toThrow(/showcase/);
   });
 
-  it("accepts a tightly scoped Mirage-hosted cover for a showcase", () => {
+  it("requires unverified lineage when no source is published", () => {
+    expect(() => validateSubmission(makeSubmission({ source: null }))).toThrow(
+      /unverified lineage/,
+    );
+  });
+
+  it("keeps the retired track label valid on earlier records", () => {
+    for (const track of ["benchmark", "showcase"]) {
+      expect(
+        Object.hasOwn(validateSubmission(makeSubmission({ track })), "track"),
+      ).toBe(false);
+    }
+    expect(() =>
+      validateSubmission(makeSubmission({ track: "leaderboard" })),
+    ).toThrow(/track is retired/);
+  });
+
+  it("accepts a tightly scoped Mirage-hosted cover", () => {
     expect(
       validateSubmission(
         makeSubmission({
-          track: "showcase",
           presentation: {
             coverPath: "/showcase-covers/public-attempt.png",
           },

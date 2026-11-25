@@ -7,21 +7,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        Benchmark runs begin in a brand-new public repository with the [Mirage game-agent prompt](https://github.com/KSHR-AI/Mirage/blob/main/submissions/AGENT_PROMPT.md). Public playable attempts without a source handoff may be submitted as showcases; they remain visibly separate from benchmark evidence.
-  - type: dropdown
-    id: track
-    attributes:
-      label: Track
-      options:
-        - Benchmark
-        - Showcase
-    validations:
-      required: true
+        New runs begin in a brand-new public repository with the [Mirage game-agent prompt](https://github.com/KSHR-AI/Mirage/blob/main/submissions/AGENT_PROMPT.md). Already hosting a game? Skip this form: give a coding agent the [agent submission prompt](https://github.com/KSHR-AI/Mirage/blob/main/submissions/SUBMIT_PROMPT.md) and your link.
   - type: input
     id: source_repository
     attributes:
       label: Public source repository
-      description: Required for benchmarks; leave blank for a showcase whose source was not published.
+      description: Leave blank when the source was not published.
       placeholder: https://github.com/owner/repository
     validations:
       required: false
@@ -29,7 +20,7 @@ body:
     id: source_commit
     attributes:
       label: Source commit
-      description: Required for benchmarks; leave blank for a source-unpublished showcase.
+      description: Leave blank when the source was not published.
       placeholder: 40-character lowercase Git commit
     validations:
       required: false
@@ -105,7 +96,7 @@ body:
     attributes:
       label: Submission checks
       options:
-        - label: For a benchmark, the repository and exact commit are public and contain no credentials or private data; for a showcase, missing source is explicit.
+        - label: A published repository and exact commit are public and contain no credentials or private data; missing source is explicit.
           required: true
         - label: Any independent-run claim is supported by an isolation record; otherwise lineage is unverified.
           required: true

@@ -8,7 +8,6 @@ import {
 } from "./urls";
 
 const game: PublishedGame = {
-  track: "benchmark",
   id: "night-drive-001",
   title: "Night Drive",
   tagline: "Drive",
@@ -59,11 +58,10 @@ describe("runtime deployment URL derivation", () => {
     );
   });
 
-  it("returns no cover URL when a showcase did not publish one", () => {
+  it("returns no cover URL when a run published none", () => {
     expect(
       getPresentationCoverUrl({
         ...game,
-        track: "showcase",
         source: null,
         builtOn: null,
         presentation: { ...game.presentation, coverPath: null },
@@ -71,11 +69,10 @@ describe("runtime deployment URL derivation", () => {
     ).toBeNull();
   });
 
-  it("keeps Mirage-hosted showcase covers on the registry origin", () => {
+  it("keeps Mirage-hosted covers on the registry origin", () => {
     expect(
       getPresentationCoverUrl({
         ...game,
-        track: "showcase",
         presentation: {
           ...game.presentation,
           coverPath: "/showcase-covers/public-attempt.png",

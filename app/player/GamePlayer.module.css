@@ -45,9 +45,11 @@
   pointer-events: none;
 }
 
-.bar button,
-.bar a,
-.bar span {
+.bar > button,
+.bar > a,
+.bar > span,
+.actions > button,
+.actions > a {
   display: inline-flex;
   min-height: 40px;
   align-items: center;
@@ -63,16 +65,24 @@
   text-decoration: none;
 }
 
-.bar button {
+.bar > button,
+.bar > a {
   justify-self: start;
 }
 
-.bar span {
+.bar > span {
   justify-self: center;
 }
 
-.bar > a:last-child {
+.actions {
+  display: flex;
   justify-self: end;
+  gap: 8px;
+}
+
+.actions > button[data-share-status="copied"] {
+  border-color: #c9f45a;
+  color: #c9f45a;
 }
 
 .bar button:hover,
@@ -107,7 +117,17 @@
     grid-template-columns: 1fr auto;
   }
 
-  .bar span {
+  .bar > span {
     display: none;
+  }
+
+  /* Icon-only on a phone; the label stays available to assistive tech. */
+  .actions > button span {
+    position: absolute;
+    overflow: hidden;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
