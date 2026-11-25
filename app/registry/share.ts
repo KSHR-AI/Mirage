@@ -2,23 +2,14 @@ import { getRecordedModel } from "./evidence";
 import type { PublishedGame } from "./schema";
 import { getCanonicalPlayPath } from "./urls";
 
-type ShareableGame = Pick<PublishedGame, "id" | "track" | "title" | "model">;
+type ShareableGame = Pick<PublishedGame, "id" | "title" | "model">;
 
-/**
- * A benchmark run is described by its task. A showcase is only named: its
- * record does not establish what was asked of which model.
- */
+/** Names the model only when the record does. */
 export function getShareText(game: ShareableGame) {
   const model = getRecordedModel(game);
-  if (game.track === "benchmark" && model) {
-    return `Can a coding model build GTA in SF? ${model} shipped ${game.title}. Play it in your browser:`;
-  }
-  if (game.track === "benchmark") {
-    return `Can a coding model build GTA in SF? Play ${game.title} in your browser:`;
-  }
   return model
-    ? `${game.title}, a showcase by ${model} on MirageML Bench. Play it in your browser:`
-    : `${game.title}, a showcase on MirageML Bench. Play it in your browser:`;
+    ? `Can a coding model build GTA in SF? ${model} shipped ${game.title}. Play it in your browser:`
+    : `Can a coding model build GTA in SF? Play ${game.title} in your browser:`;
 }
 
 export function getShareUrl(origin: string, game: Pick<PublishedGame, "id">) {

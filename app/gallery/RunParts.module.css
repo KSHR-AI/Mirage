@@ -23,29 +23,6 @@
   letter-spacing: 0.08em;
 }
 
-.trackPill {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--rule-strong);
-  border-radius: 3px;
-  padding: 4px 7px 3px;
-  color: var(--soft-ink);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  line-height: 1;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.trackPill[data-track="benchmark"] {
-  border-color: var(--lime);
-  background: var(--lime);
-  color: var(--lime-ink);
-  font-weight: 700;
-}
-
 .glyph {
   display: inline-block;
   width: 10px;
@@ -64,23 +41,4 @@
 .glyph[data-state="missing"] {
   border: 1.5px dashed rgba(236, 229, 208, 0.5);
   background: transparent;
-}
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-}
-
-.legend li {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
 }

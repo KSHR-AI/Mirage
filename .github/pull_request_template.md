@@ -13,7 +13,7 @@
 
 - [ ] A new game changes one `submissions/ID.json` record and adds no game source, generated bundle, or hosting credential.
 - [ ] A materially different attempt uses a new immutable game ID.
-- [ ] The record declares `benchmark` or `showcase`; missing showcase evidence is explicit and not presented as benchmark proof.
+- [ ] The record declares `benchmark` or `showcase`; missing evidence is explicit and never presented as established.
 - [ ] Model, prompt status, setup, deployment, lineage, licenses, controls, and limitations are recorded; benchmark records also pin source.
 - [ ] The external play URL returns successfully and allows mirageml.com framing; benchmark covers also return successfully.
 - [ ] A deployment-only relocation changes no benchmark evidence.

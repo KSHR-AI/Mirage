@@ -30,7 +30,6 @@ import {
   GameCover,
   PostButton,
   ShareLinkButton,
-  TrackPill,
 } from "./RunParts";
 import styles from "./RunDrawer.module.css";
 
@@ -118,9 +117,6 @@ export function RunDrawer({
         <div className={styles.scroll}>
           <div className={styles.cover}>
             <GameCover game={game} />
-            <span className={styles.coverTrack}>
-              <TrackPill track={game.track} />
-            </span>
           </div>
 
           <div className={styles.identity}>
@@ -137,13 +133,7 @@ export function RunDrawer({
             </div>
           </div>
 
-          <Section title="Evidence">
-            {game.track === "showcase" ? (
-              <p className={styles.trackNote}>
-                Showcase: a playable deployment with stated unknowns. It is not
-                benchmark proof.
-              </p>
-            ) : null}
+          <Section title="What the record states">
             <ul className={styles.evidence}>
               {getEvidenceSignals(game).map((signal) => (
                 <li key={signal.key} data-state={signal.state}>
@@ -171,9 +161,6 @@ export function RunDrawer({
 
           <Section title="Build record">
             <dl className={styles.facts}>
-              <Fact label="Track">
-                {game.track === "benchmark" ? "Benchmark" : "Showcase"}
-              </Fact>
               <Fact label="Built">
                 {game.builtOn ? formatBuildDate(game.builtOn) : "Not recorded"}
               </Fact>

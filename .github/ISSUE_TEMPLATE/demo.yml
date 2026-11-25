@@ -7,7 +7,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Benchmark runs begin in a brand-new public repository with the [Mirage game-agent prompt](https://github.com/KSHR-AI/Mirage/blob/main/submissions/AGENT_PROMPT.md). Public playable attempts without a source handoff may be submitted as showcases; they remain visibly separate from benchmark evidence.
+        Benchmark runs begin in a brand-new public repository with the [Mirage game-agent prompt](https://github.com/KSHR-AI/Mirage/blob/main/submissions/AGENT_PROMPT.md). Already hosting a game? Skip this form: give a coding agent the [agent submission prompt](https://github.com/KSHR-AI/Mirage/blob/main/submissions/SUBMIT_PROMPT.md) and your link.
   - type: dropdown
     id: track
     attributes:

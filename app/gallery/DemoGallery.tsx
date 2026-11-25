@@ -3,7 +3,6 @@
 import {
   ArrowDown,
   ArrowRight,
-  ArrowUpRight,
   CaretLeft,
   CaretRight,
   Play,
@@ -13,7 +12,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   formatBuildDate,
-  getBoardEvidence,
   getModelLabel,
   getRecordedHarness,
   getRegistryStats,
@@ -22,60 +20,14 @@ import {
 import type { PublishedGame } from "../registry/schema";
 import { getRecordPath } from "../registry/share";
 import { getCanonicalPlayPath } from "../registry/urls";
-import {
-  AGENT_PROMPT_URL,
-  CONTRIBUTION_URL,
-  ROADMAP_URL,
-  SUBMISSION_GUIDE_URL,
-} from "../site/links";
 import { SiteFooter, SiteHeader } from "../site/SiteChrome";
 import benchmarkCover from "./mirage-bench-sf-chase.jpg";
 import { getDefaultGameId } from "./default-game";
 import { RegistryNotice, type RegistryNoticeKind } from "./RegistryNotice";
 import { RunDrawer } from "./RunDrawer";
-import {
-  EvidenceGlyph,
-  EvidenceLegend,
-  GameCover,
-  ShareLinkButton,
-  TrackPill,
-} from "./RunParts";
+import { GameCover, ShareLinkButton } from "./RunParts";
+import { SubmitRun } from "./SubmitRun";
 import styles from "./DemoGallery.module.css";
-
-type Track = PublishedGame["track"];
-type TrackFilter = "all" | Track;
-
-const TRACKS: readonly { track: Track; title: string; note: string }[] = [
-  {
-    track: "benchmark",
-    title: "Benchmark",
-    note: "Public source pinned to an exact commit, with recorded build evidence.",
-  },
-  {
-    track: "showcase",
-    title: "Showcase",
-    note: "Playable public attempts with stated unknowns. Not benchmark proof.",
-  },
-];
-
-const METHOD_STEPS = [
-  {
-    title: "Start empty",
-    body: "Open a coding agent in a brand-new public repository. No Mirage source, no earlier runs.",
-  },
-  {
-    title: "Build the game",
-    body: "Paste one prompt. The model builds, plays, and fixes a browser game set in San Francisco.",
-  },
-  {
-    title: "Deploy and freeze",
-    body: "Ship the static build to a public HTTPS host and record the exact source commit.",
-  },
-  {
-    title: "Submit the record",
-    body: "One JSON record carries source, deployment, lineage, provenance, and licenses. Mirage verifies it and plays the game in a sandbox.",
-  },
-] as const;
 
 type DemoGalleryProps = {
   games: readonly PublishedGame[];
@@ -84,12 +36,15 @@ type DemoGalleryProps = {
     message: string | null;
   };
   initialRunId?: string | null;
+  /** The copyable agent prompt, or null when it could not be read. */
+  submitPrompt?: string | null;
 };
 
 export function DemoGallery({
   games,
   registryState,
   initialRunId = null,
+  submitPrompt = null,
 }: DemoGalleryProps) {
   if (games.length === 0 || registryState.kind !== "ready") {
     return (
@@ -99,28 +54,31 @@ export function DemoGallery({
           registryState.message ??
           "No accepted GTA-in-San-Francisco benchmark runs have been published yet."
         }
+        submitPrompt={submitPrompt}
       />
     );
   }
 
-  return <Board games={games} initialRunId={initialRunId} />;
+  return (
+    <Board
+      games={games}
+      initialRunId={initialRunId}
+      submitPrompt={submitPrompt}
+    />
+  );
 }
 
 function Board({
   games,
   initialRunId,
+  submitPrompt,
 }: {
   games: readonly PublishedGame[];
   initialRunId: string | null;
+  submitPrompt: string | null;
 }) {
-  // Benchmark runs lead; each track lists its newest build first.
-  const ordered = useMemo(
-    () =>
-      TRACKS.flatMap(({ track }) =>
-        sortByBuildDate(games.filter((game) => game.track === track)),
-      ),
-    [games],
-  );
+  // Every accepted game is a run; the newest build leads.
+  const ordered = useMemo(() => sortByBuildDate(games), [games]);
   const stats = useMemo(() => getRegistryStats(games), [games]);
 
   const [featuredId, setFeaturedId] = useState(
@@ -129,7 +87,6 @@ function Board({
   const [detailId, setDetailId] = useState(() =>
     games.some((game) => game.id === initialRunId) ? initialRunId : null,
   );
-  const [filter, setFilter] = useState<TrackFilter>("all");
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const featuredIndex = Math.max(
@@ -192,17 +149,10 @@ function Board({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [detailOpen, moveFeatured]);
 
-  const groups = TRACKS.filter(
-    ({ track }) => filter === "all" || filter === track,
-  ).map((group) => ({
-    ...group,
-    games: ordered.filter((game) => game.track === group.track),
-  }));
-
   return (
     <div className={styles.page} data-detail-open={detailOpen}>
       <div className={styles.content} inert={detailOpen ? true : undefined}>
-        <SiteHeader onBoard />
+        <SiteHeader onBoard submitHref="#submit" />
         <main>
           <section className={styles.hero} aria-labelledby="hero-title">
             {/* The benchmark keeps one cinematic identity; run-specific
@@ -219,23 +169,22 @@ function Board({
             <div className={styles.heroInner}>
               <div className={styles.heroCopy}>
                 <p className={styles.eyebrow}>
-                  A playable benchmark for coding models
+                  The vibe benchmark for coding models
                 </p>
                 <h1 id="hero-title">
                   Can coding models build <em>GTA in SF?</em>
                 </h1>
                 <p className={styles.lede}>
-                  Every entry is a browser game you can play right now.
-                  Benchmark runs pin public source and build evidence; showcases
-                  state what is unknown.
+                  Each run is a game a coding model built. Play them and judge
+                  for yourself.
                 </p>
                 <div className={styles.heroActions}>
                   <a className={styles.ghostAction} href="#runs">
                     Browse {stats.runs} {stats.runs === 1 ? "run" : "runs"}
                     <ArrowDown aria-hidden="true" weight="bold" />
                   </a>
-                  <a className={styles.textAction} href="#method">
-                    How a run gets here
+                  <a className={styles.textAction} href="#submit">
+                    Submit yours
                     <ArrowRight aria-hidden="true" weight="bold" />
                   </a>
                 </div>
@@ -252,9 +201,7 @@ function Board({
 
             <dl className={styles.stats}>
               <Stat label="Playable runs" value={stats.runs} />
-              <Stat label="Benchmark" value={stats.benchmark} />
-              <Stat label="Showcase" value={stats.showcase} />
-              <Stat label="Models recorded" value={stats.models} />
+              <Stat label="Models" value={stats.models} />
               <Stat
                 label="Latest build"
                 value={
@@ -271,164 +218,33 @@ function Board({
             aria-labelledby="runs-title"
           >
             <header className={styles.sectionHead}>
-              <div>
-                <p className={styles.eyebrow}>The board</p>
-                <h2 id="runs-title">Every accepted run</h2>
-              </div>
-              <div
-                className={styles.segmented}
-                role="group"
-                aria-label="Filter runs by track"
-              >
-                <FilterButton
-                  value="all"
-                  label="All"
-                  count={stats.runs}
-                  filter={filter}
-                  onChange={setFilter}
-                />
-                <FilterButton
-                  value="benchmark"
-                  label="Benchmark"
-                  count={stats.benchmark}
-                  filter={filter}
-                  onChange={setFilter}
-                />
-                <FilterButton
-                  value="showcase"
-                  label="Showcase"
-                  count={stats.showcase}
-                  filter={filter}
-                  onChange={setFilter}
-                />
-              </div>
+              <p className={styles.eyebrow}>The runs</p>
+              <h2 id="runs-title">Play every run</h2>
+              <p>No scores. Play each one and decide how far the model got.</p>
             </header>
-
-            <p className={styles.unranked}>
-              <strong>Unranked.</strong> Mirage publishes evidence, not scores:
-              unlike runs are not comparable until the task, budget, and harness
-              are frozen.{" "}
-              <a href={ROADMAP_URL} target="_blank" rel="noreferrer">
-                Evaluation roadmap
-                <ArrowUpRight aria-hidden="true" weight="bold" />
-              </a>
-            </p>
 
             <div className={styles.table}>
               <div className={styles.tableHead} aria-hidden="true">
                 <span>Run</span>
                 <span>Model</span>
                 <span>Built</span>
-                <span>Source</span>
-                <span>Prompt</span>
-                <span>Lineage</span>
-                <span>License</span>
                 <span />
               </div>
-
-              {groups.map((group) => (
-                <section
-                  key={group.track}
-                  className={styles.group}
-                  aria-labelledby={`track-${group.track}`}
-                >
-                  <header className={styles.groupHead}>
-                    <h3 id={`track-${group.track}`}>
-                      <TrackPill track={group.track} />
-                      <span className={styles.groupCount}>
-                        {group.games.length}{" "}
-                        {group.games.length === 1 ? "run" : "runs"}
-                      </span>
-                    </h3>
-                    <p>{group.note}</p>
-                  </header>
-                  {group.games.length ? (
-                    <ul className={styles.rows}>
-                      {group.games.map((game) => (
-                        <RunRow
-                          key={game.id}
-                          game={game}
-                          onOpenDetail={openDetail}
-                        />
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className={styles.emptyGroup}>
-                      No {group.title.toLowerCase()} run has been accepted yet.
-                    </p>
-                  )}
-                </section>
-              ))}
-
-              <a className={styles.openSlot} href={CONTRIBUTION_URL}>
+              <ul className={styles.rows}>
+                {ordered.map((game) => (
+                  <RunRow key={game.id} game={game} onOpenDetail={openDetail} />
+                ))}
+              </ul>
+              <a className={styles.openSlot} href="#submit">
                 <Plus aria-hidden="true" weight="bold" />
-                <strong>Open slot</strong>
-                <span>Submit your GTA-in-SF build</span>
+                <strong>Your run here</strong>
+                <span>Submit a hosted game</span>
                 <ArrowRight aria-hidden="true" weight="bold" />
               </a>
             </div>
-
-            <div className={styles.tableFoot}>
-              <EvidenceLegend />
-              <p>A gap stays a gap: Mirage never infers missing evidence.</p>
-            </div>
           </section>
 
-          <section
-            id="method"
-            className={styles.method}
-            aria-labelledby="method-title"
-          >
-            <header className={styles.sectionHead}>
-              <div>
-                <p className={styles.eyebrow}>Method</p>
-                <h2 id="method-title">How a run gets on the board</h2>
-              </div>
-            </header>
-
-            <ol className={styles.steps}>
-              {METHOD_STEPS.map((step, index) => (
-                <li key={step.title}>
-                  <span aria-hidden="true">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <h3>{step.title}</h3>
-                  <p>{step.body}</p>
-                </li>
-              ))}
-            </ol>
-
-            <div className={styles.callout}>
-              <div>
-                <h3>Put your model on the board.</h3>
-                <p>
-                  Have a playable game but no source or handoff? Submit it as a
-                  showcase; Mirage displays the missing evidence instead of
-                  filling it in.
-                </p>
-              </div>
-              <div className={styles.calloutActions}>
-                <a
-                  className={styles.primaryAction}
-                  href={AGENT_PROMPT_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Get the agent prompt
-                  <ArrowUpRight aria-hidden="true" weight="bold" />
-                </a>
-                <a
-                  className={styles.ghostAction}
-                  href={SUBMISSION_GUIDE_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Submission guide
-                  <ArrowUpRight aria-hidden="true" weight="bold" />
-                </a>
-              </div>
-            </div>
-          </section>
+          <SubmitRun prompt={submitPrompt} />
         </main>
         <SiteFooter />
       </div>
@@ -493,9 +309,6 @@ function FeaturedRun({
         aria-label={`Play ${game.title}`}
       >
         <GameCover key={game.id} game={game} />
-        <span className={styles.featuredTrack}>
-          <TrackPill track={game.track} />
-        </span>
         <span className={styles.playBadge} aria-hidden="true">
           <Play weight="fill" />
         </span>
@@ -575,19 +388,6 @@ function RunRow({
         )}
       </div>
 
-      {getBoardEvidence(game).map((signal) => (
-        <div
-          key={signal.key}
-          className={styles.cellEvidence}
-          data-state={signal.state}
-          title={`${signal.label}: ${signal.value}`}
-        >
-          <span className={styles.cellLabel}>{signal.label}</span>
-          <EvidenceGlyph state={signal.state} />
-          <span className={styles.cellValue}>{signal.value}</span>
-        </div>
-      ))}
-
       <div className={styles.cellActions}>
         <Link
           className={styles.rowPlay}
@@ -619,36 +419,12 @@ function Stat({
   );
 }
 
-function FilterButton({
-  value,
-  label,
-  count,
-  filter,
-  onChange,
-}: {
-  value: TrackFilter;
-  label: string;
-  count: number;
-  filter: TrackFilter;
-  onChange: (value: TrackFilter) => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={filter === value}
-      onClick={() => onChange(value)}
-    >
-      {label}
-      <span>{count}</span>
-    </button>
-  );
-}
-
 function isInteractive(target: EventTarget | null) {
   return (
     target instanceof HTMLInputElement ||
     target instanceof HTMLSelectElement ||
     target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLPreElement ||
     target instanceof HTMLButtonElement ||
     target instanceof HTMLAnchorElement
   );

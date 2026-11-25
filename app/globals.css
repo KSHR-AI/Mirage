@@ -16,7 +16,7 @@
   --font-body: "Inter", Arial, Helvetica, sans-serif;
   --font-mono:
     "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  --page-width: 1440px;
+  --page-width: 1280px;
   --page-gutter: clamp(18px, 3.4vw, 44px);
 }
 

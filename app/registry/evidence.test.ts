@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  getBoardEvidence,
   getEvidenceSignals,
   getModelLabel,
   getRecordedHarness,
@@ -79,7 +78,9 @@ describe("evidence signals", () => {
       snapshot: "recorded",
       interventions: "recorded",
     });
-    const values = getBoardEvidence(benchmark).map((signal) => signal.value);
+    const values = getEvidenceSignals(benchmark)
+      .slice(0, 4)
+      .map((signal) => signal.value);
     expect(values).toEqual(["abcdef1", "Published", "Independent", "MIT"]);
   });
 
@@ -123,11 +124,9 @@ describe("evidence signals", () => {
 });
 
 describe("registry summary", () => {
-  it("counts tracks and only models a record names", () => {
+  it("counts every game as a run and only models a record names", () => {
     expect(getRegistryStats([benchmark, showcase])).toEqual({
       runs: 2,
-      benchmark: 1,
-      showcase: 1,
       models: 1,
       latestBuild: "2026-07-29",
     });

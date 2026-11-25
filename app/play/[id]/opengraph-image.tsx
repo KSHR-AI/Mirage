@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import {
   loadBenchmarkArt,
   loadBrandMark,
-  loadMirageHostedCover,
+  loadRunCover,
   loadOgFonts,
   OG_SIZE,
 } from "../../og/assets";
@@ -33,7 +33,7 @@ export default async function Image({
   if (!game) notFound();
 
   const [cover, mark, fonts] = await Promise.all([
-    loadMirageHostedCover(game),
+    loadRunCover(game),
     loadBrandMark(),
     loadOgFonts(),
   ]);
@@ -41,7 +41,7 @@ export default async function Image({
   return new ImageResponse(
     <RunCard
       game={game}
-      backdrop={cover ?? (await loadBenchmarkArt())}
+      cover={cover ?? (await loadBenchmarkArt())}
       mark={mark}
     />,
     { ...OG_SIZE, fonts },

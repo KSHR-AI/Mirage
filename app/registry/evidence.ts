@@ -14,14 +14,6 @@ export type EvidenceSignal = {
   note: string | null;
 };
 
-/** The four signals every board row shows; the drawer lists all six. */
-export const BOARD_EVIDENCE_KEYS = [
-  "source",
-  "prompt",
-  "lineage",
-  "license",
-] as const satisfies readonly EvidenceKey[];
-
 /**
  * Reports what a record states, never a grade: each signal is a recorded fact,
  * a partial record, or an explicit absence.
@@ -37,13 +29,6 @@ export function getEvidenceSignals(
     snapshotSignal(game),
     interventionsSignal(game),
   ];
-}
-
-export function getBoardEvidence(game: PublishedGame) {
-  const signals = getEvidenceSignals(game);
-  return BOARD_EVIDENCE_KEYS.map((key) =>
-    signals.find((signal) => signal.key === key)!,
-  );
 }
 
 /** Returns null when the record names no model. */
@@ -63,8 +48,6 @@ export function getRecordedHarness(game: Pick<PublishedGame, "provenance">) {
 
 export type RegistryStats = {
   runs: number;
-  benchmark: number;
-  showcase: number;
   models: number;
   latestBuild: string | null;
 };
@@ -74,24 +57,16 @@ export function getRegistryStats(
 ): RegistryStats {
   const models = new Set<string>();
   let latestBuild: string | null = null;
-  let benchmark = 0;
 
   for (const game of games) {
     const model = getRecordedModel(game);
     if (model) models.add(model.toLowerCase());
-    if (game.track === "benchmark") benchmark += 1;
     if (game.builtOn && (!latestBuild || game.builtOn > latestBuild)) {
       latestBuild = game.builtOn;
     }
   }
 
-  return {
-    runs: games.length,
-    benchmark,
-    showcase: games.length - benchmark,
-    models: models.size,
-    latestBuild,
-  };
+  return { runs: games.length, models: models.size, latestBuild };
 }
 
 /** Newest build first; undated records last; ties keep ID order. */

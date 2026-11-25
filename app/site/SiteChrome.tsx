@@ -1,10 +1,19 @@
 import { GithubLogo, PaperPlaneTilt } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
-import { CONTRIBUTION_URL, REPOSITORY_URL } from "./links";
+import { REPOSITORY_URL, SUBMIT_PROMPT_URL } from "./links";
 import styles from "./SiteChrome.module.css";
 
-/** Section links appear only on the board, where their targets exist. */
-export function SiteHeader({ onBoard = false }: { onBoard?: boolean }) {
+/**
+ * `onBoard` links to sections of the board. Elsewhere, Submit opens the agent
+ * prompt on GitHub because the page has no submit section.
+ */
+export function SiteHeader({
+  onBoard = false,
+  submitHref = SUBMIT_PROMPT_URL,
+}: {
+  onBoard?: boolean;
+  submitHref?: string;
+}) {
   return (
     <header className={styles.header}>
       <div className={styles.headerInner}>
@@ -19,12 +28,7 @@ export function SiteHeader({ onBoard = false }: { onBoard?: boolean }) {
         </Link>
         <span className={styles.task}>GTA in SF</span>
         <nav className={styles.nav} aria-label="Site">
-          {onBoard ? (
-            <>
-              <a href="#runs">Runs</a>
-              <a href="#method">Method</a>
-            </>
-          ) : null}
+          {onBoard ? <a href="#runs">Runs</a> : null}
           <a
             className={styles.iconLink}
             href={REPOSITORY_URL}
@@ -34,7 +38,7 @@ export function SiteHeader({ onBoard = false }: { onBoard?: boolean }) {
             <GithubLogo aria-hidden="true" weight="fill" />
             <span>GitHub</span>
           </a>
-          <a className={styles.submit} href={CONTRIBUTION_URL}>
+          <a className={styles.submit} href={submitHref}>
             <PaperPlaneTilt aria-hidden="true" weight="bold" />
             Submit a run
           </a>
@@ -57,7 +61,7 @@ export function SiteFooter() {
             <GithubLogo aria-hidden="true" weight="fill" />
             GitHub
           </a>
-          <a href={CONTRIBUTION_URL}>
+          <a href={SUBMIT_PROMPT_URL} target="_blank" rel="noreferrer">
             <PaperPlaneTilt aria-hidden="true" weight="bold" />
             Submit
           </a>

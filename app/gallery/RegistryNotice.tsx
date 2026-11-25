@@ -5,9 +5,10 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
-import { AGENT_PROMPT_URL, CONTRIBUTION_URL } from "../site/links";
+import { AGENT_PROMPT_URL } from "../site/links";
 import { SiteFooter, SiteHeader } from "../site/SiteChrome";
 import sfChaseImage from "./mirage-bench-sf-chase.jpg";
+import { SubmitRun } from "./SubmitRun";
 import styles from "./RegistryNotice.module.css";
 
 export type RegistryNoticeKind = "empty" | "unavailable";
@@ -15,15 +16,17 @@ export type RegistryNoticeKind = "empty" | "unavailable";
 export function RegistryNotice({
   kind,
   message,
+  submitPrompt = null,
 }: {
   kind: RegistryNoticeKind;
   message: string;
+  submitPrompt?: string | null;
 }) {
   const isEmpty = kind === "empty";
 
   return (
     <div className={styles.page} data-registry-state={kind}>
-      <SiteHeader />
+      <SiteHeader submitHref={isEmpty ? "#submit" : undefined} />
       <main className={styles.hero}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -38,7 +41,7 @@ export function RegistryNotice({
           <section className={styles.message}>
             <p className={styles.eyebrow}>
               {isEmpty
-                ? "A playable benchmark for coding models"
+                ? "The vibe benchmark for coding models"
                 : "Registry unavailable"}
             </p>
             <h1>
@@ -77,7 +80,7 @@ export function RegistryNotice({
             <div className={styles.actions}>
               {isEmpty ? (
                 <>
-                  <a className={styles.primary} href={CONTRIBUTION_URL}>
+                  <a className={styles.primary} href="#submit">
                     <PaperPlaneTilt aria-hidden="true" weight="fill" />
                     Submit the first run
                   </a>
@@ -87,7 +90,7 @@ export function RegistryNotice({
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Get the agent prompt
+                    Build one from scratch
                     <ArrowUpRight aria-hidden="true" weight="bold" />
                   </a>
                 </>
@@ -101,6 +104,7 @@ export function RegistryNotice({
           </article>
         </div>
       </main>
+      {isEmpty ? <SubmitRun prompt={submitPrompt} /> : null}
       <SiteFooter />
     </div>
   );

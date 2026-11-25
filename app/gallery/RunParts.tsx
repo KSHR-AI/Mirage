@@ -34,14 +34,6 @@ export function GameCover({ game }: { game: PublishedGame }) {
   );
 }
 
-export function TrackPill({ track }: { track: PublishedGame["track"] }) {
-  return (
-    <span className={styles.trackPill} data-track={track}>
-      {track === "benchmark" ? "Benchmark" : "Showcase"}
-    </span>
-  );
-}
-
 const STATE_LABEL: Record<EvidenceState, string> = {
   recorded: "Recorded",
   partial: "Partial",
@@ -59,20 +51,7 @@ export function EvidenceGlyph({ state }: { state: EvidenceState }) {
   );
 }
 
-export function EvidenceLegend() {
-  return (
-    <ul className={styles.legend} aria-label="Evidence states">
-      {(["recorded", "partial", "missing"] as const).map((state) => (
-        <li key={state}>
-          <span className={styles.glyph} data-state={state} aria-hidden />
-          {STATE_LABEL[state]}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-type ShareGame = Pick<PublishedGame, "id" | "track" | "title" | "model">;
+type ShareGame = Pick<PublishedGame, "id" | "title" | "model">;
 
 /** Shares the stable play route: the native sheet on touch, a copy elsewhere. */
 export function ShareLinkButton({

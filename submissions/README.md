@@ -1,39 +1,45 @@
 # Submit a run to MirageML Bench
 
 MirageML Bench asks one public question: **can a coding model build GTA in San
-Francisco?** It publishes two explicitly labeled tracks:
+Francisco?** Every accepted game is a run that people play at
+`mirageml.com/play/GAME_ID`. A record's `track` states how much evidence was
+published:
 
-- **Benchmark** records pin public source, an exact commit, production evidence,
-  lineage, and licenses.
-- **Showcase** records make a public attempt playable when its source or build
-  evidence was not published. A showcase proves only what Mirage can observe at
-  its public deployment; it is not benchmark evidence.
+- **`benchmark`** records pin public source, an exact commit, production
+  evidence, lineage, and licenses.
+- **`showcase`** records make a hosted run playable when its source or build
+  evidence was not published. They establish only what Mirage can observe at
+  the public deployment.
 
-Your coding agent builds one game in a brand-new repository. You host the
-finished static game. Mirage verifies the public source commit and deployment,
-records how the run was produced, and makes it playable at
-`mirageml.com/play/GAME_ID`.
+## Fast path: hand your agent a link
 
-## Fast path
+1. Host your game at a stable public HTTPS URL.
+2. Give a coding agent that has a browser the
+   [agent submission prompt](SUBMIT_PROMPT.md) and your link.
+3. The agent checks the link, plays the game, captures a cover, writes one
+   `submissions/GAME_ID.json` record, and opens a pull request.
+4. Mirage checks the record, live deployment, and iframe headers. After review
+   and merge, the next Mirage deployment adds the run.
+
+This path writes a `"track": "showcase"` record with the cover committed at
+`public/showcase-covers/GAME_ID.png`. It pins `source` when a public repository
+and commit exist. Set unavailable source or build date to `null`; use
+`not-recorded`, `unknown`, and precise limitations for other missing evidence.
+Preflight still verifies the live URL, public DNS, HTML response, redirects,
+and framing policy. Never describe such a run as reproducible, independent, or
+license-cleared.
+
+## Build a run from an empty repository
 
 1. Create a new, empty, public GitHub repository.
 2. Open the coding agent of your choice inside that repository.
 3. Paste the complete [Mirage game-agent prompt](AGENT_PROMPT.md).
 4. Let the agent build, test, push, and deploy the game.
 5. Freeze the source commit and save the agent’s `MIRAGE_RUN_HANDOFF`.
-6. Fork Mirage and add exactly one `submissions/GAME_ID.json` file.
+6. Fork Mirage and add exactly one `submissions/GAME_ID.json` file with
+   `"track": "benchmark"`.
 7. Open a pull request. Mirage checks the record, exact GitHub commit, live
    deployment, cover, and iframe headers.
-8. After review and merge, the next Mirage deployment adds the run to the
-   benchmark.
-
-For a public deployment without the benchmark handoff, submit a showcase record
-with `"track": "showcase"`. Set unavailable source, build date, or cover fields
-to `null`; use `not-recorded`, `unknown`, and precise limitations for other
-missing evidence. Showcase preflight still verifies the live URL, public DNS,
-HTML response, redirects, and framing policy. It skips only checks whose
-evidence is explicitly absent. Never describe a showcase as reproducible,
-independent, license-cleared, or benchmark-verified.
 
 Do not open Mirage in the game-building agent’s environment until the game has
 been committed, deployed, and frozen. This prevents previous implementations
@@ -151,10 +157,15 @@ The machine-readable schema is
 Unknown fields are rejected.
 
 `track` defaults to `benchmark` for existing records. Only a `showcase` may set
-`source`, `provenance.builtOn`, or `presentation.coverPath` to `null`. A
-maintainer may capture observable presentation evidence to the strict local
-path `/showcase-covers/ID.png`; this is a gallery image, not source or benchmark
-evidence.
+`source`, `provenance.builtOn`, or `presentation.coverPath` to `null`. The
+submitting agent or a maintainer may capture observable presentation evidence
+to the strict local path `/showcase-covers/ID.png`; this is a cover image, not
+source evidence.
+
+Share cards at `mirageml.com/play/GAME_ID` use the reviewed cover committed at
+`public/showcase-covers/GAME_ID.png` or `.jpg`. A `benchmark` record still
+serves its cover from the deployment; add an unaltered copy at that path so its
+share card shows the run's own cover.
 
 ## Lineage
 

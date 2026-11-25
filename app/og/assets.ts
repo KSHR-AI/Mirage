@@ -82,28 +82,32 @@ export async function loadBrandMark() {
   );
 }
 
+const COVER_EXTENSIONS = [".png", ".jpg", ".jpeg"] as const;
+
 /**
- * Returns a cover only when Mirage hosts it. A contributor deployment is
- * untrusted, so the server never fetches a cover from one.
+ * Returns the run's own cover from Mirage's reviewed copy in
+ * `public/showcase-covers`, named for the run ID. A contributor deployment is
+ * untrusted and mutable, so a share card never fetches a cover from one.
  */
-export async function loadMirageHostedCover(game: PublishedGame) {
-  const coverPath = game.presentation.coverPath;
-  if (!coverPath?.startsWith("/showcase-covers/")) return null;
-
-  const name = path.basename(coverPath);
-  const type = IMAGE_TYPES[path.extname(name).toLowerCase()];
-  if (!type) return null;
-
-  try {
-    return toDataUri(
-      await readFile(
-        path.join(process.cwd(), "public", "showcase-covers", name),
-      ),
-      type,
-    );
-  } catch {
-    return null;
+export async function loadRunCover(game: Pick<PublishedGame, "id">) {
+  for (const extension of COVER_EXTENSIONS) {
+    try {
+      return toDataUri(
+        await readFile(
+          path.join(
+            process.cwd(),
+            "public",
+            "showcase-covers",
+            `${path.basename(game.id)}${extension}`,
+          ),
+        ),
+        IMAGE_TYPES[extension],
+      );
+    } catch {
+      // Try the next extension; a run without a copy uses the benchmark art.
+    }
   }
+  return null;
 }
 
 function toDataUri(bytes: Buffer, type: string) {

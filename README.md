@@ -6,14 +6,13 @@
 
 ## Can a coding model build GTA in San Francisco?
 
-MirageML Bench is an open, playable registry organized around that question. It
-publishes reproducible benchmark runs and clearly labeled public showcases.
-Benchmark runs ask coding models to turn a brand-new repository into a complete
-browser game: a city you can move through, a vehicle you can meaningfully
-control, systems that interact, and objectives that make the world worth
-playing. Showcases let people play relevant public attempts whose source or
-production evidence was not published, without treating them as benchmark
-proof.
+MirageML Bench is an open, playable vibe benchmark organized around that
+question. Every accepted game is a run: play it and judge how far the model
+got. A run asks a coding model to build a complete browser game: a city you can
+move through, a vehicle you can meaningfully control, systems that interact,
+and objectives that make the world worth playing. Each run's record states the
+evidence that was published—source, prompt, lineage, licenses—and leaves every
+gap explicit.
 
 The target is deliberately bigger than a code-generation exercise. An
 open-world game requires software architecture, simulation, controls, visual
@@ -27,21 +26,21 @@ Grand Theft Auto and is not affiliated with Rockstar Games or Take-Two
 Interactive.
 
 [Play accepted runs](https://mirageml.com) ·
-[Give the prompt to a coding agent](submissions/AGENT_PROMPT.md) ·
-[Submit a run](submissions/README.md)
+[Submit a hosted game](submissions/SUBMIT_PROMPT.md) ·
+[Build a run from scratch](submissions/AGENT_PROMPT.md)
 
 ## Playability and evidence are separate
 
 MirageML Bench does not award capability points for claimed features or turn a
-subjective impression into a percentage. Every accepted entry is playable in a
-restrictive cross-origin iframe from a verified public HTTPS URL. Each entry is
-then labeled as one of two tracks:
+subjective impression into a percentage. Every accepted entry is a run, playable
+in a restrictive cross-origin iframe from a verified public HTTPS URL. A
+record's `track` states how much evidence was published:
 
 - `benchmark`: tied to a public GitHub repository and exact source commit, with
   recorded model, harness, prompt, tools, interventions, build date, lineage,
   licenses, and cover;
-- `showcase`: a public playable attempt with explicit unknowns where source,
-  build evidence, cover, or rights evidence was not supplied.
+- `showcase`: a public playable run with explicit unknowns where source, build
+  evidence, cover, or rights evidence was not supplied.
 
 Deployment verification proves availability and framing safety, not source
 identity, reproducibility, independence, provenance, license clearance, or
@@ -102,17 +101,17 @@ benchmark run.
 
 ## Submit a run
 
-1. Build, test, deploy, and freeze the game using the
-   [copyable coding-agent prompt](submissions/AGENT_PROMPT.md).
-2. Save the agent’s `MIRAGE_RUN_HANDOFF`.
-3. Add one schema-complete `submissions/GAME_ID.json` record.
-4. Open a pull request.
-5. Pass source, deployment, cover, framing, lineage, provenance, and rights
-   review.
+1. Host your game at a stable public HTTPS URL.
+2. Give a coding agent that has a browser the
+   [agent submission prompt](submissions/SUBMIT_PROMPT.md) and your link.
+3. The agent plays the game, writes one `submissions/GAME_ID.json` record with
+   a cover capture, and opens a pull request.
+4. Pass deployment, framing, provenance, and rights review.
 
-Already have a public game but not its source or handoff? Submit it on the
-`showcase` track. Mirage will verify the deployment and display the missing
-evidence instead of rejecting the playable attempt or filling gaps.
+The same prompt is copyable from [mirageml.com](https://mirageml.com/#submit).
+To build a new run from an empty repository, start with the
+[game-agent prompt](submissions/AGENT_PROMPT.md); its `MIRAGE_RUN_HANDOFF` pins
+source and build evidence.
 
 The [submission guide](submissions/README.md) contains the exact JSON contract,
 hosting rules, lineage examples, and review process. You can also open a

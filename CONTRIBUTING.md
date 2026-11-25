@@ -5,11 +5,12 @@ bug fixes, tests, and documentation through public pull requests.
 
 ## Choose a contribution path
 
-- New benchmark run: build and deploy it in a separate public repository, then
-  follow [the submission guide](submissions/README.md).
-- Public showcase: submit an already-public playable attempt even when its
-  source or production handoff is unavailable. It will be labeled showcase-only
-  and cannot count as reproducible benchmark evidence.
+- Hosted game: give a coding agent your public link and the
+  [agent submission prompt](submissions/SUBMIT_PROMPT.md). It plays the game
+  and opens the pull request. Missing source or handoff evidence stays explicit
+  in the record.
+- New run from scratch: build and deploy it in a separate public repository,
+  then follow [the submission guide](submissions/README.md).
 - Mirage website or validation: fork this repository, branch from current
   `main`, make one focused change, and open a pull request.
 

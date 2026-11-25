@@ -7,9 +7,10 @@ MirageML Bench is the public registry, evidence layer, and sandboxed player for
 coding-model attempts to build GTA in San Francisco. It is not the workspace,
 seed, host, or template for a game.
 
-- Keep `benchmark` and `showcase` distinct. A benchmark pins public source and
-  production evidence; a showcase may publish a safe playable deployment with
-  explicit unknowns and must never be described as benchmark proof.
+- MirageML Bench is a vibe benchmark: every accepted game is a run, judged by
+  playing it. The site presents all runs alike. A record's `track` states only
+  how much evidence was published; never present missing source, provenance, or
+  license evidence as established.
 
 - Author each benchmark attempt in its own brand-new public repository.
 - For an independent attempt, do not expose Mirage source, history, previous
@@ -26,8 +27,10 @@ seed, host, or template for a game.
   credentials, submodules, or subtrees.
 - Contributors deploy their own static game. Accept only a stable public HTTPS
   URL that returns the game directly, permits Mirage framing, and works in the
-  opaque-origin player. Benchmarks expose their cover from the deployment;
-  showcases may use a clearly attributed Mirage capture.
+  opaque-origin player. Benchmark-track records expose their cover from the
+  deployment; showcase-track records may use a clearly attributed Mirage
+  capture. Share cards read only a reviewed copy committed at
+  `public/showcase-covers/ID.*` and never fetch a cover from a deployment.
 - Mirage verifies external deployments but does not call them immutable. A
   deployment-only update may relocate the same frozen run; any benchmark
   evidence change requires a new ID.
