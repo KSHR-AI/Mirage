@@ -76,7 +76,7 @@ export const ENTRIES: readonly Entry[] = [
     harness: "Claude Code",
     provider: "anthropic",
     access: "public-api",
-    runIds: ["port-solano-001"],
+    runIds: ["port-solano-001", "slop-newyork"],
   },
   {
     id: "claude-fable-5-2--not-recorded",
@@ -109,14 +109,6 @@ export const ENTRIES: readonly Entry[] = [
     provider: "openai",
     access: "public-api",
     runIds: ["not-gta-6-seaplane"],
-  },
-  {
-    id: "not-recorded--not-recorded",
-    model: "Model not recorded",
-    harness: "Harness not recorded",
-    provider: "unknown",
-    access: "public-api",
-    runIds: ["slop-newyork"],
   },
 ];
 
