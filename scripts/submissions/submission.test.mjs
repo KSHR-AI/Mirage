@@ -55,6 +55,25 @@ describe("submission validation", () => {
     });
   });
 
+  it("accepts 2-4 distinct models when several built the run", () => {
+    const models = ["GPT-6-Astra", "GPT-6.2-Astra"];
+    expect(
+      validateSubmission(makeSubmission({ provenance: { model: models } }))
+        .provenance.model,
+    ).toEqual(models);
+
+    for (const model of [
+      ["GPT-6-Astra"],
+      ["GPT-6-Astra", "GPT-6-Astra"],
+      ["a", "b", "c", "d", "e"],
+      ["GPT-6-Astra", ""],
+    ]) {
+      expect(() =>
+        validateSubmission(makeSubmission({ provenance: { model } })),
+      ).toThrow(/provenance\.model/);
+    }
+  });
+
   it("requires unverified lineage when no source is published", () => {
     expect(() => validateSubmission(makeSubmission({ source: null }))).toThrow(
       /unverified lineage/,

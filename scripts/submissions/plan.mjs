@@ -308,7 +308,7 @@ function assertRegistrySize(values) {
     const record = withoutField(submission, "schemaVersion");
     return {
       ...record,
-      model: submission.provenance.model,
+      model: [submission.provenance.model].flat().join(" + "),
       builtOn: submission.provenance.builtOn,
     };
   });

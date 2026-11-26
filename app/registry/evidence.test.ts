@@ -130,6 +130,19 @@ describe("registry summary", () => {
     });
   });
 
+  it("counts each model of a run that used several", () => {
+    const pair: PublishedGame = {
+      ...benchmark,
+      id: "astra-pair",
+      model: "example-model + other-model",
+      provenance: {
+        ...benchmark.provenance,
+        model: ["example-model", "other-model"],
+      },
+    };
+    expect(getRegistryStats([benchmark, pair]).models).toBe(2);
+  });
+
   it("orders by build date, undated last, without mutating the registry", () => {
     const games = [
       { id: "b", builtOn: null },

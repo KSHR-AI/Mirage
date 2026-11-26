@@ -40,6 +40,17 @@ export function getModelLabel(game: Pick<PublishedGame, "model">) {
   return getRecordedModel(game) ?? "Model not recorded";
 }
 
+/** Each model the record names; several when a run used more than one. */
+export function getRecordedModels(
+  game: Pick<PublishedGame, "model" | "provenance">,
+): readonly string[] {
+  const recorded = game.provenance.model;
+  const names = Array.isArray(recorded) ? recorded : [game.model];
+  return names.filter(
+    (name): name is string => typeof name === "string" && !isUnknown(name),
+  );
+}
+
 /** Returns null when the record names no harness. */
 export function getRecordedHarness(game: Pick<PublishedGame, "provenance">) {
   const harness = game.provenance.harness;
@@ -59,8 +70,9 @@ export function getRegistryStats(
   let latestBuild: string | null = null;
 
   for (const game of games) {
-    const model = getRecordedModel(game);
-    if (model) models.add(model.toLowerCase());
+    for (const model of getRecordedModels(game)) {
+      models.add(model.toLowerCase());
+    }
     if (game.builtOn && (!latestBuild || game.builtOn > latestBuild)) {
       latestBuild = game.builtOn;
     }

@@ -209,7 +209,9 @@ All three categories are useful; they answer different questions.
 
 Record what happened without filling gaps:
 
-- use the exact model and snapshot when known;
+- use the exact model and snapshot when known; when several models built the
+  run, list each one as an array, such as
+  `"model": ["GPT-6-Astra", "GPT-6.2-Astra"]` (2-4 names);
 - preserve the complete prompt, mark it `partial`, or explain
   `not-recorded`;
 - record the harness, tools, agent counts, and human interventions;

@@ -31,6 +31,7 @@ import {
   HARNESSES,
   PROVIDERS,
   getEntryLabel,
+  getModelsLabel,
   type BenchRun,
   type ProviderKey,
 } from "./entries";
@@ -298,7 +299,7 @@ function BarChart({
                 </span>
                 <span className={styles.labelSlot}>
                   <span className={styles.label}>
-                    {entry.model}
+                    {getModelsLabel(entry)}
                     <br />
                     <span>{entry.harness}</span>
                     <br />
@@ -408,7 +409,7 @@ function EntryPicker({
                   />
                   <ProviderMark provider={entry.provider} size={18} />
                   <span>
-                    {entry.model}
+                    {getModelsLabel(entry)}
                     <small>
                       {entry.harness} · {entry.title}
                     </small>
@@ -680,7 +681,7 @@ function ScoreTable({
                 <th scope="row" className={styles.nameCell}>
                   <ProviderMark provider={entry.provider} size={20} />
                   <span>
-                    {entry.model}
+                    {getModelsLabel(entry)}
                     <small>
                       {entry.harness}
                       {entry.access === "no-public-api"

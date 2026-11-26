@@ -180,9 +180,17 @@
           "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
         },
         "model": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 200
+          "description": "The model that built the run, or 2-4 distinct models when several did.",
+          "oneOf": [
+            { "type": "string", "minLength": 1, "maxLength": 200 },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 4,
+              "uniqueItems": true,
+              "items": { "type": "string", "minLength": 1, "maxLength": 200 }
+            }
+          ]
         },
         "modelSnapshot": {
           "type": ["string", "null"],

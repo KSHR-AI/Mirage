@@ -134,7 +134,8 @@ export type Access = "public-api" | "no-public-api";
 
 export type Entry = {
   id: string;
-  model: string;
+  /** Every model that built the runs, in the order the submitter gave. */
+  models: readonly string[];
   harness: string;
   provider: ProviderKey;
   access: Access;
@@ -144,8 +145,9 @@ export type Entry = {
 
 export const ENTRIES: readonly Entry[] = [
   {
+    // The ID predates the second model; votes already reference it.
     id: "gpt-6-2-astra--codex",
-    model: "GPT-6.2-Astra",
+    models: ["GPT-6-Astra", "GPT-6.2-Astra"],
     harness: "Codex",
     provider: "openai",
     access: "public-api",
@@ -153,7 +155,7 @@ export const ENTRIES: readonly Entry[] = [
   },
   {
     id: "claude-opus-5-5--claude-code",
-    model: "Claude Opus 5.5",
+    models: ["Claude Opus 5.5"],
     harness: "Claude Code",
     provider: "anthropic",
     access: "public-api",
@@ -161,7 +163,7 @@ export const ENTRIES: readonly Entry[] = [
   },
   {
     id: "claude-fable-5-2--not-recorded",
-    model: "Claude Fable 5.2",
+    models: ["Claude Fable 5.2"],
     harness: "Harness not recorded",
     provider: "anthropic",
     access: "public-api",
@@ -169,7 +171,7 @@ export const ENTRIES: readonly Entry[] = [
   },
   {
     id: "claude-opus-5--claude-code",
-    model: "Claude Opus 5",
+    models: ["Claude Opus 5"],
     harness: "Claude Code",
     provider: "anthropic",
     access: "public-api",
@@ -177,7 +179,7 @@ export const ENTRIES: readonly Entry[] = [
   },
   {
     id: "gpt-5-6-ultra--codex-desktop",
-    model: "GPT-5.6 Ultra",
+    models: ["GPT-5.6 Ultra"],
     harness: "Codex desktop",
     provider: "openai",
     access: "public-api",
@@ -185,7 +187,7 @@ export const ENTRIES: readonly Entry[] = [
   },
   {
     id: "gpt-6-astra--chatgpt-sites",
-    model: "GPT-6-Astra",
+    models: ["GPT-6-Astra"],
     harness: "ChatGPT Sites",
     provider: "openai",
     access: "public-api",
@@ -214,8 +216,13 @@ export function getEntryForRun(runId: string) {
   return ENTRIES.find((entry) => entry.runIds.includes(runId)) ?? null;
 }
 
-export function getEntryLabel(entry: Pick<Entry, "model" | "harness">) {
-  return `${entry.model} · ${entry.harness}`;
+/** Joins a run's models, such as "GPT-6-Astra + GPT-6.2-Astra". */
+export function getModelsLabel(entry: Pick<Entry, "models">) {
+  return entry.models.join(" + ");
+}
+
+export function getEntryLabel(entry: Pick<Entry, "models" | "harness">) {
+  return `${getModelsLabel(entry)} · ${entry.harness}`;
 }
 
 export const HARNESSES: readonly string[] = [

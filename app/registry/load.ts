@@ -102,7 +102,10 @@ function projectSubmission(value: unknown) {
   delete record.track;
   return {
     ...record,
-    model: value.provenance.model,
+    // Several models read as one label, such as "GPT-6-Astra + GPT-6.2-Astra".
+    model: Array.isArray(value.provenance.model)
+      ? value.provenance.model.join(" + ")
+      : value.provenance.model,
     builtOn: value.provenance.builtOn,
   };
 }
