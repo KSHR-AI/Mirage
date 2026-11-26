@@ -40,8 +40,10 @@ seed, host, or template for a game.
   popups, downloads, storage access, or top navigation.
 - Treat submitted URLs as hostile. Reject credentials, redirects, private
   network destinations, unsafe response types, and framing restrictions.
-- Record observed facts and explicit unknowns. Never infer a model grade,
-  clean-room status, license clearance, or reproducibility from a working URL.
+- Record observed facts and explicit unknowns. Never infer clean-room status,
+  license clearance, or reproducibility from a working URL.
+- Leaderboard scores for model + harness pairs and runs live in
+  `app/bench/scores.ts`, never in submission records.
 - Follow [CONTRIBUTING.md](CONTRIBUTING.md),
   [submissions/README.md](submissions/README.md), and [TODO.md](TODO.md). Run
   `pnpm check` for every affected control-plane surface.

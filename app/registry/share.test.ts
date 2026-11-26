@@ -17,7 +17,7 @@ describe("run sharing", () => {
     expect(getShareUrl("https://mirageml.com", run)).toBe(
       "https://mirageml.com/play/night-drive-001",
     );
-    expect(getRecordPath(run)).toBe("/?run=night-drive-001");
+    expect(getRecordPath(run)).toBe("/runs/night-drive-001");
   });
 
   it("asks the benchmark question for every run", () => {

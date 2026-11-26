@@ -25,7 +25,7 @@ export function RegistryNotice({
   const isEmpty = kind === "empty";
 
   return (
-    <div className={styles.page} data-registry-state={kind}>
+    <div className={styles.page} data-registry-state={kind} data-theme="dark">
       <SiteHeader submitHref={isEmpty ? SUBMIT_HASH : undefined} />
       <main className={styles.hero}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
