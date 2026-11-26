@@ -76,7 +76,7 @@ export const ENTRIES: readonly Entry[] = [
     harness: "Claude Code",
     provider: "anthropic",
     access: "public-api",
-    runIds: ["port-solano-001"],
+    runIds: ["port-solano-001", "slop-newyork-002"],
   },
   {
     id: "claude-fable-5-2--not-recorded",
