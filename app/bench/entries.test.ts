@@ -14,6 +14,8 @@ describe("bench entries", () => {
     expect(new Set(ENTRIES.map((e) => e.id)).size).toBe(ENTRIES.length);
     for (const entry of ENTRIES) {
       expect(PROVIDERS[entry.provider]).toBeDefined();
+      expect(entry.models.length).toBeGreaterThan(0);
+      expect(new Set(entry.models).size).toBe(entry.models.length);
     }
   });
 
@@ -36,7 +38,7 @@ describe("bench entries", () => {
     // Standing comes only from Arena votes; see AGENTS.md.
     for (const entry of ENTRIES) {
       expect(Object.keys(entry).sort()).toEqual(
-        ["access", "harness", "id", "model", "provider", "runIds"].sort(),
+        ["access", "harness", "id", "models", "provider", "runIds"].sort(),
       );
     }
     expect(Object.keys(entries)).not.toContain("METRICS");

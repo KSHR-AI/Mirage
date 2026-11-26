@@ -208,6 +208,21 @@ function validateLineage(value, id) {
   return Object.freeze({ kind, note });
 }
 
+export const MAX_MODELS = 4;
+
+/** One model name, or 2-4 distinct names when several models built the run. */
+function validateModel(value) {
+  const label = "submission.provenance.model";
+  if (!Array.isArray(value)) return assertString(value, label, { max: 200 });
+  return Object.freeze(
+    assertStringArray(value, label, {
+      minItems: 2,
+      maxItems: MAX_MODELS,
+      itemMax: 200,
+    }),
+  );
+}
+
 function validateProvenance(value) {
   const provenance = assertPlainObject(value, "submission.provenance");
   assertExactKeys(
@@ -243,9 +258,7 @@ function validateProvenance(value) {
 
   return Object.freeze({
     builtOn,
-    model: assertString(provenance.model, "submission.provenance.model", {
-      max: 200,
-    }),
+    model: validateModel(provenance.model),
     modelSnapshot: assertNullableString(
       provenance.modelSnapshot,
       "submission.provenance.modelSnapshot",

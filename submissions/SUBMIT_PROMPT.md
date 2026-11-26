@@ -63,7 +63,7 @@ Rules for the whole task
 
 3. Ask me once
    Send one message with these questions. I may answer "unknown" to any.
-   - Which model built it, and in which coding harness?
+   - Which model or models built it, and in which coding harness?
    - Is the source public? If so, the GitHub repository and the exact
      40-character commit that is deployed.
    - When was it built (YYYY-MM-DD), and what was the prompt?

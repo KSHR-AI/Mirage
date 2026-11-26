@@ -151,6 +151,27 @@ describe("submission validation plans", () => {
     ]);
   });
 
+  it("treats a renamed record as a takedown plus an addition", async () => {
+    const fixture = await repositoryFixture();
+    const added = await commitSubmission(fixture.root);
+    await rm(added.filePath);
+    const resubmitted = makeSubmission({ id: "night-drive-002" });
+    const moved = await commitSubmission(fixture.root, resubmitted);
+    const plan = await createValidationPlan({
+      mode: "changed",
+      base: added.commit,
+      head: moved.commit,
+      cwd: fixture.root,
+    });
+
+    expect(plan.submissions.map((entry) => entry.submission.id)).toEqual([
+      "night-drive-002",
+    ]);
+    expect(plan.removed).toEqual([
+      expect.objectContaining({ id: "night-drive-001" }),
+    ]);
+  });
+
   it("validates lineage against every active submission in changed mode", async () => {
     const fixture = await repositoryFixture();
     const parent = makeSubmission({

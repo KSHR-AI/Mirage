@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "id": "grand-theft-astra",
+  "id": "grand-theft-astra-002",
   "title": "Grand Theft Astra",
   "tagline": "Meet Mara at the Paloma and take the keys to her convertible",
   "description": "Last Light at the Paloma opens on foot in Los Pacificos. Mara offers a delivery job with a bonus for keeping her teal Aurora in good condition. Follow the minimap to the convertible and inspect its rear lamp before driving.",
@@ -19,14 +19,14 @@
   },
   "lineage": {
     "kind": "unverified",
-    "note": "The submitter identified the model and harness. No starting-state evidence or accepted parent run was supplied."
+    "note": "Resubmits grand-theft-astra with corrected model credits; the source commit and deployment are unchanged. The submitter identified both models and the harness. No starting-state evidence or accepted parent run was supplied."
   },
   "provenance": {
     "builtOn": "2026-11-24",
-    "model": "GPT-6.2-Astra",
+    "model": ["GPT-6-Astra", "GPT-6.2-Astra"],
     "modelSnapshot": null,
     "reasoning": null,
-    "harness": "Niteshift",
+    "harness": "Codex on Niteshift",
     "tools": ["Not recorded"],
     "agentCount": null,
     "subagentCount": null,
@@ -51,7 +51,7 @@
     ]
   },
   "presentation": {
-    "coverPath": "/showcase-covers/grand-theft-astra.png",
+    "coverPath": "/showcase-covers/grand-theft-astra-002.png",
     "coverAlt": "The player stands beneath the Paloma Office awning facing Mara beside a palm-lined intersection.",
     "controls": [
       "W to walk forward",
@@ -60,7 +60,7 @@
     "limitations": [
       "The setting is labeled Los Pacificos. The playtest reached vehicle entry; driving and mission completion were not verified.",
       "The submitter reports a November 24 build date. GitHub Pages published the matching build on November 25 at commit 3930a61ca8a0fc772cdee3dc162522eef573a69b.",
-      "Agent counts, tools, reasoning setting and screenshot license were not supplied."
+      "Agent counts, tools, reasoning setting, each model's share of the work and screenshot license were not supplied."
     ],
     "protocolVersion": 1
   }

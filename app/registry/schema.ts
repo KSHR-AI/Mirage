@@ -122,7 +122,8 @@ function parseGame(value: unknown, index: number): PublishedGame {
     `${label}.description`,
     4_000,
   );
-  const model = requiredString(value.model, `${label}.model`, 200);
+  // Up to four 200-character model names joined with " + ".
+  const model = requiredString(value.model, `${label}.model`, 1_000);
   // A run states what was published; an absent date or source stays null.
   const builtOn =
     value.builtOn === null
