@@ -15,13 +15,21 @@ import "@fontsource/source-serif-4/400.css";
 import "@fontsource/source-serif-4/600.css";
 import "./globals.css";
 
+const SITE_URL = "https://mirageml.com";
+
 const SITE_METADATA = {
-  title: "MirageML Bench — Can coding models build GTA?",
+  title: "MirageML Bench — Can an LLM solve GTA?",
   description:
-    "A vibe benchmark for coding models: every run is a game a model built toward GTA. Play them and judge for yourself.",
+    "GTA is the new benchmark. Play games LLMs built, vote on the best, and track how close they get.",
 };
 
-export async function generateMetadata(): Promise<Metadata> {
+/**
+ * Production previews and canonical links always name mirageml.com, whichever
+ * host served the page. Preview deployments and local runs keep their own
+ * host, so their share cards can be checked before release.
+ */
+async function getMetadataBase() {
+  if (process.env.VERCEL_ENV === "production") return new URL(SITE_URL);
   const requestHeaders = await headers();
   const forwardedHost = requestHeaders
     .get("x-forwarded-host")
@@ -38,15 +46,18 @@ export async function generateMetadata(): Promise<Metadata> {
       : host?.startsWith("localhost")
         ? "http"
         : "https";
-  const metadataBase = host ? new URL(`${protocol}://${host}`) : undefined;
+  return host ? new URL(`${protocol}://${host}`) : new URL(SITE_URL);
+}
 
+export async function generateMetadata(): Promise<Metadata> {
   return {
-    metadataBase,
+    metadataBase: await getMetadataBase(),
     title: SITE_METADATA.title,
     description: SITE_METADATA.description,
     openGraph: {
       title: SITE_METADATA.title,
       description: SITE_METADATA.description,
+      siteName: "MirageML Bench",
       type: "website",
     },
     twitter: {

@@ -9,7 +9,7 @@ import { SiteCard } from "./og/cards";
 import { getRegistryStats } from "./registry/evidence";
 import { loadPublishedRegistry } from "./registry/load";
 
-export const alt = "MirageML Bench: can coding models build GTA?";
+export const alt = "MirageML Bench: can an LLM solve GTA?";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 

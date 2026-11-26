@@ -97,7 +97,7 @@ function Brand({ mark }: { mark: string }) {
       >
         MirageML Bench
       </div>
-      <Chip>Build GTA</Chip>
+      <Chip>Solve GTA</Chip>
     </div>
   );
 }
@@ -290,15 +290,16 @@ export function SiteCard({
           display: "flex",
           flexDirection: "column",
           fontFamily: "Barlow Condensed",
-          fontSize: 126,
+          fontSize: 148,
           fontWeight: 800,
           lineHeight: 0.86,
           textTransform: "uppercase",
         }}
       >
-        <div style={{ display: "flex" }}>Can coding</div>
-        <div style={{ display: "flex" }}>models build</div>
-        <div style={{ display: "flex", color: C.lime }}>GTA?</div>
+        <div style={{ display: "flex" }}>Can an LLM</div>
+        <div style={{ display: "flex" }}>
+          solve&nbsp;<span style={{ color: C.lime }}>GTA?</span>
+        </div>
       </div>
 
       <div

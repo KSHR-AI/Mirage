@@ -1,4 +1,5 @@
 import { ArrowRight, Play } from "@phosphor-icons/react/ssr";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { INITIAL_RATING, K_FACTOR } from "./arena/elo";
 import { loadRatings } from "./arena/ratings";
@@ -14,6 +15,10 @@ import { SiteFooter, SiteHeader } from "./site/SiteChrome";
 import styles from "./bench/Page.module.css";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default async function Page() {
   const [registry, arena] = await Promise.all([
