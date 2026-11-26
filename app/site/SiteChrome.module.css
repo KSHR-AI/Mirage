@@ -52,14 +52,23 @@
   white-space: nowrap;
 }
 
-.nav {
+.sections,
+.actions {
   display: flex;
   align-items: center;
   gap: 2px;
+}
+
+.sections {
+  margin-left: 12px;
+}
+
+.actions {
   margin-left: auto;
 }
 
-.nav a {
+.sections a,
+.actions a {
   display: inline-flex;
   min-height: 36px;
   align-items: center;
@@ -77,17 +86,34 @@
     border-color 140ms ease;
 }
 
-.nav a:hover {
+.sections a:hover,
+.actions a:hover {
   background: var(--surface-raised);
   color: var(--ink);
 }
 
-.nav svg {
+.sections a[aria-current="page"] {
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.voteBadge {
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.actions svg {
   width: 16px;
   height: 16px;
 }
 
-.nav a.submit {
+.actions a.submit {
   margin-left: 8px;
   border: 1px solid var(--ink);
   background: var(--ink);
@@ -95,7 +121,7 @@
   font-weight: 600;
 }
 
-.nav a.submit:hover {
+.actions a.submit:hover {
   background: var(--soft-ink);
   color: var(--surface);
 }
@@ -149,9 +175,25 @@
   height: 16px;
 }
 
-@media (max-width: 900px) {
-  .section {
-    display: none !important;
+/* Narrow screens move the section links to a second, scrollable row. */
+@media (max-width: 960px) {
+  .headerInner {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .sections {
+    order: 3;
+    width: calc(100% + 2 * var(--page-gutter));
+    overflow-x: auto;
+    margin: 0 calc(-1 * var(--page-gutter));
+    border-top: 1px solid var(--rule);
+    padding: 6px var(--page-gutter);
+    scrollbar-width: none;
+  }
+
+  .sections::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -161,17 +203,23 @@
     display: none;
   }
 
-  .nav a {
+  .actions a {
     padding: 0 9px;
   }
 
-  .nav a.submit {
+  .actions a.submit {
     margin-left: 4px;
   }
 
   .footerInner {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .submitLong {
+    display: none;
   }
 }
 

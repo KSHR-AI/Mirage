@@ -7,13 +7,32 @@ import styles from "./SiteChrome.module.css";
  * `onBoard` links to sections of the board. Elsewhere, Submit opens the agent
  * prompt on GitHub because the page has no submit section.
  */
+export type SiteSection = "leaderboard" | "arena" | "runs" | "methodology";
+
 export function SiteHeader({
   onBoard = false,
   submitHref = SUBMIT_PROMPT_URL,
+  current,
 }: {
   onBoard?: boolean;
   submitHref?: string;
+  current?: SiteSection;
 }) {
+  const sections: { key: SiteSection; label: string; href: string }[] = [
+    {
+      key: "leaderboard",
+      label: "Leaderboard",
+      href: onBoard ? "#leaderboard" : "/",
+    },
+    { key: "arena", label: "Arena", href: "/arena" },
+    { key: "runs", label: "Runs", href: onBoard ? "#runs" : "/#runs" },
+    {
+      key: "methodology",
+      label: "Methodology",
+      href: onBoard ? "#methodology" : "/#methodology",
+    },
+  ];
+
   return (
     <header className={styles.header}>
       <div className={styles.headerInner}>
@@ -27,25 +46,21 @@ export function SiteHeader({
           <span>MirageML Bench</span>
         </Link>
         <span className={styles.task}>GTA in SF</span>
-        <nav className={styles.nav} aria-label="Site">
-          <Link
-            className={styles.section}
-            href={onBoard ? "#leaderboard" : "/"}
-          >
-            Leaderboard
-          </Link>
-          <Link className={styles.section} href="/arena">
-            Arena
-          </Link>
-          <Link className={styles.section} href={onBoard ? "#runs" : "/#runs"}>
-            Runs
-          </Link>
-          <Link
-            className={styles.section}
-            href={onBoard ? "#methodology" : "/#methodology"}
-          >
-            Methodology
-          </Link>
+        <nav className={styles.sections} aria-label="Site">
+          {sections.map((section) => (
+            <Link
+              key={section.key}
+              href={section.href}
+              aria-current={current === section.key ? "page" : undefined}
+            >
+              {section.label}
+              {section.key === "arena" ? (
+                <span className={styles.voteBadge}>Vote</span>
+              ) : null}
+            </Link>
+          ))}
+        </nav>
+        <div className={styles.actions}>
           <a
             className={styles.iconLink}
             href={REPOSITORY_URL}
@@ -55,11 +70,15 @@ export function SiteHeader({
             <GithubLogo aria-hidden="true" weight="fill" />
             <span>GitHub</span>
           </a>
-          <a className={styles.submit} href={submitHref}>
+          <a
+            className={styles.submit}
+            href={submitHref}
+            aria-label="Submit a run"
+          >
             <PaperPlaneTilt aria-hidden="true" weight="bold" />
-            Submit a run
+            Submit<span className={styles.submitLong}>&nbsp;a run</span>
           </a>
-        </nav>
+        </div>
       </div>
     </header>
   );

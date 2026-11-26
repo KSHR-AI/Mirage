@@ -712,8 +712,46 @@
   font-size: 13px;
 }
 
-.intro a {
+.intro p a {
   color: var(--accent);
+}
+
+.arenaCta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 18px;
+}
+
+.arenaButton {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--ink);
+  border-radius: 10px;
+  padding: 0 16px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 140ms ease;
+}
+
+.arenaButton:hover {
+  background: var(--soft-ink);
+}
+
+.arenaButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.arenaCta span {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .indexCell b {

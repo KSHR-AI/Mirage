@@ -43,7 +43,7 @@ export default async function ArenaPage() {
 
   return (
     <div className={pageStyles.page}>
-      <SiteHeader />
+      <SiteHeader current="arena" />
       <main className={pageStyles.main}>
         <section className={styles.intro} aria-labelledby="arena-title">
           <h1 id="arena-title">Arena</h1>

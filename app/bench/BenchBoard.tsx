@@ -2,6 +2,7 @@
 
 import {
   ArrowDown,
+  ArrowRight,
   ArrowUp,
   ArrowUpRight,
   CaretUpDown,
@@ -9,6 +10,7 @@ import {
   LinkSimple,
   MagnifyingGlass,
   Play,
+  Scales,
   SlidersHorizontal,
   Table,
 } from "@phosphor-icons/react";
@@ -161,6 +163,14 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
                   ? "The vote store is not responding, so seed ratings are shown."
                   : "Voting is not open yet, so every rating is still its seed."}
             </p>
+            <div className={styles.arenaCta}>
+              <Link href="/arena" className={styles.arenaButton}>
+                <Scales aria-hidden="true" weight="bold" />
+                Vote in the Arena
+                <ArrowRight aria-hidden="true" weight="bold" />
+              </Link>
+              <span>Play two anonymous runs, pick the better one.</span>
+            </div>
           </div>
 
           <div className={styles.controls}>
