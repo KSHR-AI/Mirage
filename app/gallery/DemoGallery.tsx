@@ -15,14 +15,12 @@ import {
   getModelLabel,
   getRecordedHarness,
   getRegistryStats,
-  sortByBuildDate,
 } from "../registry/evidence";
 import type { PublishedGame } from "../registry/schema";
 import { getRecordPath } from "../registry/share";
 import { getCanonicalPlayPath } from "../registry/urls";
 import { SiteFooter, SiteHeader } from "../site/SiteChrome";
 import benchmarkCover from "./mirage-bench-sf-chase.jpg";
-import { getDefaultGameId } from "./default-game";
 import { RegistryNotice, type RegistryNoticeKind } from "./RegistryNotice";
 import { RunDrawer } from "./RunDrawer";
 import { GameCover, ShareLinkButton } from "./RunParts";
@@ -77,13 +75,9 @@ function Board({
   initialRunId: string | null;
   submitPrompt: string | null;
 }) {
-  // Every accepted game is a run; the newest build leads.
-  const ordered = useMemo(() => sortByBuildDate(games), [games]);
   const stats = useMemo(() => getRegistryStats(games), [games]);
 
-  const [featuredId, setFeaturedId] = useState(
-    () => getDefaultGameId(ordered) ?? ordered[0].id,
-  );
+  const [featuredId, setFeaturedId] = useState(games[0].id);
   const [detailId, setDetailId] = useState(() =>
     games.some((game) => game.id === initialRunId) ? initialRunId : null,
   );
@@ -91,9 +85,9 @@ function Board({
 
   const featuredIndex = Math.max(
     0,
-    ordered.findIndex((game) => game.id === featuredId),
+    games.findIndex((game) => game.id === featuredId),
   );
-  const featured = ordered[featuredIndex];
+  const featured = games[featuredIndex];
   const detailGame = detailId
     ? (games.find((game) => game.id === detailId) ?? null)
     : null;
@@ -117,12 +111,11 @@ function Board({
 
   const moveFeatured = useCallback(
     (direction: -1 | 1) => {
-      if (ordered.length < 2) return;
-      const next =
-        (featuredIndex + direction + ordered.length) % ordered.length;
-      setFeaturedId(ordered[next].id);
+      if (games.length < 2) return;
+      const next = (featuredIndex + direction + games.length) % games.length;
+      setFeaturedId(games[next].id);
     },
-    [featuredIndex, ordered],
+    [featuredIndex, games],
   );
 
   useEffect(() => {
@@ -193,7 +186,7 @@ function Board({
               <FeaturedRun
                 game={featured}
                 position={featuredIndex + 1}
-                total={ordered.length}
+                total={games.length}
                 onMove={moveFeatured}
                 onOpenDetail={openDetail}
               />
@@ -231,7 +224,7 @@ function Board({
                 <span />
               </div>
               <ul className={styles.rows}>
-                {ordered.map((game) => (
+                {games.map((game) => (
                   <RunRow key={game.id} game={game} onOpenDetail={openDetail} />
                 ))}
               </ul>

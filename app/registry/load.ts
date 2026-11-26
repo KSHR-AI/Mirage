@@ -1,5 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { sortByBuildDate } from "./evidence";
 import { parseRegistryDocument, type PublishedGame } from "./schema";
 
 export const MAX_REGISTRY_BYTES = 256 * 1024;
@@ -48,7 +49,7 @@ export async function loadPublishedRegistry(options?: {
 
     return {
       kind: "ready",
-      games: document.games,
+      games: sortByBuildDate(document.games),
       message: null,
     };
   } catch {
