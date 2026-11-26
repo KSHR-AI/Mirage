@@ -27,26 +27,106 @@ export type Provider = {
   name: string;
   /** Bar and badge color. */
   color: string;
-  /** Monogram shown in the badge under each bar. */
+  /** Monogram shown when there is no logo. */
   mark: string;
-  /** Badge text color on `color`. */
+  /** Monogram text color on `color`. */
   ink: string;
+  /** Logo under public/providers (LobeHub Icons, MIT). */
+  logo?: string;
 };
 
 export const PROVIDERS: Record<ProviderKey, Provider> = {
-  anthropic: { name: "Anthropic", color: "#c8775c", mark: "A", ink: "#fff" },
-  openai: { name: "OpenAI", color: "#232323", mark: "O", ink: "#fff" },
-  google: { name: "Google", color: "#34a853", mark: "G", ink: "#fff" },
-  meta: { name: "Meta", color: "#0b84ff", mark: "M", ink: "#fff" },
-  moonshot: { name: "Moonshot AI", color: "#1677ff", mark: "K", ink: "#fff" },
-  alibaba: { name: "Alibaba", color: "#ff6a00", mark: "Q", ink: "#fff" },
-  xai: { name: "xAI", color: "#7a6fd6", mark: "x", ink: "#fff" },
-  deepseek: { name: "DeepSeek", color: "#2f46e0", mark: "D", ink: "#fff" },
-  tencent: { name: "Tencent", color: "#4fb3ff", mark: "T", ink: "#fff" },
-  zhipu: { name: "Z.ai", color: "#2b7bf2", mark: "Z", ink: "#fff" },
-  mistral: { name: "Mistral", color: "#f03c12", mark: "M", ink: "#fff" },
-  xiaomi: { name: "Xiaomi", color: "#ff6900", mark: "mi", ink: "#fff" },
-  nvidia: { name: "NVIDIA", color: "#76b900", mark: "N", ink: "#fff" },
+  anthropic: {
+    name: "Anthropic",
+    color: "#c8775c",
+    mark: "A",
+    ink: "#fff",
+    logo: "/providers/anthropic.svg",
+  },
+  openai: {
+    name: "OpenAI",
+    color: "#232323",
+    mark: "O",
+    ink: "#fff",
+    logo: "/providers/openai.svg",
+  },
+  google: {
+    name: "Google",
+    color: "#34a853",
+    mark: "G",
+    ink: "#fff",
+    logo: "/providers/google.svg",
+  },
+  meta: {
+    name: "Meta",
+    color: "#0b84ff",
+    mark: "M",
+    ink: "#fff",
+    logo: "/providers/meta.svg",
+  },
+  moonshot: {
+    name: "Moonshot AI",
+    color: "#1677ff",
+    mark: "K",
+    ink: "#fff",
+    logo: "/providers/moonshot.svg",
+  },
+  alibaba: {
+    name: "Alibaba",
+    color: "#ff6a00",
+    mark: "Q",
+    ink: "#fff",
+    logo: "/providers/alibaba.svg",
+  },
+  xai: {
+    name: "xAI",
+    color: "#7a6fd6",
+    mark: "x",
+    ink: "#fff",
+    logo: "/providers/xai.svg",
+  },
+  deepseek: {
+    name: "DeepSeek",
+    color: "#2f46e0",
+    mark: "D",
+    ink: "#fff",
+    logo: "/providers/deepseek.svg",
+  },
+  tencent: {
+    name: "Tencent",
+    color: "#4fb3ff",
+    mark: "T",
+    ink: "#fff",
+    logo: "/providers/tencent.svg",
+  },
+  zhipu: {
+    name: "Z.ai",
+    color: "#2b7bf2",
+    mark: "Z",
+    ink: "#fff",
+    logo: "/providers/zhipu.svg",
+  },
+  mistral: {
+    name: "Mistral",
+    color: "#f03c12",
+    mark: "M",
+    ink: "#fff",
+    logo: "/providers/mistral.svg",
+  },
+  xiaomi: {
+    name: "Xiaomi",
+    color: "#ff6900",
+    mark: "mi",
+    ink: "#fff",
+    logo: "/providers/xiaomi.svg",
+  },
+  nvidia: {
+    name: "NVIDIA",
+    color: "#76b900",
+    mark: "N",
+    ink: "#fff",
+    logo: "/providers/nvidia.svg",
+  },
   unknown: { name: "Not recorded", color: "#8a8f98", mark: "?", ink: "#fff" },
 };
 

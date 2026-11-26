@@ -10,3 +10,9 @@
   line-height: 1;
   user-select: none;
 }
+
+.logo {
+  display: block;
+  flex: none;
+  object-fit: contain;
+}

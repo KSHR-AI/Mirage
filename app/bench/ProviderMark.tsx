@@ -8,7 +8,20 @@ export function ProviderMark({
   provider: ProviderKey;
   size?: number;
 }) {
-  const { name, color, ink, mark } = PROVIDERS[provider];
+  const { name, color, ink, mark, logo } = PROVIDERS[provider];
+  if (logo) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- tiny static SVG
+      <img
+        className={styles.logo}
+        src={logo}
+        width={size}
+        height={size}
+        alt={name}
+        title={name}
+      />
+    );
+  }
   return (
     <span
       className={styles.mark}
