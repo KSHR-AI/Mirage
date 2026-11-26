@@ -9,6 +9,7 @@ import { SiteFooter, SiteHeader } from "../site/SiteChrome";
 import { ArenaMatch, type ArenaSide } from "./ArenaMatch";
 import { INITIAL_RATING, K_FACTOR } from "./elo";
 import {
+  arenaPlayPath,
   findMatch,
   getContenders,
   matchPath,
@@ -17,10 +18,7 @@ import {
 } from "./match";
 import { loadRatings } from "./ratings";
 import type { Contender } from "./match";
-import {
-  getDeploymentEntryUrl,
-  getPresentationCoverUrl,
-} from "../registry/urls";
+import { getPresentationCoverUrl } from "../registry/urls";
 import { getVoteSecret, MIN_VIEW_MS } from "./security";
 import pageStyles from "../bench/Page.module.css";
 import styles from "./Arena.module.css";
@@ -98,7 +96,7 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
         ) : (
           <ArenaMatch
             key={`${match[0].game.id}|${match[1].game.id}|${token ?? ""}`}
-            sides={[toSide(match[0]), toSide(match[1])]}
+            sides={[toSide(match[0], match), toSide(match[1], match)]}
             token={token}
             minViewMs={MIN_VIEW_MS}
             closedNotice={
@@ -114,16 +112,18 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
   );
 }
 
-/** What the client needs to play one side; who built it shows after a vote. */
-function toSide({ game, entry }: Contender): ArenaSide {
+/** What the client needs to show one side; who built it shows after a vote. */
+function toSide(
+  { game, entry }: Contender,
+  match: readonly [Contender, Contender],
+): ArenaSide {
   return {
     runId: game.id,
     title: game.title,
     label: getEntryLabel(entry),
     provider: entry.provider,
-    entryUrl: getDeploymentEntryUrl(game),
+    playHref: arenaPlayPath(game, match),
     coverUrl: getPresentationCoverUrl(game),
     controls: game.presentation.controls,
-    protocolVersion: game.presentation.protocolVersion,
   };
 }
