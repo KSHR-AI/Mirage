@@ -5,7 +5,7 @@ import { MemoryStore } from "./store";
 import { castVote, VOTER_LIMIT_PER_HOUR } from "./vote";
 
 const SECRET = "test-secret-that-is-at-least-32-characters";
-const A = "grand-theft-astra";
+const A = "grand-theft-astra-002";
 const B = "port-solano-001";
 const C = "crosstown";
 const VOTER = "11111111-2222-3333-4444-555555555555";

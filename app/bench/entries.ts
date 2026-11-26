@@ -145,13 +145,12 @@ export type Entry = {
 
 export const ENTRIES: readonly Entry[] = [
   {
-    // The ID predates the second model; votes already reference it.
-    id: "gpt-6-2-astra--codex",
+    id: "gpt-6-astra-gpt-6-2-astra--codex",
     models: ["GPT-6-Astra", "GPT-6.2-Astra"],
     harness: "Codex",
     provider: "openai",
     access: "public-api",
-    runIds: ["grand-theft-astra"],
+    runIds: ["grand-theft-astra-002"],
   },
   {
     id: "claude-opus-5-5--claude-code",
