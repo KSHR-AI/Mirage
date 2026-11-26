@@ -1,3 +1,5 @@
+import { getModelLabel } from "../registry/evidence";
+import type { PublishedGame } from "../registry/schema";
 /**
  * MirageML Bench entries: the model + harness pairs behind the published runs.
  *
@@ -218,6 +220,15 @@ export function getEntryForRun(runId: string) {
 /** Joins a run's models, such as "GPT-6-Astra + GPT-6.2-Astra". */
 export function getModelsLabel(entry: Pick<Entry, "models">) {
   return entry.models.join(" + ");
+}
+
+/**
+ * The model names to show for a run: the attributed names when the run is on
+ * the board, else what its record states.
+ */
+export function getRunModelsLabel(game: Pick<PublishedGame, "id" | "model">) {
+  const entry = getEntryForRun(game.id);
+  return entry ? getModelsLabel(entry) : getModelLabel(game);
 }
 
 export function getEntryLabel(entry: Pick<Entry, "models" | "harness">) {

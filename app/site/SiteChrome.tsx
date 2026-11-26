@@ -1,23 +1,24 @@
 import { GithubLogo, PaperPlaneTilt } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
-import { REPOSITORY_URL, SUBMIT_PROMPT_URL } from "./links";
+import { SUBMIT_HASH, SubmitDialog } from "../gallery/SubmitDialog";
+import { loadSubmitPrompt } from "../registry/load-submit-prompt";
+import { REPOSITORY_URL } from "./links";
 import styles from "./SiteChrome.module.css";
 
 /**
- * `onBoard` links to sections of the board. Elsewhere, Submit opens the agent
- * prompt on GitHub because the page has no submit section.
+ * `onBoard` links to sections of the board. Submit opens the agent-prompt
+ * dialog in place on every page, so the header carries the dialog with it.
  */
 export type SiteSection = "leaderboard" | "arena";
 
-export function SiteHeader({
+export async function SiteHeader({
   onBoard = false,
-  submitHref = SUBMIT_PROMPT_URL,
   current,
 }: {
   onBoard?: boolean;
-  submitHref?: string;
   current?: SiteSection;
 }) {
+  const submitPrompt = await loadSubmitPrompt();
   const sections: { key: SiteSection; label: string; href: string }[] = [
     {
       key: "leaderboard",
@@ -28,54 +29,57 @@ export function SiteHeader({
   ];
 
   return (
-    <header className={styles.header}>
-      <div className={styles.headerInner}>
-        <Link
-          href="/"
-          className={styles.wordmark}
-          aria-label="MirageML Bench home"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.png" alt="" />
-          <span>MirageML Bench</span>
-        </Link>
-        <nav className={styles.sections} aria-label="Site">
-          {sections.map((section) => (
-            <Link
-              key={section.key}
-              href={section.href}
-              aria-current={current === section.key ? "page" : undefined}
+    <>
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <Link
+            href="/"
+            className={styles.wordmark}
+            aria-label="MirageML Bench home"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon.png" alt="" />
+            <span>MirageML Bench</span>
+          </Link>
+          <nav className={styles.sections} aria-label="Site">
+            {sections.map((section) => (
+              <Link
+                key={section.key}
+                href={section.href}
+                aria-current={current === section.key ? "page" : undefined}
+              >
+                {section.label}
+                {section.key === "arena" ? (
+                  <span className={styles.voteBadge}>Vote</span>
+                ) : null}
+              </Link>
+            ))}
+          </nav>
+          <div className={styles.actions}>
+            <a
+              className={styles.iconLink}
+              href={REPOSITORY_URL}
+              target="_blank"
+              rel="noreferrer"
             >
-              {section.label}
-              {section.key === "arena" ? (
-                <span className={styles.voteBadge}>Vote</span>
-              ) : null}
-            </Link>
-          ))}
-        </nav>
-        <div className={styles.actions}>
-          <a
-            className={styles.iconLink}
-            href={REPOSITORY_URL}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <GithubLogo aria-hidden="true" weight="fill" />
-            <span>GitHub</span>
-          </a>
-          <a
-            className={styles.submit}
-            href={submitHref}
-            aria-label="Submit a run"
-          >
-            <PaperPlaneTilt aria-hidden="true" weight="bold" />
-            <span>
-              Submit<span className={styles.submitLong}>&nbsp;a run</span>
-            </span>
-          </a>
+              <GithubLogo aria-hidden="true" weight="fill" />
+              <span>GitHub</span>
+            </a>
+            <a
+              className={styles.submit}
+              href={SUBMIT_HASH}
+              aria-label="Submit a run"
+            >
+              <PaperPlaneTilt aria-hidden="true" weight="bold" />
+              <span>
+                Submit<span className={styles.submitLong}>&nbsp;a run</span>
+              </span>
+            </a>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+      <SubmitDialog prompt={submitPrompt} />
+    </>
   );
 }
 
@@ -92,7 +96,7 @@ export function SiteFooter() {
             <GithubLogo aria-hidden="true" weight="fill" />
             GitHub
           </a>
-          <a href={SUBMIT_PROMPT_URL} target="_blank" rel="noreferrer">
+          <a href={SUBMIT_HASH}>
             <PaperPlaneTilt aria-hidden="true" weight="bold" />
             Submit
           </a>

@@ -7,7 +7,7 @@ import {
 import Link from "next/link";
 import { AGENT_PROMPT_URL } from "../site/links";
 import { SiteFooter, SiteHeader } from "../site/SiteChrome";
-import { SUBMIT_HASH, SubmitDialog } from "./SubmitDialog";
+import { SUBMIT_HASH } from "./SubmitDialog";
 import styles from "./RegistryNotice.module.css";
 
 export type RegistryNoticeKind = "empty" | "unavailable";
@@ -15,17 +15,15 @@ export type RegistryNoticeKind = "empty" | "unavailable";
 export function RegistryNotice({
   kind,
   message,
-  submitPrompt = null,
 }: {
   kind: RegistryNoticeKind;
   message: string;
-  submitPrompt?: string | null;
 }) {
   const isEmpty = kind === "empty";
 
   return (
     <div className={styles.page} data-registry-state={kind}>
-      <SiteHeader submitHref={isEmpty ? SUBMIT_HASH : undefined} />
+      <SiteHeader />
       <main className={styles.main}>
         <article
           className={styles.card}
@@ -76,7 +74,6 @@ export function RegistryNotice({
         </article>
       </main>
       <SiteFooter />
-      {isEmpty ? <SubmitDialog prompt={submitPrompt} /> : null}
     </div>
   );
 }
