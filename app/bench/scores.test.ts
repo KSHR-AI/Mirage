@@ -47,6 +47,13 @@ describe("bench scores", () => {
     expect(new Set(attributed).size).toBe(attributed.length);
   });
 
+  it("lists only pairs with a published run", () => {
+    for (const entry of ENTRIES) {
+      expect(entry.runIds.length).toBeGreaterThan(0);
+      for (const runId of entry.runIds) expect(submissionIds).toContain(runId);
+    }
+  });
+
   it("ranks highest first", () => {
     const ranked = rankEntries(ENTRIES, "driving");
     for (let i = 1; i < ranked.length; i += 1) {
