@@ -39,7 +39,6 @@ export function SiteHeader({
           <img src="/icon.png" alt="" />
           <span>MirageML Bench</span>
         </Link>
-        <span className={styles.task}>GTA in SF</span>
         <nav className={styles.sections} aria-label="Site">
           {sections.map((section) => (
             <Link
