@@ -4,7 +4,7 @@ import { INITIAL_RATING, K_FACTOR } from "./arena/elo";
 import { loadRatings } from "./arena/ratings";
 import { BenchBoard, type RunLink } from "./bench/BenchBoard";
 import { ProviderMark } from "./bench/ProviderMark";
-import { BENCH_RUNS, getEntryForRun, getEntryLabel } from "./bench/entries";
+import { getEntryForRun, getEntryLabel } from "./bench/entries";
 import { SubmitDialog, SUBMIT_HASH } from "./gallery/SubmitDialog";
 import { GameCover } from "./gallery/RunParts";
 import { formatBuildDate, getModelLabel } from "./registry/evidence";
@@ -129,8 +129,8 @@ export default async function Page() {
           <div className={styles.sectionHead}>
             <h2 id="methodology-title">Methodology</h2>
             <p>
-              The leaderboard ranks all {BENCH_RUNS.length} runs by Arena Elo,
-              each labelled with the model and harness that built it. In the{" "}
+              The leaderboard ranks every published run by Arena Elo, each
+              labelled with the model and harness that built it. In the{" "}
               <Link href="/arena">arena</Link>, a visitor plays two runs and
               votes for one, or calls a tie. Each vote is a standard Elo update
               with K = {K_FACTOR}: the winner takes points from the loser, more
@@ -148,8 +148,8 @@ export default async function Page() {
               <p>
                 The same model scores differently in different agents: tools,
                 context management, and browser access change what ships. Every
-                entry names both, and a model appears once per harness it was
-                run in.
+                run names both, so one model can appear several times: once per
+                run, in each harness it was tried in.
               </p>
             </div>
             <a className={styles.primaryButton} href={SUBMIT_HASH}>
