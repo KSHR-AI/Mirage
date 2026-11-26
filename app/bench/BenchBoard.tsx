@@ -5,12 +5,14 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowUpRight,
+  CaretDown,
   CaretUpDown,
   Check,
   LinkSimple,
   MagnifyingGlass,
   Play,
   Scales,
+  Shuffle,
   SlidersHorizontal,
   Table,
 } from "@phosphor-icons/react";
@@ -159,6 +161,10 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
                 Vote in the Arena
                 <ArrowRight aria-hidden="true" weight="bold" />
               </Link>
+              <Link href="/play" className={styles.randomButton}>
+                <Shuffle aria-hidden="true" weight="bold" />
+                Play a random run
+              </Link>
               <span>Play two anonymous runs, pick the better one.</span>
             </div>
           </div>
@@ -169,7 +175,7 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
               <a
                 className={styles.iconButton}
                 href="#table"
-                aria-label="Jump to table"
+                aria-label="Show the ranking table"
               >
                 <Table aria-hidden="true" />
               </a>
@@ -196,10 +202,6 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
         </div>
 
         <div className={styles.legendRow}>
-          <span className={styles.legend}>
-            <i className={styles.checker} aria-hidden="true" />
-            No publicly available API
-          </span>
           <span className={styles.brand}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icon.png" alt="" />
@@ -562,6 +564,24 @@ function ScoreTable({
 
   const rankById = useMemo(() => ratingRanks(ALL_IDS, ratings), [ratings]);
 
+  // Collapsed by default; a link to the table or one of its rows opens it.
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const reveal = () => {
+      const { hash } = window.location;
+      if (hash !== "#table" && !hash.startsWith("#row-")) return;
+      setOpen(true);
+      requestAnimationFrame(() =>
+        document.getElementById(hash.slice(1))?.scrollIntoView({
+          block: hash === "#table" ? "start" : "center",
+        }),
+      );
+    };
+    reveal();
+    window.addEventListener("hashchange", reveal);
+    return () => window.removeEventListener("hashchange", reveal);
+  }, []);
+
   const rows = useMemo(() => {
     const value = (entry: Row): number | string => {
       if (sort.key === "label") return rowLabel(entry).toLowerCase();
@@ -620,7 +640,20 @@ function ScoreTable({
   };
 
   return (
-    <div className={styles.tableBlock} id="table">
+    <details
+      className={styles.tableBlock}
+      id="table"
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary className={styles.tableSummary}>
+        <CaretDown aria-hidden="true" weight="bold" />
+        Ranking table
+        <span>
+          {entries.length} run{entries.length === 1 ? "" : "s"} · rank, Elo,
+          votes
+        </span>
+      </summary>
       <p className={styles.tableNote}>
         Rank is across all {ALL_IDS.length} runs; runs with the same rating
         share a rank. Few votes means a rating can still move a lot.
@@ -635,6 +668,9 @@ function ScoreTable({
               {header("label", "Model · Harness · Run")}
               {header("elo", "Elo", "Arena Elo from head-to-head votes")}
               {header("votes", "Votes")}
+              <th scope="col" className={styles.playCell}>
+                <span className={styles.srOnly}>Play</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -668,11 +704,23 @@ function ScoreTable({
                   <b>{ratingOf(ratings, entry).rating}</b>
                 </td>
                 <td className={styles.num}>{ratingOf(ratings, entry).votes}</td>
+                <td className={styles.playCell}>
+                  {entry.published ? (
+                    <Link
+                      href={`/play/${entry.id}`}
+                      className={styles.playButton}
+                      aria-label={`Play ${entry.title}`}
+                    >
+                      <Play aria-hidden="true" weight="fill" />
+                      <span>Play</span>
+                    </Link>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </div>
+    </details>
   );
 }

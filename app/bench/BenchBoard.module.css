@@ -290,24 +290,8 @@
   margin: 22px 0 6px;
 }
 
-.legend {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--ink);
-  font-size: 15px;
-}
-
 .legendRow .brand {
   margin-left: auto;
-}
-
-.checker {
-  width: 22px;
-  height: 16px;
-  border-radius: 2px;
-  background: repeating-conic-gradient(#c9cbd0 0 25%, #eceef0 0 50%) 0 0 / 8px
-    8px;
 }
 
 .brand {
@@ -538,8 +522,50 @@
 }
 
 .tableBlock {
-  margin-top: 28px;
+  margin-top: 24px;
+  border-top: 1px solid var(--rule);
   scroll-margin-top: 24px;
+}
+
+.tableSummary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0 4px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.tableSummary::-webkit-details-marker {
+  display: none;
+}
+
+.tableSummary svg {
+  width: 16px;
+  height: 16px;
+  transform: rotate(-90deg);
+  transition: transform 160ms ease;
+}
+
+.tableBlock[open] .tableSummary svg {
+  transform: none;
+}
+
+.tableSummary span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.tableSummary:hover span {
+  color: var(--soft-ink);
+}
+
+.tableBlock[open] .tableNote {
+  margin-top: 8px;
 }
 
 .tableNote {
@@ -682,6 +708,67 @@
   height: 16px;
 }
 
+.randomButton {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 10px;
+  padding: 0 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.randomButton:hover {
+  background: var(--surface-raised);
+}
+
+.randomButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.playCell {
+  width: 1%;
+}
+
+.playButton {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.playButton:hover {
+  border-color: var(--ink);
+}
+
+.playButton svg {
+  width: 12px;
+  height: 12px;
+}
+
+.srOnly {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .arenaCta span {
   color: var(--muted);
   font-size: 13px;
@@ -739,6 +826,14 @@
   /* Keep the table to one screen. */
   .table {
     min-width: 0;
+  }
+
+  .playButton {
+    padding: 0 10px;
+  }
+
+  .playButton span {
+    display: none;
   }
 
   .card {
@@ -869,10 +964,6 @@
 
   .legendRow {
     align-items: flex-start;
-  }
-
-  .legend {
-    font-size: 13px;
   }
 
   .brand {
