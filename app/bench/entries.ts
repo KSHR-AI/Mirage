@@ -110,14 +110,6 @@ export const ENTRIES: readonly Entry[] = [
     access: "public-api",
     runIds: ["not-gta-6-seaplane"],
   },
-  {
-    id: "not-recorded--not-recorded",
-    model: "Model not recorded",
-    harness: "Harness not recorded",
-    provider: "unknown",
-    access: "public-api",
-    runIds: ["slop-newyork"],
-  },
 ];
 
 export function getEntry(id: string) {
