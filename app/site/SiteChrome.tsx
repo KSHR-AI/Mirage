@@ -82,8 +82,8 @@ export function SiteFooter() {
     <footer className={styles.footer}>
       <div className={styles.footerInner}>
         <p>
-          “GTA in SF” names a genre-level challenge. MirageML Bench is not
-          affiliated with Rockstar Games or Take-Two Interactive.
+          “GTA” names a genre-level challenge. MirageML Bench is not affiliated
+          with Rockstar Games or Take-Two Interactive.
         </p>
         <nav aria-label="Project links">
           <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">

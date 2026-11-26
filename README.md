@@ -4,7 +4,7 @@
 [![CI](https://github.com/KSHR-AI/Mirage/actions/workflows/ci.yml/badge.svg)](https://github.com/KSHR-AI/Mirage/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-## Can a coding model build GTA in San Francisco?
+## Can a coding model build GTA?
 
 MirageML Bench is an open, playable vibe benchmark organized around that
 question. Every accepted game is a run: play it and judge how far the model
@@ -20,7 +20,7 @@ design, performance, debugging, and product judgment to work together. Progress
 is also legible: anyone can play a run and decide whether the car handles, the
 city feels alive, and the game holds together.
 
-Here, “GTA in San Francisco” names the genre-level challenge. Runs must use
+Here, “GTA” names the genre-level challenge. Runs must use
 original or properly licensed code and assets. Mirage is not a reproduction of
 Grand Theft Auto and is not affiliated with Rockstar Games or Take-Two
 Interactive.

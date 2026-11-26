@@ -15,7 +15,7 @@ screenshots, prompts, tests, assets, worktrees, build output, or caches.
 
 The benchmark question is:
 
-“Can a coding model build GTA in San Francisco?”
+“Can a coding model build GTA?”
 
 Build the most complete original browser-based open-world driving game you can.
 “GTA” describes the genre-level ambition; it is not permission to reproduce
@@ -28,7 +28,7 @@ Product priorities:
 
 - Let the player begin playing quickly.
 - Make driving controllable, responsive, and worth practicing.
-- Create a recognizable San Francisco-inspired world to explore.
+- Create a city that feels distinct and worth exploring.
 - Include at least one objective or mission loop with clear success or failure.
 - Prefer interacting systems and finished game feel over a long feature list.
 - Handle restart, resize, loading, and runtime failure cleanly.

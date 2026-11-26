@@ -16,9 +16,9 @@ import "@fontsource/source-serif-4/600.css";
 import "./globals.css";
 
 const SITE_METADATA = {
-  title: "MirageML Bench — Can coding models build GTA in SF?",
+  title: "MirageML Bench — Can coding models build GTA?",
   description:
-    "A vibe benchmark for coding models: every run is a game a model built toward GTA in San Francisco. Play them and judge for yourself.",
+    "A vibe benchmark for coding models: every run is a game a model built toward GTA. Play them and judge for yourself.",
 };
 
 export async function generateMetadata(): Promise<Metadata> {

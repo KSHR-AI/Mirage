@@ -8,8 +8,8 @@ type ShareableGame = Pick<PublishedGame, "id" | "title" | "model">;
 export function getShareText(game: ShareableGame) {
   const model = getRecordedModel(game);
   return model
-    ? `Can a coding model build GTA in SF? ${model} shipped ${game.title}. Play it in your browser:`
-    : `Can a coding model build GTA in SF? Play ${game.title} in your browser:`;
+    ? `Can a coding model build GTA? ${model} shipped ${game.title}. Play it in your browser:`
+    : `Can a coding model build GTA? Play ${game.title} in your browser:`;
 }
 
 export function getShareUrl(origin: string, game: Pick<PublishedGame, "id">) {
