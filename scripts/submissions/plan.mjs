@@ -135,7 +135,9 @@ async function loadChangedSubmissions(base, head, cwd) {
       "diff",
       "--name-status",
       "-z",
-      "--find-renames",
+      // A moved record is a takedown plus a new record: each half is
+      // checked on its own below, and the new ID stays bound to its path.
+      "--no-renames",
       base,
       head,
       "--",
