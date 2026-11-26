@@ -26,10 +26,10 @@
   },
   "provenance": {
     "builtOn": "2026-10-28",
-    "model": "Claude Opus 5.5",
+    "model": "unknown",
     "modelSnapshot": null,
     "reasoning": null,
-    "harness": "Claude Code (reported by the MirageML maintainer)",
+    "harness": "unknown",
     "tools": [
       "three.js WebGPURenderer and TSL (observed in deployment)",
       "Other tools not recorded"
@@ -40,7 +40,7 @@
     "prompt": {
       "status": "not-recorded",
       "text": null,
-      "note": "The model and harness were reported by the MirageML maintainer; the public source and commit history name neither. The prompt, exact snapshot, reasoning level, and agent transcript are not recorded."
+      "note": "The public source and commit history name no model, harness, prompt, or agent transcript."
     }
   },
   "licenses": {
