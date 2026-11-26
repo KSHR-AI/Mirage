@@ -1,4 +1,4 @@
-import { PROVIDERS, type ProviderKey } from "./scores";
+import { PROVIDERS, type ProviderKey } from "./entries";
 import styles from "./ProviderMark.module.css";
 
 export function ProviderMark({

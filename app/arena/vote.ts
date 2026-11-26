@@ -1,5 +1,5 @@
-import { getEntry, getRunScore } from "../bench/scores";
-import { isOutcome, seedRating, type Outcome } from "./elo";
+import { getEntryForRun } from "../bench/entries";
+import { isOutcome, type Outcome } from "./elo";
 import { pairKey, verifyMatchup } from "./security";
 import type { VoteStore } from "./store";
 
@@ -38,8 +38,7 @@ export type VoteResponse =
 
 function runEntry(runId: unknown) {
   if (typeof runId !== "string" || runId.length > 100) return null;
-  const score = getRunScore(runId);
-  const entry = score ? getEntry(score.entryId) : null;
+  const entry = getEntryForRun(runId);
   return entry ? { runId, entry } : null;
 }
 
@@ -94,8 +93,6 @@ export async function castVote(
   const result = await store.recordVote({
     entryA: a.entry.id,
     entryB: b.entry.id,
-    seedA: seedRating(a.entry.index),
-    seedB: seedRating(b.entry.index),
     outcome: request.outcome,
   });
 

@@ -17,8 +17,8 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  isProvisional,
-  PROVISIONAL_VOTES,
+  INITIAL_RATING,
+  ratingRanks,
   ratingSpread,
   type Rating,
 } from "../arena/elo";
@@ -27,17 +27,11 @@ import { ProviderMark } from "./ProviderMark";
 import {
   ENTRIES,
   HARNESSES,
-  INDEX_VERSION,
-  METRICS,
   PROVIDERS,
   getEntryLabel,
-  getScore,
-  getScoreLabel,
-  rankEntries,
   type Entry,
   type ProviderKey,
-  type ScoreKey,
-} from "./scores";
+} from "./entries";
 import styles from "./BenchBoard.module.css";
 
 export type RunLink = { id: string; title: string };
@@ -49,20 +43,11 @@ type Ratings = Readonly<Record<string, Rating>>;
 type Props = {
   /** Published runs by ID; scored runs missing here are not linked. */
   runs: Readonly<Record<string, RunLink>>;
-  /** Arena Elo by entry ID. Entries without votes carry their seed. */
+  /** Arena Elo by entry ID. Entries without votes sit at the initial rating. */
   ratings: Ratings;
   totalVotes: number;
   arenaStatus: ArenaStatus;
 };
-
-/** What the chart and table can rank by: Arena Elo or a seed score. */
-type BoardKey = "elo" | ScoreKey;
-
-const SCORE_TABS: readonly { key: BoardKey; label: string }[] = [
-  { key: "elo", label: "Arena Elo" },
-  { key: "index", label: "Seed index" },
-  ...METRICS.map((metric) => ({ key: metric.key, label: metric.label })),
-];
 
 const PROVIDER_KEYS = [
   ...new Set(ENTRIES.map((entry) => entry.provider)),
@@ -71,28 +56,19 @@ const PROVIDER_KEYS = [
 const ALL_IDS = ENTRIES.map((entry) => entry.id);
 
 function ratingOf(ratings: Ratings, entry: Entry): Rating {
-  return ratings[entry.id] ?? { rating: 0, votes: 0, seed: 0 };
+  return ratings[entry.id] ?? { rating: INITIAL_RATING, votes: 0 };
 }
 
-function boardValue(ratings: Ratings, entry: Entry, key: BoardKey) {
-  return key === "elo" ? ratingOf(ratings, entry).rating : getScore(entry, key);
-}
-
-function boardLabel(key: BoardKey) {
-  return key === "elo" ? "Arena Elo" : getScoreLabel(key);
-}
-
-/** Entries ranked by `key`, highest first; ties fall back to the seed index. */
-function rankBy(ratings: Ratings, entries: readonly Entry[], key: BoardKey) {
+/** Entries by Arena Elo, highest first; equal ratings sort by name. */
+function rankByElo(ratings: Ratings, entries: readonly Entry[]) {
   return [...entries].sort(
     (a, b) =>
-      boardValue(ratings, b, key) - boardValue(ratings, a, key) ||
-      b.index - a.index,
+      ratingOf(ratings, b).rating - ratingOf(ratings, a).rating ||
+      getEntryLabel(a).localeCompare(getEntryLabel(b)),
   );
 }
 
 export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
-  const [metric, setMetric] = useState<BoardKey>("elo");
   const [selected, setSelected] = useState<ReadonlySet<string>>(
     () => new Set(ALL_IDS),
   );
@@ -117,12 +93,11 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
 
   const visible = useMemo(
     () =>
-      rankBy(
+      rankByElo(
         ratings,
         filtered.filter((entry) => selected.has(entry.id)),
-        metric,
       ),
-    [filtered, selected, metric, ratings],
+    [filtered, selected, ratings],
   );
 
   const filterCount = providers.size + harnesses.size + (publicOnly ? 1 : 0);
@@ -150,18 +125,17 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
               Each entry is a model running inside a coding harness on one task:
               build GTA in San Francisco as a browser game, from an empty
               repository to a deployed build. Pairs are ranked by Arena Elo, set
-              by people <Link href="/arena">playing two runs and voting</Link>{" "}
-              for the better one.
+              only by people{" "}
+              <Link href="/arena">playing two runs and voting</Link> for the
+              better one.
             </p>
             <p className={styles.seedNote}>
-              Ratings start from maintainer seed scores (Index {INDEX_VERSION}:{" "}
-              {METRICS.map((m) => m.label).join(", ")}) and move with every
-              vote.{" "}
+              Every pair starts at {INITIAL_RATING}.{" "}
               {arenaStatus === "open"
                 ? `${totalVotes.toLocaleString("en-US")} vote${totalVotes === 1 ? "" : "s"} so far.`
                 : arenaStatus === "error"
-                  ? "The vote store is not responding, so seed ratings are shown."
-                  : "Voting is not open yet, so every rating is still its seed."}
+                  ? "The vote store is not responding right now."
+                  : "Voting is not open yet."}
             </p>
             <div className={styles.arenaCta}>
               <Link href="/arena" className={styles.arenaButton}>
@@ -204,32 +178,11 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
           </div>
         </div>
 
-        <div className={styles.tabs} role="tablist" aria-label="Score shown">
-          {SCORE_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              role="tab"
-              aria-selected={metric === tab.key}
-              className={styles.tab}
-              onClick={() => setMetric(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
         <div className={styles.legendRow}>
           <span className={styles.legend}>
             <i className={styles.checker} aria-hidden="true" />
             No publicly available API
           </span>
-          {metric === "elo" ? (
-            <span className={styles.legend}>
-              <i className={styles.provisionalSwatch} aria-hidden="true" />
-              Provisional: fewer than {PROVISIONAL_VOTES} votes
-            </span>
-          ) : null}
           <span className={styles.brand}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icon.png" alt="" />
@@ -237,14 +190,10 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
           </span>
         </div>
 
-        <BarChart entries={visible} metric={metric} ratings={ratings} />
+        <BarChart entries={visible} ratings={ratings} />
 
         <div className={styles.cardFoot}>
-          <span>
-            {metric === "elo"
-              ? "Arena Elo: head-to-head votes, starting from seed scores"
-              : `${getScoreLabel(metric)} (maintainer seed score)`}
-          </span>
+          <span>Arena Elo from head-to-head votes</span>
           <span>
             Higher is better · {visible.length} of {ENTRIES.length} model +
             harness pairs
@@ -259,11 +208,9 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
 
 function BarChart({
   entries,
-  metric,
   ratings,
 }: {
   entries: readonly Entry[];
-  metric: BoardKey;
   ratings: Ratings;
 }) {
   if (entries.length === 0) {
@@ -274,15 +221,10 @@ function BarChart({
     );
   }
 
-  const values = entries.map((entry) => boardValue(ratings, entry, metric));
-  const top = Math.max(...values);
-  // Elo has no natural zero, so its bars start from a floor below the lowest.
-  const floor =
-    metric === "elo" ? Math.floor((Math.min(...values) - 100) / 100) * 100 : 0;
-  const ceiling =
-    metric === "elo"
-      ? Math.ceil((top + 50) / 100) * 100
-      : Math.max(20, Math.ceil((top * 1.12) / 10) * 10);
+  const values = entries.map((entry) => ratingOf(ratings, entry).rating);
+  // Elo has no natural zero, so bars start from a floor below the lowest.
+  const floor = Math.floor((Math.min(...values) - 100) / 100) * 100;
+  const ceiling = Math.ceil((Math.max(...values) + 50) / 100) * 100;
 
   return (
     <div className={styles.chartScroll}>
@@ -297,28 +239,26 @@ function BarChart({
         </div>
         <ol
           className={styles.columns}
-          aria-label={`${boardLabel(metric)} by model and harness`}
+          aria-label="Arena Elo by model and harness"
         >
           {entries.map((entry) => {
-            const value = boardValue(ratings, entry, metric);
             const rating = ratingOf(ratings, entry);
-            const provisional = metric === "elo" && isProvisional(rating);
+            const value = rating.rating;
             const provider = PROVIDERS[entry.provider];
             return (
               <li key={entry.id} className={styles.column}>
                 <a
                   href={`#row-${entry.id}`}
                   className={styles.barSlot}
-                  aria-label={`${getEntryLabel(entry)}: ${value}${provisional ? " (provisional)" : ""}`}
+                  aria-label={`${getEntryLabel(entry)}: ${value} Elo, ${rating.votes} vote${rating.votes === 1 ? "" : "s"}`}
                 >
                   <span
                     className={styles.bar}
                     data-access={entry.access}
-                    data-provisional={provisional || undefined}
-                    data-long-values={metric === "elo" || undefined}
+                    data-long-values
                     style={
                       {
-                        height: `${((value - floor) / (ceiling - floor)) * 100}%`,
+                        "--pct": `${((value - floor) / (ceiling - floor)) * 100}%`,
                         "--bar": provider.color,
                       } as React.CSSProperties
                     }
@@ -335,14 +275,6 @@ function BarChart({
                       </b>
                       <span>Votes</span>
                       <b>{rating.votes}</b>
-                      <span>Seed index</span>
-                      <b>{entry.index}</b>
-                      {METRICS.map((m) => (
-                        <span key={m.key} className={styles.tipPair}>
-                          <span>{m.short}</span>
-                          <b>{entry.scores[m.key]}</b>
-                        </span>
-                      ))}
                     </span>
                   </span>
                 </a>
@@ -398,7 +330,9 @@ function EntryPicker({
   const { open, setOpen, ref } = usePopover();
   const [query, setQuery] = useState("");
   const shown = filtered.filter((entry) => selected.has(entry.id)).length;
-  const ranked = rankEntries(ENTRIES);
+  const ranked = [...ENTRIES].sort((a, b) =>
+    getEntryLabel(a).localeCompare(getEntryLabel(b)),
+  );
   const needle = query.trim().toLowerCase();
   const matches = needle
     ? ranked.filter((entry) =>
@@ -446,14 +380,6 @@ function EntryPicker({
             <button type="button" onClick={() => setSelected(new Set(ALL_IDS))}>
               All
             </button>
-            <button
-              type="button"
-              onClick={() =>
-                setSelected(new Set(ranked.slice(0, 10).map((e) => e.id)))
-              }
-            >
-              Top 10
-            </button>
             <button type="button" onClick={() => setSelected(new Set())}>
               None
             </button>
@@ -472,7 +398,6 @@ function EntryPicker({
                     {entry.model}
                     <small>{entry.harness}</small>
                   </span>
-                  <b>{entry.index}</b>
                 </label>
               </li>
             ))}
@@ -608,7 +533,7 @@ function CopyLinkButton() {
   );
 }
 
-type SortKey = BoardKey | "label" | "votes" | "trials" | "buildHours";
+type SortKey = "elo" | "label" | "votes";
 
 function ScoreTable({
   entries,
@@ -624,27 +549,22 @@ function ScoreTable({
     dir: "desc",
   });
 
-  const rankById = useMemo(() => {
-    const ranks = new Map<string, number>();
-    rankBy(ratings, ENTRIES, "elo").forEach((entry, i) =>
-      ranks.set(entry.id, i + 1),
-    );
-    return ranks;
-  }, [ratings]);
+  const rankById = useMemo(() => ratingRanks(ALL_IDS, ratings), [ratings]);
 
   const rows = useMemo(() => {
     const value = (entry: Entry): number | string => {
       if (sort.key === "label") return getEntryLabel(entry).toLowerCase();
-      if (sort.key === "trials") return entry.trials;
-      if (sort.key === "buildHours") return entry.buildHours;
       if (sort.key === "votes") return ratingOf(ratings, entry).votes;
-      return boardValue(ratings, entry, sort.key);
+      return ratingOf(ratings, entry).rating;
     };
     return [...entries].sort((a, b) => {
       const left = value(a);
       const right = value(b);
       const order = left < right ? -1 : left > right ? 1 : 0;
-      return sort.dir === "asc" ? order : -order;
+      return (
+        (sort.dir === "asc" ? order : -order) ||
+        getEntryLabel(a).localeCompare(getEntryLabel(b))
+      );
     });
   }, [entries, sort, ratings]);
 
@@ -693,10 +613,9 @@ function ScoreTable({
       <div className={styles.tableHead}>
         <h2 id="table-title">Model + harness comparison</h2>
         <p>
-          Every pair the chart shows. Rank is by Arena Elo across all{" "}
-          {ENTRIES.length} pairs; ± narrows as votes come in. The index and
-          evaluation columns are maintainer seed scores. Select a column to
-          sort.
+          Rank is by Arena Elo across all {ENTRIES.length} pairs; pairs with the
+          same rating share a rank. Few votes means a rating can still move a
+          lot.
         </p>
       </div>
       <div className={styles.tableScroll}>
@@ -709,14 +628,6 @@ function ScoreTable({
               {header("label", "Model · Harness")}
               {header("elo", "Elo", "Arena Elo from head-to-head votes")}
               {header("votes", "Votes")}
-              {header("index", "Seed", "Maintainer seed index")}
-              {METRICS.map((m) => header(m.key, m.short, m.label))}
-              {header("trials", "Trials")}
-              {header(
-                "buildHours",
-                "Build",
-                "Median hours from empty repository to deployed game",
-              )}
               <th scope="col">Runs</th>
             </tr>
           </thead>
@@ -736,39 +647,10 @@ function ScoreTable({
                     </small>
                   </span>
                 </th>
-                <td className={styles.eloCell}>
+                <td className={styles.num}>
                   <b>{ratingOf(ratings, entry).rating}</b>
-                  <small>
-                    ± {ratingSpread(ratingOf(ratings, entry).votes)}
-                  </small>
-                  {isProvisional(ratingOf(ratings, entry)) ? (
-                    <span className={styles.provisionalTag}>Provisional</span>
-                  ) : null}
                 </td>
                 <td className={styles.num}>{ratingOf(ratings, entry).votes}</td>
-                <td className={styles.indexCell}>
-                  <span
-                    className={styles.inlineBar}
-                    style={
-                      {
-                        "--w": `${entry.index}%`,
-                        "--bar": PROVIDERS[entry.provider].color,
-                      } as React.CSSProperties
-                    }
-                  />
-                  <b>{entry.index}</b>
-                </td>
-                {METRICS.map((m) => (
-                  <td key={m.key} className={styles.num}>
-                    {entry.scores[m.key]}
-                  </td>
-                ))}
-                <td className={styles.num}>{entry.trials}</td>
-                <td className={styles.num}>
-                  {entry.buildHours > 0
-                    ? `${entry.buildHours.toFixed(1)} h`
-                    : "—"}
-                </td>
                 <td className={styles.runsCell}>
                   {entry.runIds.filter((id) => runs[id]).length === 0
                     ? "—"

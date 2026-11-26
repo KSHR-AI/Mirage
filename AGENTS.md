@@ -42,9 +42,10 @@ seed, host, or template for a game.
   network destinations, unsafe response types, and framing restrictions.
 - Record observed facts and explicit unknowns. Never infer clean-room status,
   license clearance, or reproducibility from a working URL.
-- Seed scores for model + harness pairs and runs live in
-  `app/bench/scores.ts`, never in submission records. The leaderboard ranks
-  pairs by Arena Elo from votes (`app/arena`), starting from those seeds.
+- Show only measured or recorded data. Model + harness pairs live in
+  `app/bench/entries.ts` as facts only (model, harness, provider, access,
+  runs). Never add maintainer scores or estimates. The leaderboard ranks pairs
+  by Arena Elo from votes alone (`app/arena`); every pair starts at 1500.
 - Arena votes live in Upstash Redis (`KV_REST_API_URL`, `KV_REST_API_TOKEN`)
   and need `VOTE_SECRET` (32+ characters). Without them production turns
   voting off. Never store a raw IP or other voter identity, and never expose

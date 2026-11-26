@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { seedRating } from "./elo";
+import { INITIAL_RATING } from "./elo";
 import { MIN_VIEW_MS, signMatchup } from "./security";
 import { MemoryStore } from "./store";
 import { castVote, VOTER_LIMIT_PER_HOUR } from "./vote";
-import { getEntry, getRunScore } from "../bench/scores";
 
 const SECRET = "test-secret-that-is-at-least-32-characters";
 const A = "grand-theft-astra";
@@ -37,14 +36,14 @@ function setup() {
 }
 
 describe("castVote", () => {
-  it("records a win from the seed ratings", async () => {
+  it("records a win from the initial ratings", async () => {
     const { store, vote } = setup();
     const result = await vote(A, B, "a");
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const seedA = seedRating(getEntry(getRunScore(A)!.entryId)!.index);
-    expect(result.a.before).toBe(seedA);
-    expect(result.a.after).toBeGreaterThan(seedA);
+    expect(result.a.before).toBe(INITIAL_RATING);
+    expect(result.b.before).toBe(INITIAL_RATING);
+    expect(result.a.after).toBeGreaterThan(INITIAL_RATING);
     expect(result.b.after).toBeLessThan(result.b.before);
     const ratings = await store.getRatings();
     expect(ratings.get(result.a.entryId)?.votes).toBe(1);

@@ -1,16 +1,15 @@
-import { getEntry, getRunScore, type Entry } from "../bench/scores";
+import { getEntryForRun, type Entry } from "../bench/entries";
 import type { PublishedGame } from "../registry/schema";
 import type { Rating } from "./elo";
 import { signMatchup } from "./security";
 
 export type Contender = { game: PublishedGame; entry: Entry };
 
-/** Published runs that belong to a scored model + harness pair. */
+/** Published runs attributed to a model + harness pair on the leaderboard. */
 export function getContenders(games: readonly PublishedGame[]): Contender[] {
   const contenders: Contender[] = [];
   for (const game of games) {
-    const score = getRunScore(game.id);
-    const entry = score ? getEntry(score.entryId) : null;
+    const entry = getEntryForRun(game.id);
     if (entry) contenders.push({ game, entry });
   }
   return contenders;
@@ -18,7 +17,7 @@ export function getContenders(games: readonly PublishedGame[]): Contender[] {
 
 /**
  * Two runs from different pairs. The first leans toward pairs with fewer
- * votes so new entries leave provisional status sooner; the second is
+ * votes so new entries gather votes sooner; the second is
  * uniform among the rest.
  */
 export function pickMatch(
