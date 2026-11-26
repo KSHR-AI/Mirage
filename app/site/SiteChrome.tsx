@@ -69,7 +69,9 @@ export function SiteHeader({
             aria-label="Submit a run"
           >
             <PaperPlaneTilt aria-hidden="true" weight="bold" />
-            Submit<span className={styles.submitLong}>&nbsp;a run</span>
+            <span>
+              Submit<span className={styles.submitLong}>&nbsp;a run</span>
+            </span>
           </a>
         </div>
       </div>
