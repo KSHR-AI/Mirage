@@ -583,6 +583,43 @@
   line-height: 1.4;
 }
 
+.rawIntro {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rawRecord {
+  margin-bottom: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+.rawRecord details {
+  border-bottom: 1px solid var(--rule);
+}
+
+.rawRecord summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.rawRecord pre {
+  overflow: auto;
+  max-height: 360px;
+  margin: 0 0 12px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  font-family: var(--font-mono);
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .moreRuns {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));

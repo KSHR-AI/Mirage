@@ -34,10 +34,11 @@ describe("bench scores", () => {
     }
   });
 
-  it("scores every published run exactly once, under its entry", () => {
-    expect(RUN_SCORES.map((run) => run.runId).sort()).toEqual(
-      [...submissionIds].sort(),
-    );
+  it("scores only published runs, once each, under their entry", () => {
+    // Accepted runs may wait for scores; a score needs a published run.
+    const scored = RUN_SCORES.map((run) => run.runId);
+    expect(new Set(scored).size).toBe(scored.length);
+    for (const runId of scored) expect(submissionIds).toContain(runId);
     for (const run of RUN_SCORES) {
       const entry = ENTRIES.find((e) => e.id === run.entryId);
       expect(entry?.runIds).toContain(run.runId);

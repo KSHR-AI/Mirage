@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   ArrowSquareOut,
+  DownloadSimple,
   GithubLogo,
   Play,
 } from "@phosphor-icons/react/ssr";
@@ -87,6 +88,9 @@ export default async function RunPage({ params }: RunPageProps) {
   const harness = getRecordedHarness(game);
   const signals = getEvidenceSignals(game);
   const others = registry.games.filter((other) => other.id !== game.id);
+  const recordDownload = `data:application/json;charset=utf-8,${encodeURIComponent(
+    JSON.stringify(game, null, 2),
+  )}`;
 
   return (
     <div className={styles.page}>
@@ -312,6 +316,29 @@ export default async function RunPage({ params }: RunPageProps) {
                 </li>
               ))}
             </ul>
+            <h3 className={styles.subhead}>Full record</h3>
+            <p className={styles.rawIntro}>
+              The submitted evidence behind these summaries: prompt, tools,
+              lineage, code and asset licenses, and credits.
+            </p>
+            <div className={styles.rawRecord}>
+              <RawBlock title="Provenance" value={game.provenance} />
+              <RawBlock title="Licenses and credits" value={game.licenses} />
+              <RawBlock title="Lineage" value={game.lineage} />
+              <RawBlock
+                title="Source and deployment"
+                value={{ source: game.source, deployment: game.deployment }}
+              />
+              <RawBlock title="Presentation" value={game.presentation} />
+            </div>
+            <a
+              className={styles.textButton}
+              href={recordDownload}
+              download={`${game.id}.json`}
+            >
+              <DownloadSimple aria-hidden="true" />
+              Download record
+            </a>
           </section>
         </div>
 
@@ -339,5 +366,14 @@ export default async function RunPage({ params }: RunPageProps) {
       </main>
       <SiteFooter />
     </div>
+  );
+}
+
+function RawBlock({ title, value }: { title: string; value: object }) {
+  return (
+    <details>
+      <summary>{title}</summary>
+      <pre>{JSON.stringify(value, null, 2)}</pre>
+    </details>
   );
 }

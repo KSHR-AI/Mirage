@@ -14,7 +14,7 @@ import {
 } from "./bench/scores";
 import { SubmitDialog, SUBMIT_HASH } from "./gallery/SubmitDialog";
 import { GameCover } from "./gallery/RunParts";
-import { formatBuildDate } from "./registry/evidence";
+import { formatBuildDate, getModelLabel } from "./registry/evidence";
 import { loadPublishedRegistry } from "./registry/load";
 import { loadSubmitPrompt } from "./registry/load-submit-prompt";
 import { getCanonicalPlayPath } from "./registry/urls";
@@ -30,15 +30,17 @@ export default async function Page() {
     loadRatings(),
   ]);
 
-  const gamesById = new Map(registry.games.map((game) => [game.id, game]));
   const runLinks: Record<string, RunLink> = {};
   for (const game of registry.games) {
     runLinks[game.id] = { id: game.id, title: game.title };
   }
 
-  const scoredRuns = [...RUN_SCORES]
-    .filter((run) => gamesById.has(run.runId))
-    .sort((a, b) => b.index - a.index);
+  // Every published run is listed; scored runs first by index, then runs
+  // still waiting for scores in registry order.
+  const runScores = new Map(RUN_SCORES.map((run) => [run.runId, run]));
+  const listedRuns = registry.games
+    .map((game) => ({ game, score: runScores.get(game.id) ?? null }))
+    .sort((a, b) => (b.score?.index ?? -1) - (a.score?.index ?? -1));
 
   return (
     <div className={styles.page}>
@@ -59,23 +61,25 @@ export default async function Page() {
           <div className={styles.sectionHead}>
             <h2 id="runs-title">Playable runs</h2>
             <p>
-              Each published run is a deployed game, scored on the same{" "}
-              {METRICS.length} evaluations as its model + harness pair. Open a
-              run for its full breakdown and evidence, or play it in the
-              sandboxed player.
+              Each published run is a deployed game. Scored runs are rated on
+              the same {METRICS.length} evaluations as their model + harness
+              pair; new runs appear here as soon as they are accepted. Open a
+              run for its breakdown and full record, or play it in the sandboxed
+              player.
             </p>
           </div>
 
           {registry.kind === "ready" ? (
             <ol className={styles.runGrid}>
-              {scoredRuns.map((run, i) => {
-                const game = gamesById.get(run.runId)!;
-                const entry = getEntry(run.entryId);
+              {listedRuns.map(({ game, score: run }, i) => {
+                const entry = run ? getEntry(run.entryId) : null;
                 return (
-                  <li key={run.runId} className={styles.runCard}>
+                  <li key={game.id} className={styles.runCard}>
                     <Link href={`/runs/${game.id}`} className={styles.runCover}>
                       <GameCover game={game} />
-                      <span className={styles.runRank}>#{i + 1}</span>
+                      {run ? (
+                        <span className={styles.runRank}>#{i + 1}</span>
+                      ) : null}
                     </Link>
                     <div className={styles.runBody}>
                       <div className={styles.runTitleRow}>
@@ -91,25 +95,39 @@ export default async function Page() {
                               />
                               {getEntryLabel(entry)}
                             </p>
-                          ) : null}
+                          ) : (
+                            <p className={styles.runPair}>
+                              {getModelLabel(game)}
+                            </p>
+                          )}
                         </div>
-                        <span
-                          className={styles.runScore}
-                          aria-label={`Index ${run.index}`}
-                        >
-                          {run.index}
-                        </span>
+                        {run ? (
+                          <span
+                            className={styles.runScore}
+                            aria-label={`Index ${run.index}`}
+                          >
+                            {run.index}
+                          </span>
+                        ) : null}
                       </div>
-                      <ul className={styles.miniBars}>
-                        {METRICS.map((m) => (
-                          <li key={m.key}>
-                            <span>{m.short}</span>
-                            <i style={{ width: `${run.scores[m.key]}%` }} />
-                            <b>{run.scores[m.key]}</b>
-                          </li>
-                        ))}
-                      </ul>
-                      <p className={styles.runVerdict}>{run.verdict}</p>
+                      {run ? (
+                        <>
+                          <ul className={styles.miniBars}>
+                            {METRICS.map((m) => (
+                              <li key={m.key}>
+                                <span>{m.short}</span>
+                                <i style={{ width: `${run.scores[m.key]}%` }} />
+                                <b>{run.scores[m.key]}</b>
+                              </li>
+                            ))}
+                          </ul>
+                          <p className={styles.runVerdict}>{run.verdict}</p>
+                        </>
+                      ) : (
+                        <p className={styles.runVerdict}>
+                          Accepted and playable. Not scored yet.
+                        </p>
+                      )}
                       <div className={styles.runActions}>
                         <Link
                           href={getCanonicalPlayPath(game)}
