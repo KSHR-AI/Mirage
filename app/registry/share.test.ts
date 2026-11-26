@@ -22,13 +22,13 @@ describe("run sharing", () => {
 
   it("asks the benchmark question for every run", () => {
     expect(getShareText(run)).toBe(
-      "Can a coding model build GTA in SF? example-model shipped Night Drive. Play it in your browser:",
+      "Can a coding model build GTA? example-model shipped Night Drive. Play it in your browser:",
     );
   });
 
   it("does not attribute a run to an unrecorded model", () => {
     expect(getShareText({ ...run, model: "unknown" })).toBe(
-      "Can a coding model build GTA in SF? Play Night Drive in your browser:",
+      "Can a coding model build GTA? Play Night Drive in your browser:",
     );
   });
 

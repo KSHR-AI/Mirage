@@ -56,7 +56,7 @@ Rules for the whole task
      publishes is evidence for the record; quote it as the deployment's claim.
    - Keep notes: the title shown in the game, what works, what fails, the
      controls that respond, the controls you did not test, the renderer and
-     rough frame rate, and whether the city is San Francisco.
+     rough frame rate, and which city the game is set in.
    - Capture the cover during real play: one 1280x720 PNG or JPEG of the game
      itself, under 2 MB, with no browser chrome, no loading or menu screen,
      and no edits.

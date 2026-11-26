@@ -2,7 +2,7 @@
   "name": "mirage-model-demos",
   "version": "0.1.0",
   "private": true,
-  "description": "A playable benchmark for coding-model attempts to build GTA in San Francisco.",
+  "description": "A playable benchmark for coding-model attempts to build GTA.",
   "license": "Apache-2.0",
   "homepage": "https://mirageml.com",
   "repository": {

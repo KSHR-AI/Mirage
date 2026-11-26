@@ -4,7 +4,7 @@ Strive to be unsummarizable: remove any word whose removal loses no useful
 idea.
 
 MirageML Bench is the public registry, evidence layer, and sandboxed player for
-coding-model attempts to build GTA in San Francisco. It is not the workspace,
+coding-model attempts to build GTA. It is not the workspace,
 seed, host, or template for a game.
 
 - MirageML Bench is a vibe benchmark: every accepted game is a run, judged by

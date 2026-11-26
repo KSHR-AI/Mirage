@@ -123,9 +123,8 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
             </h1>
             <p>
               Each entry is a model running inside a coding harness on one task:
-              build GTA in San Francisco as a browser game, from an empty
-              repository to a deployed build. Pairs are ranked by Arena Elo, set
-              only by people{" "}
+              build GTA as a browser game, from an empty repository to a
+              deployed build. Pairs are ranked by Arena Elo, set only by people{" "}
               <Link href="/arena">playing two runs and voting</Link> for the
               better one.
             </p>
@@ -199,9 +198,9 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
             harness pairs
           </span>
         </div>
-      </section>
 
-      <ScoreTable entries={visible} runs={runs} ratings={ratings} />
+        <ScoreTable entries={visible} runs={runs} ratings={ratings} />
+      </section>
     </>
   );
 }
@@ -609,15 +608,11 @@ function ScoreTable({
   };
 
   return (
-    <section className={styles.card} id="table" aria-labelledby="table-title">
-      <div className={styles.tableHead}>
-        <h2 id="table-title">Model + harness comparison</h2>
-        <p>
-          Rank is by Arena Elo across all {ENTRIES.length} pairs; pairs with the
-          same rating share a rank. Few votes means a rating can still move a
-          lot.
-        </p>
-      </div>
+    <div className={styles.tableBlock} id="table">
+      <p className={styles.tableNote}>
+        Rank is across all {ENTRIES.length} pairs; pairs with the same rating
+        share a rank. Few votes means a rating can still move a lot.
+      </p>
       <div className={styles.tableScroll}>
         <table className={styles.table}>
           <thead>
@@ -628,7 +623,9 @@ function ScoreTable({
               {header("label", "Model · Harness")}
               {header("elo", "Elo", "Arena Elo from head-to-head votes")}
               {header("votes", "Votes")}
-              <th scope="col">Runs</th>
+              <th scope="col" className={styles.runsCell}>
+                Runs
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -668,6 +665,6 @@ function ScoreTable({
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
   );
 }

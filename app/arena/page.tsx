@@ -49,11 +49,10 @@ export default async function ArenaPage() {
           <h1 id="arena-title">Arena</h1>
           <p>
             Two runs, one vote. Play both games, then pick the one that does the
-            job better: a GTA you would keep playing, in a San Francisco you
-            recognise. Each vote moves both model + harness pairs&rsquo; Elo
-            ratings by up to {K_FACTOR} points, and the{" "}
-            <Link href="/#leaderboard">leaderboard</Link> ranks pairs by that
-            rating.
+            job better: the GTA you would keep playing. Each vote moves both
+            model + harness pairs&rsquo; Elo ratings by up to {K_FACTOR} points,
+            and the <Link href="/#leaderboard">leaderboard</Link> ranks pairs by
+            that rating.
           </p>
           <p className={styles.meta}>
             {snapshot.totalVotes.toLocaleString("en-US")} vote

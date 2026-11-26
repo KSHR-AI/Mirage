@@ -97,7 +97,7 @@ function Brand({ mark }: { mark: string }) {
       >
         MirageML Bench
       </div>
-      <Chip>GTA in SF</Chip>
+      <Chip>Build GTA</Chip>
     </div>
   );
 }
@@ -298,7 +298,7 @@ export function SiteCard({
       >
         <div style={{ display: "flex" }}>Can coding</div>
         <div style={{ display: "flex" }}>models build</div>
-        <div style={{ display: "flex", color: C.lime }}>GTA in SF?</div>
+        <div style={{ display: "flex", color: C.lime }}>GTA?</div>
       </div>
 
       <div
