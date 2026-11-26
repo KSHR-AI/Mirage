@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RegistryNotice } from "../../gallery/RegistryNotice";
+import { playBackLink } from "../../arena/match";
 import { GamePlayer } from "../../player/GamePlayer";
 import { loadPublishedRegistry } from "../../registry/load";
 import { getModelLabel } from "../../registry/evidence";
@@ -8,6 +9,7 @@ import { getCanonicalPlayPath } from "../../registry/urls";
 
 type GamePageProps = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export const dynamic = "force-dynamic";
@@ -44,8 +46,11 @@ export async function generateMetadata({
   };
 }
 
-export default async function GamePage({ params }: GamePageProps) {
-  const { id } = await params;
+export default async function GamePage({
+  params,
+  searchParams,
+}: GamePageProps) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const registry = await loadPublishedRegistry();
   if (registry.kind === "unavailable") {
     return <RegistryNotice kind="unavailable" message={registry.message} />;
@@ -53,5 +58,5 @@ export default async function GamePage({ params }: GamePageProps) {
 
   const game = registry.games.find((candidate) => candidate.id === id);
   if (!game) notFound();
-  return <GamePlayer game={game} />;
+  return <GamePlayer game={game} back={playBackLink(query)} />;
 }

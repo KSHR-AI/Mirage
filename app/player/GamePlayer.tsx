@@ -13,9 +13,17 @@ import styles from "./GamePlayer.module.css";
 type GamePlayerProps = {
   game: PublishedGame;
   onExit?: () => void;
+  /** Where "Back" goes when there is no onExit; the benchmark by default. */
+  back?: { href: string; label: string };
 };
 
-export function GamePlayer({ game, onExit }: GamePlayerProps) {
+const BENCHMARK = { href: "/", label: "Back to benchmark" };
+
+export function GamePlayer({
+  game,
+  onExit,
+  back = BENCHMARK,
+}: GamePlayerProps) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [loaded, setLoaded] = useState(false);
   const canonicalPath = getCanonicalPlayPath(game);
@@ -55,9 +63,9 @@ export function GamePlayer({ game, onExit }: GamePlayerProps) {
             Back to benchmark
           </button>
         ) : (
-          <Link href="/">
+          <Link href={back.href}>
             <ArrowLeft aria-hidden="true" weight="bold" />
-            Back to benchmark
+            {back.label}
           </Link>
         )}
         <span>

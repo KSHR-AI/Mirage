@@ -1,5 +1,6 @@
 import { getEntryForRun, type Entry } from "../bench/entries";
 import type { PublishedGame } from "../registry/schema";
+import { getCanonicalPlayPath } from "../registry/urls";
 import type { Rating } from "./elo";
 import { signMatchup } from "./security";
 
@@ -46,13 +47,57 @@ export function pickMatch(
   return random() < 0.5 ? [first, second] : [second, first];
 }
 
-/** A fresh matchup and, when voting is open, the token that lets it be voted on. */
+/** The matchup named by a URL's run ids, or null when they don't name two contenders. */
+export function findMatch(
+  contenders: readonly Contender[],
+  a: unknown,
+  b: unknown,
+): [Contender, Contender] | null {
+  if (typeof a !== "string" || typeof b !== "string" || a === b) return null;
+  const first = contenders.find((c) => c.game.id === a);
+  const second = contenders.find((c) => c.game.id === b);
+  return first && second ? [first, second] : null;
+}
+
+/** The URL that shows a matchup, so returning to it shows the same pair. */
+export function matchPath(match: readonly [Contender, Contender]) {
+  return arenaPath(match[0].game.id, match[1].game.id);
+}
+
+export function arenaPath(a: string, b: string) {
+  return `/arena?${new URLSearchParams({ a, b })}`;
+}
+
+/** A run's play page, opened from a matchup, whose back link returns to it. */
+export function arenaPlayPath(
+  game: PublishedGame,
+  match: readonly [Contender, Contender],
+) {
+  const query = new URLSearchParams({
+    from: "arena",
+    a: match[0].game.id,
+    b: match[1].game.id,
+  });
+  return `${getCanonicalPlayPath(game)}?${query}`;
+}
+
+/** Where a play page's back link goes, given the query it was opened with. */
+export function playBackLink(query: Record<string, unknown>) {
+  const { from, a, b } = query;
+  if (from === "arena" && typeof a === "string" && typeof b === "string") {
+    return { href: arenaPath(a, b), label: "Back to arena" };
+  }
+  return { href: "/", label: "Back to benchmark" };
+}
+
+/** A matchup and, when voting is open, the token that lets it be voted on. */
 export function offerMatch(
   contenders: readonly Contender[],
   ratings: Readonly<Record<string, Rating>>,
   secret: string | null,
+  chosen: [Contender, Contender] | null = null,
 ) {
-  const match = pickMatch(contenders, ratings);
+  const match = chosen ?? pickMatch(contenders, ratings);
   const token =
     match && secret
       ? signMatchup(secret, {

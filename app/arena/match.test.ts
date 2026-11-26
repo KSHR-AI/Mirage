@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { ENTRIES, getEntry } from "../bench/entries";
 import type { PublishedGame } from "../registry/schema";
-import { getContenders, pickMatch } from "./match";
+import {
+  arenaPlayPath,
+  findMatch,
+  getContenders,
+  matchPath,
+  pickMatch,
+  playBackLink,
+} from "./match";
 import { initialRatings } from "./ratings";
 
 const games = ENTRIES.flatMap((entry) =>
@@ -33,5 +40,46 @@ describe("pickMatch", () => {
   it("returns null with fewer than two runs", () => {
     const one = getContenders(games.slice(0, 1));
     expect(pickMatch(one, initialRatings())).toBeNull();
+  });
+});
+
+describe("findMatch", () => {
+  const contenders = getContenders(games);
+  const [a, b] = contenders.map((c) => c.game.id);
+
+  it("returns the pair a URL names, in order", () => {
+    const match = findMatch(contenders, a, b);
+    expect(match?.map((c) => c.game.id)).toEqual([a, b]);
+    expect(matchPath(match!)).toBe(
+      `/arena?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`,
+    );
+  });
+
+  it("rejects missing, repeated or unknown runs", () => {
+    expect(findMatch(contenders, undefined, b)).toBeNull();
+    expect(findMatch(contenders, a, a)).toBeNull();
+    expect(findMatch(contenders, a, "not-a-run")).toBeNull();
+    expect(findMatch(contenders, [a], b)).toBeNull();
+  });
+});
+
+describe("playBackLink", () => {
+  const contenders = getContenders(games);
+  const match = findMatch(
+    contenders,
+    contenders[0].game.id,
+    contenders[1].game.id,
+  )!;
+
+  it("sends a game opened from the arena back to the same pair", () => {
+    const url = new URL(arenaPlayPath(match[1].game, match), "https://x");
+    expect(url.pathname).toBe(`/play/${match[1].game.id}`);
+    const back = playBackLink(Object.fromEntries(url.searchParams));
+    expect(back).toEqual({ href: matchPath(match), label: "Back to arena" });
+  });
+
+  it("falls back to the benchmark otherwise", () => {
+    expect(playBackLink({})).toEqual({ href: "/", label: "Back to benchmark" });
+    expect(playBackLink({ from: "arena", a: "x" }).href).toBe("/");
   });
 });
