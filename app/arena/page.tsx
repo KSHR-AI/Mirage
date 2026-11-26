@@ -1,15 +1,22 @@
 import { ArrowSquareOut, Play } from "@phosphor-icons/react/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getEntryLabel } from "../bench/entries";
 import { GameCover } from "../gallery/RunParts";
 import { RegistryNotice } from "../gallery/RegistryNotice";
 import { loadPublishedRegistry } from "../registry/load";
-import { getCanonicalPlayPath } from "../registry/urls";
 import { SiteFooter, SiteHeader } from "../site/SiteChrome";
 import { ArenaVote } from "./ArenaVote";
 import { INITIAL_RATING, K_FACTOR } from "./elo";
-import { getContenders, offerMatch } from "./match";
+import {
+  arenaPlayPath,
+  findMatch,
+  getContenders,
+  matchPath,
+  offerMatch,
+  pickMatch,
+} from "./match";
 import { loadRatings } from "./ratings";
 import { getVoteSecret, MIN_VIEW_MS } from "./security";
 import pageStyles from "../bench/Page.module.css";
@@ -24,21 +31,36 @@ export const metadata: Metadata = {
   alternates: { canonical: "/arena" },
 };
 
-export default async function ArenaPage() {
-  const [registry, snapshot] = await Promise.all([
+type ArenaPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function ArenaPage({ searchParams }: ArenaPageProps) {
+  const [registry, snapshot, query] = await Promise.all([
     loadPublishedRegistry(),
     loadRatings(),
+    searchParams,
   ]);
   if (registry.kind === "unavailable") {
     return <RegistryNotice kind="unavailable" message={registry.message} />;
   }
 
+  // The pair lives in the URL, so leaving to play a run and coming back
+  // shows the same comparison instead of a new random one.
+  const contenders = getContenders(registry.games);
+  const chosen = findMatch(contenders, query.a, query.b);
+  if (!chosen) {
+    const fresh = pickMatch(contenders, snapshot.ratings);
+    if (fresh) redirect(matchPath(fresh));
+  }
+
   const secret = getVoteSecret();
   const open = snapshot.status === "open" && secret !== null;
   const { match, token } = offerMatch(
-    getContenders(registry.games),
+    contenders,
     snapshot.ratings,
     open ? secret : null,
+    chosen,
   );
 
   return (
@@ -80,7 +102,7 @@ export default async function ArenaPage() {
                     <div className={styles.sideActions}>
                       <a
                         className={pageStyles.primaryButton}
-                        href={getCanonicalPlayPath(side.game)}
+                        href={arenaPlayPath(side.game, match)}
                         target="_blank"
                         rel="noopener"
                       >

@@ -106,7 +106,8 @@ export function ArenaVote({
   }
 
   function next() {
-    startRefresh(() => router.refresh());
+    // A bare /arena picks a fresh pair and redirects to its URL.
+    startRefresh(() => router.replace("/arena"));
   }
 
   const locked =
