@@ -2,11 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   applyVote,
   expectedScore,
-  isProvisional,
-  PROVISIONAL_VOTES,
+  INITIAL_RATING,
   rankByRating,
+  ratingRanks,
   ratingSpread,
-  seedRating,
 } from "./elo";
 
 describe("elo", () => {
@@ -40,23 +39,36 @@ describe("elo", () => {
     expect(upset).toBeGreaterThan(expected);
   });
 
-  it("seeds ratings from the index", () => {
-    expect(seedRating(45)).toBe(1500);
-    expect(seedRating(60)).toBe(1650);
-    expect(seedRating(30.4)).toBe(1354);
+  it("starts every pair at the same rating", () => {
+    expect(INITIAL_RATING).toBe(1500);
   });
 
-  it("narrows the spread and clears provisional status with votes", () => {
+  it("narrows the spread with votes", () => {
     expect(ratingSpread(0)).toBeGreaterThan(ratingSpread(50));
-    expect(isProvisional({ votes: PROVISIONAL_VOTES - 1 })).toBe(true);
-    expect(isProvisional({ votes: PROVISIONAL_VOTES })).toBe(false);
   });
 
-  it("ranks highest rating first", () => {
+  it("ranks highest rating first and ties by ID", () => {
     const ratings = {
-      a: { rating: 1500, votes: 0, seed: 1500 },
-      b: { rating: 1600, votes: 3, seed: 1500 },
+      a: { rating: 1500, votes: 0 },
+      b: { rating: 1600, votes: 3 },
+      c: { rating: 1500, votes: 0 },
     };
-    expect(rankByRating(["a", "b"], ratings)).toEqual(["b", "a"]);
+    expect(rankByRating(["c", "a", "b"], ratings)).toEqual(["b", "a", "c"]);
+  });
+
+  it("gives equal ratings the same rank", () => {
+    const ratings = {
+      a: { rating: 1500, votes: 0 },
+      b: { rating: 1600, votes: 3 },
+      c: { rating: 1500, votes: 0 },
+      d: { rating: 1400, votes: 2 },
+    };
+    const ranks = ratingRanks(["a", "b", "c", "d"], ratings);
+    expect([...ranks]).toEqual([
+      ["a", 2],
+      ["b", 1],
+      ["c", 2],
+      ["d", 4],
+    ]);
   });
 });

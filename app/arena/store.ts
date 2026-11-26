@@ -1,4 +1,4 @@
-import { applyVote, K_FACTOR, type Outcome } from "./elo";
+import { applyVote, INITIAL_RATING, K_FACTOR, type Outcome } from "./elo";
 
 /**
  * Where arena votes live. Production uses Upstash Redis over its REST API
@@ -15,8 +15,6 @@ export type StoredRating = { rating: number; votes: number };
 export type VoteInput = {
   entryA: string;
   entryB: string;
-  seedA: number;
-  seedB: number;
   outcome: Outcome;
 };
 
@@ -38,14 +36,17 @@ export interface VoteStore {
 }
 
 const PREFIX = "mirage:arena:";
-const RATINGS_KEY = `${PREFIX}ratings`;
-const VOTES_KEY = `${PREFIX}votes`;
-const LOG_KEY = `${PREFIX}log`;
+// v2: every pair starts at INITIAL_RATING. v1 ratings started from
+// maintainer seed scores; they are left in place but no longer read.
+const RATINGS_PREFIX = `${PREFIX}v2:`;
+const RATINGS_KEY = `${RATINGS_PREFIX}ratings`;
+const VOTES_KEY = `${RATINGS_PREFIX}votes`;
+const LOG_KEY = `${RATINGS_PREFIX}log`;
 const LOG_LIMIT = 50_000;
 
 // Runs inside Redis so concurrent votes never read a stale rating.
 // KEYS: ratings hash, votes hash, log list.
-// ARGV: entryA, entryB, seedA, seedB, scoreA (1, 0.5, 0), k, log entry, cap.
+// ARGV: entryA, entryB, initial rating (twice), scoreA (1, 0.5, 0), k, log entry, cap.
 const VOTE_SCRIPT = `
 local ra = tonumber(redis.call('HGET', KEYS[1], ARGV[1]) or ARGV[3])
 local rb = tonumber(redis.call('HGET', KEYS[1], ARGV[2]) or ARGV[4])
@@ -133,8 +134,8 @@ class RedisStore implements VoteStore {
         LOG_KEY,
         vote.entryA,
         vote.entryB,
-        vote.seedA,
-        vote.seedB,
+        INITIAL_RATING,
+        INITIAL_RATING,
         scoreFor(vote.outcome),
         K_FACTOR,
         logEntry(vote),
@@ -181,8 +182,14 @@ export class MemoryStore implements VoteStore {
   }
 
   async recordVote(vote: VoteInput) {
-    const a = this.ratings.get(vote.entryA) ?? { rating: vote.seedA, votes: 0 };
-    const b = this.ratings.get(vote.entryB) ?? { rating: vote.seedB, votes: 0 };
+    const a = this.ratings.get(vote.entryA) ?? {
+      rating: INITIAL_RATING,
+      votes: 0,
+    };
+    const b = this.ratings.get(vote.entryB) ?? {
+      rating: INITIAL_RATING,
+      votes: 0,
+    };
     const next = applyVote(a.rating, b.rating, vote.outcome);
     this.ratings.set(vote.entryA, { rating: next.a, votes: a.votes + 1 });
     this.ratings.set(vote.entryB, { rating: next.b, votes: b.votes + 1 });

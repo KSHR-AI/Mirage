@@ -7,9 +7,6 @@
 /** Points a single vote can move a rating. */
 export const K_FACTOR = 32;
 
-/** A rating with fewer votes than this is shown as provisional. */
-export const PROVISIONAL_VOTES = 20;
-
 export type Outcome = "a" | "b" | "tie";
 
 export const OUTCOMES: readonly Outcome[] = ["a", "b", "tie"];
@@ -37,12 +34,10 @@ export function applyVote(
 }
 
 /**
- * Starting rating before any votes, taken from the maintainers' seed index
- * (0–100). Index 45 maps to 1500; each index point is worth 10 Elo.
+ * Every pair starts here before its first vote. There are no maintainer
+ * scores to seed from: standing comes only from votes.
  */
-export function seedRating(index: number) {
-  return Math.round(1500 + (index - 45) * 10);
-}
+export const INITIAL_RATING = 1500;
 
 /**
  * A rough ± band for a rating after `votes` votes. It narrows as votes
@@ -57,20 +52,29 @@ export type Rating = {
   rating: number;
   /** Votes this entry has taken part in. */
   votes: number;
-  /** Rating from the seed index; `rating` equals it until the first vote. */
-  seed: number;
 };
 
-export function isProvisional(rating: Pick<Rating, "votes">) {
-  return rating.votes < PROVISIONAL_VOTES;
-}
-
-/** Ratings keyed by entry ID, highest first; ties keep `ids` order. */
+/** Entry IDs by rating, highest first; equal ratings sort by ID. */
 export function rankByRating(
   ids: readonly string[],
   ratings: Readonly<Record<string, Rating>>,
 ) {
-  return [...ids].sort(
-    (a, b) => (ratings[b]?.rating ?? 0) - (ratings[a]?.rating ?? 0),
-  );
+  const value = (id: string) => ratings[id]?.rating ?? INITIAL_RATING;
+  return [...ids].sort((a, b) => value(b) - value(a) || a.localeCompare(b));
+}
+
+/**
+ * Standard competition rank (1, 2, 2, 4) by rating: equal ratings share a
+ * rank, so pairs nobody has voted on yet are not ordered by anything else.
+ */
+export function ratingRanks(
+  ids: readonly string[],
+  ratings: Readonly<Record<string, Rating>>,
+) {
+  const value = (id: string) => ratings[id]?.rating ?? INITIAL_RATING;
+  const ranks = new Map<string, number>();
+  for (const id of ids) {
+    ranks.set(id, 1 + ids.filter((other) => value(other) > value(id)).length);
+  }
+  return ranks;
 }

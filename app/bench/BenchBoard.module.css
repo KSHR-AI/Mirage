@@ -284,35 +284,6 @@
   align-self: flex-start;
 }
 
-.tabs {
-  display: flex;
-  overflow-x: auto;
-  gap: 4px;
-  margin: 26px 0 0;
-  border-bottom: 1px solid var(--rule);
-  scrollbar-width: none;
-}
-
-.tab {
-  flex: none;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  padding: 10px 12px;
-  background: none;
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.tab:hover {
-  color: var(--ink);
-}
-
-.tab[aria-selected="true"] {
-  border-bottom-color: var(--ink);
-  color: var(--ink);
-}
-
 .legendRow {
   display: flex;
   flex-wrap: wrap;
@@ -331,14 +302,6 @@
 
 .legendRow .brand {
   margin-left: auto;
-}
-
-.provisionalSwatch {
-  width: 22px;
-  height: 16px;
-  border: 1px dashed var(--muted);
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--muted) 22%, transparent);
 }
 
 .checker {
@@ -424,6 +387,7 @@
   position: relative;
   display: flex;
   width: min(72%, 48px);
+  height: var(--pct);
   min-height: 22px;
   justify-content: center;
   border-radius: 5px 5px 0 0;
@@ -431,10 +395,6 @@
   transition:
     height 360ms cubic-bezier(0.2, 0.7, 0.2, 1),
     filter 120ms ease;
-}
-
-.bar[data-provisional] {
-  opacity: 0.72;
 }
 
 .bar[data-access="no-public-api"] {
@@ -523,10 +483,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.tipPair {
-  display: contents;
-}
-
 .tipGrid span {
   color: var(--muted);
 }
@@ -594,7 +550,7 @@
 
 .table {
   width: 100%;
-  min-width: 900px;
+  min-width: 640px;
   border-collapse: collapse;
   font-size: 14px;
   font-variant-numeric: tabular-nums;
@@ -677,36 +633,6 @@
   font-weight: 400;
 }
 
-.indexCell {
-  min-width: 150px;
-}
-
-.eloCell {
-  white-space: nowrap;
-}
-
-.eloCell b {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.eloCell small {
-  margin-left: 5px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.provisionalTag {
-  display: inline-block;
-  margin-left: 8px;
-  border: 1px dashed var(--rule-strong);
-  border-radius: 6px;
-  padding: 1px 6px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
-}
-
 .intro .seedNote {
   margin-top: 8px;
   font-size: 13px;
@@ -754,25 +680,14 @@
   font-size: 13px;
 }
 
-.indexCell b {
-  display: inline-block;
-  min-width: 26px;
-  font-weight: 600;
-}
-
-.inlineBar {
-  display: inline-block;
-  width: calc(var(--w) * 0.9);
-  max-width: 90px;
-  height: 8px;
-  margin-right: 10px;
-  border-radius: 2px;
-  background: var(--bar);
-  vertical-align: middle;
-}
-
 .num {
   color: var(--soft-ink);
+}
+
+.num b {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .runsCell {
@@ -817,6 +732,15 @@
 }
 
 @media (max-width: 640px) {
+  /* Runs are linked from the run cards below; keep the table to one screen. */
+  .table {
+    min-width: 0;
+  }
+
+  .table tr > :last-child {
+    display: none;
+  }
+
   .card {
     --plot: 260px;
     --label: 118px;
@@ -854,8 +778,92 @@
     left: auto;
   }
 
+  /* Phones: one horizontal bar per pair, label above, no hover tooltip. */
+  .chartScroll {
+    overflow: visible;
+    margin: 0;
+    padding: 18px 0 4px;
+  }
+
+  .chart {
+    min-width: 0;
+    padding-left: 0;
+  }
+
+  .grid,
+  .tip,
+  .legendRow .brand {
+    display: none !important;
+  }
+
+  .columns {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .column {
+    display: grid;
+    grid-template-areas:
+      "logo label"
+      "bar bar";
+    grid-template-columns: 22px minmax(0, 1fr);
+    align-items: center;
+    gap: 6px 8px;
+  }
+
+  .logo {
+    grid-area: logo;
+    height: auto;
+  }
+
+  .labelSlot {
+    grid-area: label;
+    height: auto;
+  }
+
   .label {
-    font-size: 12px;
+    position: static;
+    display: block;
+    overflow: hidden;
+    font-size: 13px;
+    text-align: left;
+    text-overflow: ellipsis;
+    transform: none;
+  }
+
+  .label br {
+    display: none;
+  }
+
+  .label span::before {
+    content: " · ";
+  }
+
+  .barSlot {
+    grid-area: bar;
+    height: 28px;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .bar {
+    width: var(--pct);
+    min-width: 56px;
+    height: auto;
+    min-height: 0;
+    align-items: center;
+    justify-content: flex-end;
+    border-radius: 0 5px 5px 0;
+    transition: width 360ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .barValue,
+  .bar[data-long-values] .barValue {
+    position: static;
+    padding-right: 8px;
+    font-size: 13px;
+    transform: none;
+    writing-mode: horizontal-tb;
   }
 
   .legendRow {

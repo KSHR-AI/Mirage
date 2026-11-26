@@ -4,7 +4,7 @@ import { ArrowRight, Equals, Trophy } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { ProviderMark } from "../bench/ProviderMark";
-import type { ProviderKey } from "../bench/scores";
+import type { ProviderKey } from "../bench/entries";
 import type { Outcome } from "./elo";
 import styles from "./Arena.module.css";
 

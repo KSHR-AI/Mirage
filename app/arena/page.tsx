@@ -1,14 +1,14 @@
 import { ArrowSquareOut, Play } from "@phosphor-icons/react/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getEntryLabel } from "../bench/scores";
+import { getEntryLabel } from "../bench/entries";
 import { GameCover } from "../gallery/RunParts";
 import { RegistryNotice } from "../gallery/RegistryNotice";
 import { loadPublishedRegistry } from "../registry/load";
 import { getCanonicalPlayPath } from "../registry/urls";
 import { SiteFooter, SiteHeader } from "../site/SiteChrome";
 import { ArenaVote } from "./ArenaVote";
-import { K_FACTOR, PROVISIONAL_VOTES } from "./elo";
+import { INITIAL_RATING, K_FACTOR } from "./elo";
 import { getContenders, offerMatch } from "./match";
 import { loadRatings } from "./ratings";
 import { getVoteSecret, MIN_VIEW_MS } from "./security";
@@ -57,9 +57,8 @@ export default async function ArenaPage() {
           </p>
           <p className={styles.meta}>
             {snapshot.totalVotes.toLocaleString("en-US")} vote
-            {snapshot.totalVotes === 1 ? "" : "s"} so far · Ratings started from
-            the maintainers&rsquo; seed scores · A pair stays provisional until
-            it has {PROVISIONAL_VOTES} votes
+            {snapshot.totalVotes === 1 ? "" : "s"} so far · Every pair starts at{" "}
+            {INITIAL_RATING}
           </p>
         </section>
 
@@ -121,8 +120,8 @@ export default async function ArenaPage() {
             ) : (
               <p className={styles.notice}>
                 {snapshot.status === "error"
-                  ? "The vote store is not responding, so voting is paused. The leaderboard shows the last ratings it could read, or the seed ratings."
-                  : "Voting opens once the vote store is connected. Until then the leaderboard shows seed ratings."}
+                  ? "The vote store is not responding, so voting is paused."
+                  : "Voting opens once the vote store is connected."}
               </p>
             )}
           </>

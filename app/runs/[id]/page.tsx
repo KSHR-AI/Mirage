@@ -8,19 +8,10 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { isProvisional, rankByRating } from "../../arena/elo";
+import { ratingRanks } from "../../arena/elo";
 import { loadRatings } from "../../arena/ratings";
 import { ProviderMark } from "../../bench/ProviderMark";
-import {
-  ENTRIES,
-  METRICS,
-  PROVIDERS,
-  RUN_SCORES,
-  getEntry,
-  getEntryLabel,
-  getRunScore,
-  rankEntries,
-} from "../../bench/scores";
+import { ENTRIES, getEntryForRun, getEntryLabel } from "../../bench/entries";
 import { RegistryNotice } from "../../gallery/RegistryNotice";
 import {
   EvidenceGlyph,
@@ -54,11 +45,8 @@ export async function generateMetadata({
   const registry = await loadPublishedRegistry();
   const game = registry.games.find((candidate) => candidate.id === id);
   if (!game) return {};
-  const score = getRunScore(id);
   const title = `${game.title} — MirageML Bench`;
-  const description = score
-    ? `${getModelLabel(game)} · Index ${score.index}. ${game.tagline}`
-    : game.tagline;
+  const description = `${getModelLabel(game)}. ${game.tagline}`;
   return {
     title,
     description,
@@ -79,12 +67,14 @@ export default async function RunPage({ params }: RunPageProps) {
   const game = registry.games.find((candidate) => candidate.id === id);
   if (!game) notFound();
 
-  const score = getRunScore(game.id);
-  const entry = score ? getEntry(score.entryId) : null;
-  const runRank = score
-    ? [...RUN_SCORES].sort((a, b) => b.index - a.index).indexOf(score) + 1
-    : null;
-  const entryRank = entry ? rankEntries(ENTRIES).indexOf(entry) + 1 : null;
+  const entry = getEntryForRun(game.id);
+  const rating = entry ? arena.ratings[entry.id] : undefined;
+  const pairRank = entry
+    ? ratingRanks(
+        ENTRIES.map((e) => e.id),
+        arena.ratings,
+      ).get(entry.id)
+    : undefined;
   const harness = getRecordedHarness(game);
   const signals = getEvidenceSignals(game);
   const others = registry.games.filter((other) => other.id !== game.id);
@@ -118,43 +108,23 @@ export default async function RunPage({ params }: RunPageProps) {
               </p>
             ) : null}
 
-            {score ? (
+            {entry && rating ? (
               <div className={styles.scoreRow}>
                 <div className={styles.bigScore}>
-                  <span>{score.index}</span>
-                  <small>MirageML Bench Index</small>
+                  <span>{rating.rating}</span>
+                  <small>Pair Arena Elo</small>
                 </div>
                 <dl className={styles.rankList}>
                   <div>
-                    <dt>Run rank</dt>
+                    <dt>Pair rank</dt>
                     <dd>
-                      #{runRank} of {RUN_SCORES.length}
+                      #{pairRank} of {ENTRIES.length}
                     </dd>
                   </div>
-                  {entry && arena.ratings[entry.id] ? (
-                    <div>
-                      <dt>Pair Arena Elo</dt>
-                      <dd>
-                        {arena.ratings[entry.id].rating} · #
-                        {rankByRating(
-                          ENTRIES.map((e) => e.id),
-                          arena.ratings,
-                        ).indexOf(entry.id) + 1}{" "}
-                        of {ENTRIES.length}
-                        {isProvisional(arena.ratings[entry.id])
-                          ? " · provisional"
-                          : ""}
-                      </dd>
-                    </div>
-                  ) : null}
-                  {entry ? (
-                    <div>
-                      <dt>Pair seed index</dt>
-                      <dd>
-                        {entry.index} · #{entryRank} of {ENTRIES.length}
-                      </dd>
-                    </div>
-                  ) : null}
+                  <div>
+                    <dt>Votes</dt>
+                    <dd>{rating.votes}</dd>
+                  </div>
                 </dl>
               </div>
             ) : null}
@@ -191,55 +161,6 @@ export default async function RunPage({ params }: RunPageProps) {
             </div>
           </div>
         </section>
-
-        {score ? (
-          <section className={styles.section} aria-labelledby="breakdown-title">
-            <div className={styles.sectionHead}>
-              <h2 id="breakdown-title">Score breakdown</h2>
-              <p>{score.verdict}</p>
-            </div>
-            <ul className={styles.breakdown}>
-              {METRICS.map((metric) => {
-                const value = score.scores[metric.key];
-                const pair = entry?.scores[metric.key];
-                return (
-                  <li key={metric.key}>
-                    <div className={styles.breakdownLabel}>
-                      <strong>{metric.label}</strong>
-                      <span>{metric.description}</span>
-                    </div>
-                    <div className={styles.breakdownTrack}>
-                      <i
-                        style={{
-                          width: `${value}%`,
-                          background: entry
-                            ? PROVIDERS[entry.provider].color
-                            : "var(--muted)",
-                        }}
-                        className={styles.breakdownFill}
-                      />
-                      {pair !== undefined ? (
-                        <span
-                          className={styles.breakdownMarker}
-                          style={{ left: `${pair}%` }}
-                          title={`Pair average ${pair}`}
-                        />
-                      ) : null}
-                    </div>
-                    <b className={styles.breakdownValue}>{value}</b>
-                  </li>
-                );
-              })}
-            </ul>
-            {entry ? (
-              <p className={styles.legendNote}>
-                <span className={styles.markerKey} aria-hidden="true" /> Average
-                across {entry.trials} trial{entry.trials === 1 ? "" : "s"} of{" "}
-                {getEntryLabel(entry)}
-              </p>
-            ) : null}
-          </section>
-        ) : null}
 
         <div className={styles.twoCol}>
           <section className={styles.section} aria-labelledby="about-title">
@@ -349,13 +270,11 @@ export default async function RunPage({ params }: RunPageProps) {
             </div>
             <ul className={styles.moreRuns}>
               {others.map((other) => {
-                const otherScore = getRunScore(other.id);
                 return (
                   <li key={other.id}>
                     <Link href={`/runs/${other.id}`}>
                       <span>{other.title}</span>
                       <small>{getModelLabel(other)}</small>
-                      {otherScore ? <b>{otherScore.index}</b> : null}
                     </Link>
                   </li>
                 );

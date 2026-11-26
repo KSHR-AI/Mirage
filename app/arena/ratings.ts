@@ -1,5 +1,5 @@
-import { ENTRIES } from "../bench/scores";
-import { seedRating, type Rating } from "./elo";
+import { ENTRIES } from "../bench/entries";
+import { INITIAL_RATING, type Rating } from "./elo";
 import { getVoteStore } from "./store";
 
 export type RatingsSnapshot = {
@@ -10,19 +10,18 @@ export type RatingsSnapshot = {
   status: "open" | "off" | "error";
 };
 
-/** Seed ratings for every entry, before any votes. */
-export function seedRatings(): Record<string, Rating> {
+/** Starting ratings for every entry, before any votes: all equal. */
+export function initialRatings(): Record<string, Rating> {
   const ratings: Record<string, Rating> = {};
   for (const entry of ENTRIES) {
-    const seed = seedRating(entry.index);
-    ratings[entry.id] = { rating: seed, votes: 0, seed };
+    ratings[entry.id] = { rating: INITIAL_RATING, votes: 0 };
   }
   return ratings;
 }
 
-/** Live ratings, falling back to seeds when the store is off or failing. */
+/** Live ratings, falling back to the starting ratings when the store is off or failing. */
 export async function loadRatings(): Promise<RatingsSnapshot> {
-  const ratings = seedRatings();
+  const ratings = initialRatings();
   const store = getVoteStore();
   if (!store) return { ratings, totalVotes: 0, status: "off" };
   try {

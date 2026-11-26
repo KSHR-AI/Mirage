@@ -1,17 +1,10 @@
 import { ArrowRight, Play } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
-import { K_FACTOR, PROVISIONAL_VOTES } from "./arena/elo";
+import { INITIAL_RATING, K_FACTOR } from "./arena/elo";
 import { loadRatings } from "./arena/ratings";
 import { BenchBoard, type RunLink } from "./bench/BenchBoard";
 import { ProviderMark } from "./bench/ProviderMark";
-import {
-  ENTRIES,
-  INDEX_VERSION,
-  METRICS,
-  RUN_SCORES,
-  getEntry,
-  getEntryLabel,
-} from "./bench/scores";
+import { ENTRIES, getEntryForRun, getEntryLabel } from "./bench/entries";
 import { SubmitDialog, SUBMIT_HASH } from "./gallery/SubmitDialog";
 import { GameCover } from "./gallery/RunParts";
 import { formatBuildDate, getModelLabel } from "./registry/evidence";
@@ -35,12 +28,11 @@ export default async function Page() {
     runLinks[game.id] = { id: game.id, title: game.title };
   }
 
-  // Every published run is listed; scored runs first by index, then runs
-  // still waiting for scores in registry order.
-  const runScores = new Map(RUN_SCORES.map((run) => [run.runId, run]));
-  const listedRuns = registry.games
-    .map((game) => ({ game, score: runScores.get(game.id) ?? null }))
-    .sort((a, b) => (b.score?.index ?? -1) - (a.score?.index ?? -1));
+  // Every published run is listed, in registry order.
+  const listedRuns = registry.games.map((game) => ({
+    game,
+    entry: getEntryForRun(game.id),
+  }));
 
   return (
     <div className={styles.page}>
@@ -61,25 +53,18 @@ export default async function Page() {
           <div className={styles.sectionHead}>
             <h2 id="runs-title">Playable runs</h2>
             <p>
-              Each published run is a deployed game. Scored runs are rated on
-              the same {METRICS.length} evaluations as their model + harness
-              pair; new runs appear here as soon as they are accepted. Open a
-              run for its breakdown and full record, or play it in the sandboxed
-              player.
+              Each published run is a deployed game, listed as soon as it is
+              accepted. Play it in the sandboxed player, or open its record.
             </p>
           </div>
 
           {registry.kind === "ready" ? (
             <ol className={styles.runGrid}>
-              {listedRuns.map(({ game, score: run }, i) => {
-                const entry = run ? getEntry(run.entryId) : null;
+              {listedRuns.map(({ game, entry }) => {
                 return (
                   <li key={game.id} className={styles.runCard}>
                     <Link href={`/runs/${game.id}`} className={styles.runCover}>
                       <GameCover game={game} />
-                      {run ? (
-                        <span className={styles.runRank}>#{i + 1}</span>
-                      ) : null}
                     </Link>
                     <div className={styles.runBody}>
                       <div className={styles.runTitleRow}>
@@ -101,33 +86,10 @@ export default async function Page() {
                             </p>
                           )}
                         </div>
-                        {run ? (
-                          <span
-                            className={styles.runScore}
-                            aria-label={`Index ${run.index}`}
-                          >
-                            {run.index}
-                          </span>
-                        ) : null}
                       </div>
-                      {run ? (
-                        <>
-                          <ul className={styles.miniBars}>
-                            {METRICS.map((m) => (
-                              <li key={m.key}>
-                                <span>{m.short}</span>
-                                <i style={{ width: `${run.scores[m.key]}%` }} />
-                                <b>{run.scores[m.key]}</b>
-                              </li>
-                            ))}
-                          </ul>
-                          <p className={styles.runVerdict}>{run.verdict}</p>
-                        </>
-                      ) : (
-                        <p className={styles.runVerdict}>
-                          Accepted and playable. Not scored yet.
-                        </p>
-                      )}
+                      {game.tagline ? (
+                        <p className={styles.runVerdict}>{game.tagline}</p>
+                      ) : null}
                       <div className={styles.runActions}>
                         <Link
                           href={getCanonicalPlayPath(game)}
@@ -171,32 +133,14 @@ export default async function Page() {
               Arena Elo. In the <Link href="/arena">arena</Link>, a visitor
               plays two runs from different pairs and votes for one, or calls a
               tie. Each vote is a standard Elo update with K = {K_FACTOR}: the
-              winner takes points from the loser, more for an upset. A pair is
-              provisional until it has {PROVISIONAL_VOTES} votes, and the ±
-              beside each rating narrows as votes come in.
+              winner takes points from the loser, more for an upset.
             </p>
             <p>
-              Ratings start from seed scores the maintainers set: MirageML Bench
-              Index {INDEX_VERSION}, the equal-weighted mean of {METRICS.length}{" "}
-              evaluations scored 0–100. Index 45 seeds at 1500 Elo, and each
-              index point is worth 10 Elo. Pairs without a published run cannot
-              appear in the arena yet, so they keep their seed.
+              Every pair starts at {INITIAL_RATING}. There are no maintainer
+              scores: a rating moves only with votes, and the record for each
+              run shows only what its submission states.
             </p>
           </div>
-          <ol className={styles.evalGrid}>
-            {METRICS.map((metric, i) => (
-              <li key={metric.key}>
-                <span className={styles.evalNumber}>
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <h3>{metric.label}</h3>
-                <p>{metric.description}</p>
-                <span className={styles.evalWeight}>
-                  Weight {Math.round(100 / METRICS.length)}%
-                </span>
-              </li>
-            ))}
-          </ol>
           <div className={styles.callout}>
             <div>
               <h3>Why model + harness?</h3>
