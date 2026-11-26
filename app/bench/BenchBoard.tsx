@@ -202,10 +202,6 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
         </div>
 
         <div className={styles.legendRow}>
-          <span className={styles.legend}>
-            <i className={styles.checker} aria-hidden="true" />
-            No publicly available API
-          </span>
           <span className={styles.brand}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icon.png" alt="" />
