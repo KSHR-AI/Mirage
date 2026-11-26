@@ -101,7 +101,6 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
     () => new Set(),
   );
   const [publicOnly, setPublicOnly] = useState(false);
-  const [playableOnly, setPlayableOnly] = useState(false);
 
   const filtered = useMemo(
     () =>
@@ -109,10 +108,9 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
         (entry) =>
           (providers.size === 0 || providers.has(entry.provider)) &&
           (harnesses.size === 0 || harnesses.has(entry.harness)) &&
-          (!publicOnly || entry.access === "public-api") &&
-          (!playableOnly || entry.runIds.length > 0),
+          (!publicOnly || entry.access === "public-api"),
       ),
-    [providers, harnesses, publicOnly, playableOnly],
+    [providers, harnesses, publicOnly],
   );
 
   const visible = useMemo(
@@ -125,17 +123,12 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
     [filtered, selected, metric, ratings],
   );
 
-  const filterCount =
-    providers.size +
-    harnesses.size +
-    (publicOnly ? 1 : 0) +
-    (playableOnly ? 1 : 0);
+  const filterCount = providers.size + harnesses.size + (publicOnly ? 1 : 0);
 
   const resetFilters = () => {
     setProviders(new Set());
     setHarnesses(new Set());
     setPublicOnly(false);
-    setPlayableOnly(false);
   };
 
   return (
@@ -195,8 +188,6 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
                 setHarnesses={setHarnesses}
                 publicOnly={publicOnly}
                 setPublicOnly={setPublicOnly}
-                playableOnly={playableOnly}
-                setPlayableOnly={setPlayableOnly}
                 reset={resetFilters}
               />
             </div>
@@ -453,18 +444,6 @@ function EntryPicker({
             >
               Top 10
             </button>
-            <button
-              type="button"
-              onClick={() =>
-                setSelected(
-                  new Set(
-                    ENTRIES.filter((e) => e.runIds.length > 0).map((e) => e.id),
-                  ),
-                )
-              }
-            >
-              With playable runs
-            </button>
             <button type="button" onClick={() => setSelected(new Set())}>
               None
             </button>
@@ -502,8 +481,6 @@ function FilterMenu(props: {
   setHarnesses: (next: ReadonlySet<string>) => void;
   publicOnly: boolean;
   setPublicOnly: (next: boolean) => void;
-  playableOnly: boolean;
-  setPlayableOnly: (next: boolean) => void;
   reset: () => void;
 }) {
   const { open, setOpen, ref } = usePopover();
@@ -549,16 +526,6 @@ function FilterMenu(props: {
                 onChange={(event) => props.setPublicOnly(event.target.checked)}
               />
               Publicly available API only
-            </label>
-            <label className={styles.check}>
-              <input
-                type="checkbox"
-                checked={props.playableOnly}
-                onChange={(event) =>
-                  props.setPlayableOnly(event.target.checked)
-                }
-              />
-              Has a playable run
             </label>
           </fieldset>
           <fieldset>
