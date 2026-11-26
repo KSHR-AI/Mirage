@@ -20,6 +20,16 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/*": ["./submissions/**/*"],
   },
+  // Resubmitted records get a new ID; keep links to the old one working.
+  async redirects() {
+    return [
+      {
+        source: "/:page(runs|play)/grand-theft-astra",
+        destination: "/:page/grand-theft-astra-002",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

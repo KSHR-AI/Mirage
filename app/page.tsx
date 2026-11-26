@@ -5,11 +5,10 @@ import { loadRatings } from "./arena/ratings";
 import { BenchBoard, type RunLink } from "./bench/BenchBoard";
 import { ProviderMark } from "./bench/ProviderMark";
 import { getEntryForRun, getEntryLabel } from "./bench/entries";
-import { SubmitDialog, SUBMIT_HASH } from "./gallery/SubmitDialog";
 import { GameCover } from "./gallery/RunParts";
+import { SUBMIT_HASH } from "./gallery/SubmitDialog";
 import { formatBuildDate, getModelLabel } from "./registry/evidence";
 import { loadPublishedRegistry } from "./registry/load";
-import { loadSubmitPrompt } from "./registry/load-submit-prompt";
 import { getCanonicalPlayPath } from "./registry/urls";
 import { SiteFooter, SiteHeader } from "./site/SiteChrome";
 import styles from "./bench/Page.module.css";
@@ -17,9 +16,8 @@ import styles from "./bench/Page.module.css";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [registry, submitPrompt, arena] = await Promise.all([
+  const [registry, arena] = await Promise.all([
     loadPublishedRegistry(),
-    loadSubmitPrompt(),
     loadRatings(),
   ]);
 
@@ -36,7 +34,7 @@ export default async function Page() {
 
   return (
     <div className={styles.page}>
-      <SiteHeader onBoard current="leaderboard" submitHref={SUBMIT_HASH} />
+      <SiteHeader onBoard current="leaderboard" />
       <main className={styles.main}>
         <BenchBoard
           runs={runLinks}
@@ -164,7 +162,6 @@ export default async function Page() {
         </section>
       </main>
       <SiteFooter />
-      <SubmitDialog prompt={submitPrompt} />
     </div>
   );
 }

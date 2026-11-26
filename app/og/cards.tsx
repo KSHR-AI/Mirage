@@ -1,5 +1,5 @@
 import type { RegistryStats } from "../registry/evidence";
-import { getModelLabel } from "../registry/evidence";
+import { getRunModelsLabel } from "../bench/entries";
 import type { PublishedGame } from "../registry/schema";
 import { OG_COLORS as C } from "./assets";
 
@@ -199,7 +199,7 @@ export function RunCard({
               textTransform: "uppercase",
             }}
           >
-            {getModelLabel(game)}
+            {getRunModelsLabel(game)}
           </div>
           <div
             style={{

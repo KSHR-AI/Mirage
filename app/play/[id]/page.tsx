@@ -4,7 +4,11 @@ import { RegistryNotice } from "../../gallery/RegistryNotice";
 import { playBackLink } from "../../arena/match";
 import { GamePlayer } from "../../player/GamePlayer";
 import { loadPublishedRegistry } from "../../registry/load";
-import { getEntryForRun, getEntryLabel } from "../../bench/entries";
+import {
+  getEntryForRun,
+  getEntryLabel,
+  getRunModelsLabel,
+} from "../../bench/entries";
 import { getModelLabel } from "../../registry/evidence";
 import { getCanonicalPlayPath } from "../../registry/urls";
 
@@ -25,7 +29,7 @@ export async function generateMetadata({
 
   const title = `${game.title} — MirageML Bench`;
   // A share card names the run and its model; it grades nothing.
-  const summary = `${getModelLabel(game)} · ${game.tagline}. Play it in your browser.`;
+  const summary = `${getRunModelsLabel(game)} · ${game.tagline}. Play it in your browser.`;
 
   return {
     title,

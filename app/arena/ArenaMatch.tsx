@@ -4,6 +4,7 @@ import { ArrowRight, Check, Equals, Play, Trophy } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  Fragment,
   useCallback,
   useEffect,
   useState,
@@ -236,6 +237,7 @@ export function ArenaMatch({
                   {side.coverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
+                      className={styles.revealCover}
                       src={side.coverUrl}
                       alt=""
                       referrerPolicy="no-referrer"
@@ -243,9 +245,16 @@ export function ArenaMatch({
                   ) : null}
                   <span className={styles.revealLabel}>
                     <strong>{side.title}</strong>
-                    <span>
+                    <span className={styles.revealBy}>
                       <ProviderMark provider={side.provider} size={16} />
-                      {side.label}
+                      <span>
+                        {side.label.split(/(?<= \+| ·) /).map((part, j) => (
+                          <Fragment key={part}>
+                            {j > 0 ? " " : null}
+                            <span className={styles.revealPart}>{part}</span>
+                          </Fragment>
+                        ))}
+                      </span>
                     </span>
                   </span>
                   <span className={styles.revealElo}>

@@ -11,7 +11,12 @@ import { notFound } from "next/navigation";
 import { ratingRanks } from "../../arena/elo";
 import { loadRatings } from "../../arena/ratings";
 import { ProviderMark } from "../../bench/ProviderMark";
-import { BENCH_RUNS, getEntryForRun, getEntryLabel } from "../../bench/entries";
+import {
+  BENCH_RUNS,
+  getEntryForRun,
+  getEntryLabel,
+  getRunModelsLabel,
+} from "../../bench/entries";
 import { RegistryNotice } from "../../gallery/RegistryNotice";
 import {
   EvidenceGlyph,
@@ -46,7 +51,7 @@ export async function generateMetadata({
   const game = registry.games.find((candidate) => candidate.id === id);
   if (!game) return {};
   const title = `${game.title} — MirageML Bench`;
-  const description = `${getModelLabel(game)}. ${game.tagline}`;
+  const description = `${getRunModelsLabel(game)}. ${game.tagline}`;
   return {
     title,
     description,
@@ -272,7 +277,7 @@ export default async function RunPage({ params }: RunPageProps) {
                   <li key={other.id}>
                     <Link href={`/runs/${other.id}`}>
                       <span>{other.title}</span>
-                      <small>{getModelLabel(other)}</small>
+                      <small>{getRunModelsLabel(other)}</small>
                     </Link>
                   </li>
                 );
