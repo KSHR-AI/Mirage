@@ -44,7 +44,7 @@ export default async function Page() {
 
   return (
     <div className={styles.page}>
-      <SiteHeader onBoard submitHref={SUBMIT_HASH} />
+      <SiteHeader onBoard current="leaderboard" submitHref={SUBMIT_HASH} />
       <main className={styles.main}>
         <BenchBoard
           runs={runLinks}
