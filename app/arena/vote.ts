@@ -57,7 +57,7 @@ export async function castVote(
 ): Promise<VoteResponse> {
   const a = runEntry(request.a);
   const b = runEntry(request.b);
-  if (!a || !b || a.entry.id === b.entry.id || !isOutcome(request.outcome)) {
+  if (!a || !b || a.runId === b.runId || !isOutcome(request.outcome)) {
     return { ok: false, status: 400, error: "bad-request" };
   }
 
@@ -91,8 +91,8 @@ export async function castVote(
   }
 
   const result = await store.recordVote({
-    entryA: a.entry.id,
-    entryB: b.entry.id,
+    runA: a.runId,
+    runB: b.runId,
     outcome: request.outcome,
   });
 

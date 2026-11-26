@@ -1,20 +1,20 @@
-import { ENTRIES } from "../bench/entries";
+import { BENCH_RUNS } from "../bench/entries";
 import { INITIAL_RATING, type Rating } from "./elo";
 import { getVoteStore } from "./store";
 
 export type RatingsSnapshot = {
   ratings: Record<string, Rating>;
-  /** Votes cast across all entries. */
+  /** Votes cast across all runs. */
   totalVotes: number;
   /** "open" when votes are being recorded, otherwise why not. */
   status: "open" | "off" | "error";
 };
 
-/** Starting ratings for every entry, before any votes: all equal. */
+/** Starting ratings for every leaderboard run, before any votes: all equal. */
 export function initialRatings(): Record<string, Rating> {
   const ratings: Record<string, Rating> = {};
-  for (const entry of ENTRIES) {
-    ratings[entry.id] = { rating: INITIAL_RATING, votes: 0 };
+  for (const run of BENCH_RUNS) {
+    ratings[run.id] = { rating: INITIAL_RATING, votes: 0 };
   }
   return ratings;
 }
@@ -37,7 +37,7 @@ export async function loadRatings(): Promise<RatingsSnapshot> {
       };
       votes += value.votes;
     }
-    // Each vote counts toward two entries.
+    // Each vote counts toward two runs.
     return { ratings, totalVotes: Math.round(votes / 2), status: "open" };
   } catch (error) {
     console.error("Could not load arena ratings", error);

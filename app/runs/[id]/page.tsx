@@ -11,7 +11,7 @@ import { notFound } from "next/navigation";
 import { ratingRanks } from "../../arena/elo";
 import { loadRatings } from "../../arena/ratings";
 import { ProviderMark } from "../../bench/ProviderMark";
-import { ENTRIES, getEntryForRun, getEntryLabel } from "../../bench/entries";
+import { BENCH_RUNS, getEntryForRun, getEntryLabel } from "../../bench/entries";
 import { RegistryNotice } from "../../gallery/RegistryNotice";
 import {
   EvidenceGlyph,
@@ -68,13 +68,11 @@ export default async function RunPage({ params }: RunPageProps) {
   if (!game) notFound();
 
   const entry = getEntryForRun(game.id);
-  const rating = entry ? arena.ratings[entry.id] : undefined;
-  const pairRank = entry
-    ? ratingRanks(
-        ENTRIES.map((e) => e.id),
-        arena.ratings,
-      ).get(entry.id)
-    : undefined;
+  const rating = entry ? arena.ratings[game.id] : undefined;
+  const rank = ratingRanks(
+    BENCH_RUNS.map((run) => run.id),
+    arena.ratings,
+  ).get(game.id);
   const harness = getRecordedHarness(game);
   const signals = getEvidenceSignals(game);
   const others = registry.games.filter((other) => other.id !== game.id);
@@ -112,13 +110,13 @@ export default async function RunPage({ params }: RunPageProps) {
               <div className={styles.scoreRow}>
                 <div className={styles.bigScore}>
                   <span>{rating.rating}</span>
-                  <small>Pair Arena Elo</small>
+                  <small>Arena Elo</small>
                 </div>
                 <dl className={styles.rankList}>
                   <div>
-                    <dt>Pair rank</dt>
+                    <dt>Rank</dt>
                     <dd>
-                      #{pairRank} of {ENTRIES.length}
+                      #{rank} of {BENCH_RUNS.length} runs
                     </dd>
                   </div>
                   <div>

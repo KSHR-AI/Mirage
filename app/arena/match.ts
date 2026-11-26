@@ -16,9 +16,8 @@ export function getContenders(games: readonly PublishedGame[]): Contender[] {
 }
 
 /**
- * Two runs from different pairs. The first leans toward pairs with fewer
- * votes so new entries gather votes sooner; the second is
- * uniform among the rest.
+ * Two different runs. The first leans toward runs with fewer votes so new
+ * runs gather votes sooner; the second is uniform among the rest.
  */
 export function pickMatch(
   contenders: readonly Contender[],
@@ -26,7 +25,7 @@ export function pickMatch(
   random: () => number = Math.random,
 ): [Contender, Contender] | null {
   const weights = contenders.map(
-    (c) => 1 / Math.sqrt((ratings[c.entry.id]?.votes ?? 0) + 1),
+    (c) => 1 / Math.sqrt((ratings[c.game.id]?.votes ?? 0) + 1),
   );
   const total = weights.reduce((sum, w) => sum + w, 0);
   let roll = random() * total;
@@ -40,7 +39,7 @@ export function pickMatch(
   }
   const first = contenders[firstIndex];
   if (!first) return null;
-  const rest = contenders.filter((c) => c.entry.id !== first.entry.id);
+  const rest = contenders.filter((c) => c.game.id !== first.game.id);
   if (rest.length === 0) return null;
   const second =
     rest[Math.min(rest.length - 1, Math.floor(random() * rest.length))];
