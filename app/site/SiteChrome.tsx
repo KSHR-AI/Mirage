@@ -34,6 +34,9 @@ export function SiteHeader({
           >
             Leaderboard
           </Link>
+          <Link className={styles.section} href="/arena">
+            Arena
+          </Link>
           <Link className={styles.section} href={onBoard ? "#runs" : "/#runs"}>
             Runs
           </Link>

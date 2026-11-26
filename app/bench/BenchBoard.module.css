@@ -315,9 +315,9 @@
 
 .legendRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 10px 24px;
   margin: 22px 0 6px;
 }
 
@@ -327,6 +327,18 @@
   gap: 10px;
   color: var(--ink);
   font-size: 15px;
+}
+
+.legendRow .brand {
+  margin-left: auto;
+}
+
+.provisionalSwatch {
+  width: 22px;
+  height: 16px;
+  border: 1px dashed var(--muted);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--muted) 22%, transparent);
 }
 
 .checker {
@@ -421,6 +433,10 @@
     filter 120ms ease;
 }
 
+.bar[data-provisional] {
+  opacity: 0.72;
+}
+
 .bar[data-access="no-public-api"] {
   background: repeating-conic-gradient(
       var(--bar) 0 25%,
@@ -443,6 +459,14 @@
   font-weight: 600;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
   transform: translateY(-50%);
+}
+
+/* Four-digit Elo values run up the bar instead of across it. */
+.bar[data-long-values] .barValue {
+  top: 10px;
+  font-size: clamp(11px, 1vw, 14px);
+  transform: rotate(180deg);
+  writing-mode: vertical-rl;
 }
 
 .tip {
@@ -655,6 +679,41 @@
 
 .indexCell {
   min-width: 150px;
+}
+
+.eloCell {
+  white-space: nowrap;
+}
+
+.eloCell b {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.eloCell small {
+  margin-left: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.provisionalTag {
+  display: inline-block;
+  margin-left: 8px;
+  border: 1px dashed var(--rule-strong);
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.intro .seedNote {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.intro a {
+  color: var(--accent);
 }
 
 .indexCell b {

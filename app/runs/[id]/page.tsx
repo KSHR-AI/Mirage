@@ -7,6 +7,8 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { isProvisional, rankByRating } from "../../arena/elo";
+import { loadRatings } from "../../arena/ratings";
 import { ProviderMark } from "../../bench/ProviderMark";
 import {
   ENTRIES,
@@ -66,7 +68,10 @@ export async function generateMetadata({
 
 export default async function RunPage({ params }: RunPageProps) {
   const { id } = await params;
-  const registry = await loadPublishedRegistry();
+  const [registry, arena] = await Promise.all([
+    loadPublishedRegistry(),
+    loadRatings(),
+  ]);
   if (registry.kind === "unavailable") {
     return <RegistryNotice kind="unavailable" message={registry.message} />;
   }
@@ -122,9 +127,25 @@ export default async function RunPage({ params }: RunPageProps) {
                       #{runRank} of {RUN_SCORES.length}
                     </dd>
                   </div>
+                  {entry && arena.ratings[entry.id] ? (
+                    <div>
+                      <dt>Pair Arena Elo</dt>
+                      <dd>
+                        {arena.ratings[entry.id].rating} · #
+                        {rankByRating(
+                          ENTRIES.map((e) => e.id),
+                          arena.ratings,
+                        ).indexOf(entry.id) + 1}{" "}
+                        of {ENTRIES.length}
+                        {isProvisional(arena.ratings[entry.id])
+                          ? " · provisional"
+                          : ""}
+                      </dd>
+                    </div>
+                  ) : null}
                   {entry ? (
                     <div>
-                      <dt>Pair index</dt>
+                      <dt>Pair seed index</dt>
                       <dd>
                         {entry.index} · #{entryRank} of {ENTRIES.length}
                       </dd>

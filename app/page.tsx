@@ -1,5 +1,7 @@
 import { ArrowRight, Play } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
+import { K_FACTOR, PROVISIONAL_VOTES } from "./arena/elo";
+import { loadRatings } from "./arena/ratings";
 import { BenchBoard, type RunLink } from "./bench/BenchBoard";
 import { ProviderMark } from "./bench/ProviderMark";
 import {
@@ -22,9 +24,10 @@ import styles from "./bench/Page.module.css";
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const [registry, submitPrompt] = await Promise.all([
+  const [registry, submitPrompt, arena] = await Promise.all([
     loadPublishedRegistry(),
     loadSubmitPrompt(),
+    loadRatings(),
   ]);
 
   const gamesById = new Map(registry.games.map((game) => [game.id, game]));
@@ -41,7 +44,12 @@ export default async function Page() {
     <div className={styles.page}>
       <SiteHeader onBoard submitHref={SUBMIT_HASH} />
       <main className={styles.main}>
-        <BenchBoard runs={runLinks} />
+        <BenchBoard
+          runs={runLinks}
+          ratings={arena.ratings}
+          totalVotes={arena.totalVotes}
+          arenaStatus={arena.status}
+        />
 
         <section
           className={styles.section}
@@ -141,11 +149,20 @@ export default async function Page() {
           <div className={styles.sectionHead}>
             <h2 id="methodology-title">Methodology</h2>
             <p>
-              MirageML Bench Index {INDEX_VERSION} is the equal-weighted mean of{" "}
-              {METRICS.length} evaluations, each scored 0–100 by judges who play
-              the deployed game in the sandboxed player. A pair&rsquo;s score
-              averages its trials; {ENTRIES.length} model + harness pairs are
-              ranked.
+              The leaderboard ranks {ENTRIES.length} model + harness pairs by
+              Arena Elo. In the <Link href="/arena">arena</Link>, a visitor
+              plays two runs from different pairs and votes for one, or calls a
+              tie. Each vote is a standard Elo update with K = {K_FACTOR}: the
+              winner takes points from the loser, more for an upset. A pair is
+              provisional until it has {PROVISIONAL_VOTES} votes, and the ±
+              beside each rating narrows as votes come in.
+            </p>
+            <p>
+              Ratings start from seed scores the maintainers set: MirageML Bench
+              Index {INDEX_VERSION}, the equal-weighted mean of {METRICS.length}{" "}
+              evaluations scored 0–100. Index 45 seeds at 1500 Elo, and each
+              index point is worth 10 Elo. Pairs without a published run cannot
+              appear in the arena yet, so they keep their seed.
             </p>
           </div>
           <ol className={styles.evalGrid}>
