@@ -40,8 +40,15 @@ seed, host, or template for a game.
   popups, downloads, storage access, or top navigation.
 - Treat submitted URLs as hostile. Reject credentials, redirects, private
   network destinations, unsafe response types, and framing restrictions.
-- Record observed facts and explicit unknowns. Never infer a model grade,
-  clean-room status, license clearance, or reproducibility from a working URL.
+- Record observed facts and explicit unknowns. Never infer clean-room status,
+  license clearance, or reproducibility from a working URL.
+- Seed scores for model + harness pairs and runs live in
+  `app/bench/scores.ts`, never in submission records. The leaderboard ranks
+  pairs by Arena Elo from votes (`app/arena`), starting from those seeds.
+- Arena votes live in Upstash Redis (`KV_REST_API_URL`, `KV_REST_API_TOKEN`)
+  and need `VOTE_SECRET` (32+ characters). Without them production turns
+  voting off. Never store a raw IP or other voter identity, and never expose
+  these variables to the player, game frames, or contributor code.
 - Follow [CONTRIBUTING.md](CONTRIBUTING.md),
   [submissions/README.md](submissions/README.md), and [TODO.md](TODO.md). Run
   `pnpm check` for every affected control-plane surface.

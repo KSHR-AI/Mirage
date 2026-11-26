@@ -23,7 +23,7 @@ export function getPostIntentUrl(origin: string, game: ShareableGame) {
   return url.toString();
 }
 
-/** The home-page address that opens one run's evidence record. */
+/** The page that shows one run's scores and evidence record. */
 export function getRecordPath(game: Pick<PublishedGame, "id">) {
-  return `/?run=${encodeURIComponent(game.id)}`;
+  return `/runs/${encodeURIComponent(game.id)}`;
 }
