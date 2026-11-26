@@ -3,7 +3,7 @@
   z-index: 20;
   top: 0;
   border-bottom: 1px solid var(--rule);
-  background: rgba(10, 14, 12, 0.82);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(14px) saturate(1.2);
   font-family: var(--font-body);
 }
@@ -33,34 +33,29 @@
 }
 
 .wordmark span {
-  font-family: var(--font-display);
+  font-family: var(--font-serif);
   font-size: 21px;
-  font-style: italic;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: 1;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
 .task {
   border: 1px solid var(--rule-strong);
-  border-radius: 3px;
-  padding: 4px 7px 3px;
-  color: var(--soft-ink);
-  font-family: var(--font-mono);
-  font-size: 10px;
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: var(--muted);
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.14em;
   line-height: 1;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
 .nav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   margin-left: auto;
 }
 
@@ -69,10 +64,10 @@
   min-height: 36px;
   align-items: center;
   gap: 7px;
-  border-radius: 4px;
-  padding: 0 12px;
+  border-radius: 8px;
+  padding: 0 11px;
   color: var(--soft-ink);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
@@ -83,7 +78,7 @@
 }
 
 .nav a:hover {
-  background: rgba(236, 229, 208, 0.07);
+  background: var(--surface-raised);
   color: var(--ink);
 }
 
@@ -94,20 +89,21 @@
 
 .nav a.submit {
   margin-left: 8px;
-  border: 1px solid rgba(201, 244, 90, 0.5);
-  color: var(--lime);
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--surface);
   font-weight: 600;
 }
 
 .nav a.submit:hover {
-  border-color: var(--lime);
-  background: var(--lime);
-  color: var(--lime-ink);
+  background: var(--soft-ink);
+  color: var(--surface);
 }
 
 .footer {
-  margin-top: 96px;
+  margin-top: 72px;
   border-top: 1px solid var(--rule);
+  background: var(--surface);
   font-family: var(--font-body);
 }
 
@@ -145,12 +141,18 @@
 }
 
 .footer a:hover {
-  color: var(--lime);
+  color: var(--accent);
 }
 
 .footer svg {
   width: 16px;
   height: 16px;
+}
+
+@media (max-width: 900px) {
+  .section {
+    display: none !important;
+  }
 }
 
 @media (max-width: 760px) {
@@ -173,12 +175,8 @@
   }
 }
 
-@media (max-width: 460px) {
+@media (max-width: 400px) {
   .wordmark span {
     font-size: 18px;
-  }
-
-  .nav a:not(.submit, .iconLink) {
-    display: none;
   }
 }

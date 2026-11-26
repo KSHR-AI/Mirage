@@ -79,6 +79,7 @@ export function SubmitDialog({ prompt }: { prompt: string | null }) {
 
   return (
     <dialog
+      data-theme="dark"
       ref={dialogRef}
       className={styles.dialog}
       aria-labelledby="submit-title"

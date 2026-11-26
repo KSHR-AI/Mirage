@@ -28,7 +28,24 @@ export function SiteHeader({
         </Link>
         <span className={styles.task}>GTA in SF</span>
         <nav className={styles.nav} aria-label="Site">
-          {onBoard ? <a href="#runs">Runs</a> : null}
+          <Link
+            className={styles.section}
+            href={onBoard ? "#leaderboard" : "/"}
+          >
+            Leaderboard
+          </Link>
+          <Link className={styles.section} href="/arena">
+            Arena
+          </Link>
+          <Link className={styles.section} href={onBoard ? "#runs" : "/#runs"}>
+            Runs
+          </Link>
+          <Link
+            className={styles.section}
+            href={onBoard ? "#methodology" : "/#methodology"}
+          >
+            Methodology
+          </Link>
           <a
             className={styles.iconLink}
             href={REPOSITORY_URL}

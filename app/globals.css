@@ -1,4 +1,30 @@
 :root {
+  color-scheme: light;
+  --bg: #f4f4f2;
+  --surface: #ffffff;
+  --surface-raised: #f7f7f5;
+  --ink: #141414;
+  --soft-ink: #3c3c40;
+  --muted: #6e6e76;
+  --rule: rgba(20, 20, 20, 0.08);
+  --rule-strong: rgba(20, 20, 20, 0.16);
+  --accent: #6b5ce7;
+  --accent-soft: rgba(107, 92, 231, 0.1);
+  --lime: #4d7c0f;
+  --lime-ink: #ffffff;
+  --amber: #b45309;
+  --mint: #2f7d6d;
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "Inter", Arial, Helvetica, sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --page-width: 1320px;
+  --page-gutter: clamp(14px, 3.4vw, 44px);
+}
+
+/* The registry notice, submit dialog, and player keep the original dark look. */
+[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0a0e0c;
   --surface: #0f1512;
@@ -8,16 +34,11 @@
   --muted: #9c9a88;
   --rule: rgba(236, 229, 208, 0.12);
   --rule-strong: rgba(236, 229, 208, 0.26);
+  --accent: #c9f45a;
   --lime: #c9f45a;
   --lime-ink: #10160a;
   --amber: #f2b45c;
   --mint: #9cc1b9;
-  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
-  --font-body: "Inter", Arial, Helvetica, sans-serif;
-  --font-mono:
-    "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  --page-width: 1280px;
-  --page-gutter: clamp(18px, 3.4vw, 44px);
 }
 
 * {
@@ -56,7 +77,7 @@ textarea {
 
 a:focus-visible,
 button:focus-visible {
-  outline: 2px solid var(--lime);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
