@@ -75,11 +75,11 @@ describe("playBackLink", () => {
     const url = new URL(arenaPlayPath(match[1].game, match), "https://x");
     expect(url.pathname).toBe(`/play/${match[1].game.id}`);
     const back = playBackLink(Object.fromEntries(url.searchParams));
-    expect(back).toEqual({ href: matchPath(match), label: "Back to arena" });
+    expect(back).toEqual({ href: matchPath(match), label: "Arena" });
   });
 
   it("falls back to the benchmark otherwise", () => {
-    expect(playBackLink({})).toEqual({ href: "/", label: "Back to benchmark" });
+    expect(playBackLink({})).toEqual({ href: "/", label: "Leaderboard" });
     expect(playBackLink({ from: "arena", a: "x" }).href).toBe("/");
   });
 });

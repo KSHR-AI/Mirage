@@ -56,6 +56,10 @@ export default async function Page() {
               Each published run is a deployed game, listed as soon as it is
               accepted. Play it in the sandboxed player, or open its record.
             </p>
+            <p className={styles.phoneNote}>
+              Most runs expect a keyboard and mouse. Browse here, then copy the
+              link to play on a computer.
+            </p>
           </div>
 
           {registry.kind === "ready" ? (

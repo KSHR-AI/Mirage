@@ -50,7 +50,7 @@
 
 .runGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: 18px;
   margin: 0;
   padding: 0;
@@ -495,5 +495,25 @@
 
   .runDate {
     margin-left: 0;
+  }
+}
+
+/* Only phones need to hear that runs want a keyboard. */
+.phoneNote {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .sectionHead .phoneNote {
+    display: block;
+    border-left: 3px solid var(--accent);
+    padding: 2px 0 2px 12px;
+    color: var(--ink);
+  }
+}
+
+@media (min-width: 1100px) {
+  .runGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

@@ -4,6 +4,7 @@ import { RegistryNotice } from "../../gallery/RegistryNotice";
 import { playBackLink } from "../../arena/match";
 import { GamePlayer } from "../../player/GamePlayer";
 import { loadPublishedRegistry } from "../../registry/load";
+import { getEntryForRun, getEntryLabel } from "../../bench/entries";
 import { getModelLabel } from "../../registry/evidence";
 import { getCanonicalPlayPath } from "../../registry/urls";
 
@@ -58,5 +59,16 @@ export default async function GamePage({
 
   const game = registry.games.find((candidate) => candidate.id === id);
   if (!game) notFound();
-  return <GamePlayer game={game} back={playBackLink(query)} />;
+  const entry = getEntryForRun(game.id);
+  return (
+    <GamePlayer
+      game={game}
+      back={playBackLink(query)}
+      builtBy={
+        entry
+          ? { label: getEntryLabel(entry), provider: entry.provider }
+          : { label: getModelLabel(game), provider: null }
+      }
+    />
+  );
 }

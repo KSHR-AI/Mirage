@@ -85,9 +85,9 @@ export function arenaPlayPath(
 export function playBackLink(query: Record<string, unknown>) {
   const { from, a, b } = query;
   if (from === "arena" && typeof a === "string" && typeof b === "string") {
-    return { href: arenaPath(a, b), label: "Back to arena" };
+    return { href: arenaPath(a, b), label: "Arena" };
   }
-  return { href: "/", label: "Back to benchmark" };
+  return { href: "/", label: "Leaderboard" };
 }
 
 /** A matchup and, when voting is open, the token that lets it be voted on. */
