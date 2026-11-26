@@ -1,4 +1,4 @@
-import { ArrowSquareOut, Play } from "@phosphor-icons/react/ssr";
+import { Play } from "@phosphor-icons/react/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -100,16 +100,13 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
                     <h2>{side.game.title}</h2>
                     <p>{side.game.tagline}</p>
                     <div className={styles.sideActions}>
-                      <a
+                      <Link
                         className={pageStyles.primaryButton}
                         href={arenaPlayPath(side.game, match)}
-                        target="_blank"
-                        rel="noopener"
                       >
                         <Play aria-hidden="true" weight="fill" />
                         Play run {i === 0 ? "A" : "B"}
-                        <ArrowSquareOut aria-hidden="true" />
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </article>
