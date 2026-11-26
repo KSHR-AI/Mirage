@@ -18,7 +18,7 @@ describe("pickMatch", () => {
     for (const c of contenders) expect(getEntry(c.entry.id)).toBe(c.entry);
   });
 
-  it("always pairs runs from two different pairs", () => {
+  it("always offers two different runs", () => {
     const contenders = getContenders(games);
     const ratings = initialRatings();
     for (let seed = 0; seed < 200; seed += 1) {
@@ -26,11 +26,11 @@ describe("pickMatch", () => {
       const random = () => ((x = (x * 16807) % 2147483647) - 1) / 2147483646;
       const match = pickMatch(contenders, ratings, random);
       expect(match).not.toBeNull();
-      expect(match![0].entry.id).not.toBe(match![1].entry.id);
+      expect(match![0].game.id).not.toBe(match![1].game.id);
     }
   });
 
-  it("returns null with fewer than two pairs", () => {
+  it("returns null with fewer than two runs", () => {
     const one = getContenders(games.slice(0, 1));
     expect(pickMatch(one, initialRatings())).toBeNull();
   });

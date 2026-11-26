@@ -13,8 +13,8 @@ import { applyVote, INITIAL_RATING, K_FACTOR, type Outcome } from "./elo";
 export type StoredRating = { rating: number; votes: number };
 
 export type VoteInput = {
-  entryA: string;
-  entryB: string;
+  runA: string;
+  runB: string;
   outcome: Outcome;
 };
 
@@ -25,9 +25,9 @@ export type VoteResult = {
 
 export interface VoteStore {
   readonly kind: "redis" | "memory";
-  /** Ratings and vote counts for every entry that has been voted on. */
+  /** Ratings and vote counts for every run that has been voted on. */
   getRatings(): Promise<Map<string, StoredRating>>;
-  /** Applies one vote to both entries atomically. */
+  /** Applies one vote to both runs atomically. */
   recordVote(vote: VoteInput): Promise<VoteResult>;
   /** Sets `key` if unset and returns true; false if it was already set. */
   claim(key: string, ttlSeconds: number): Promise<boolean>;
@@ -36,9 +36,10 @@ export interface VoteStore {
 }
 
 const PREFIX = "mirage:arena:";
-// v2: every pair starts at INITIAL_RATING. v1 ratings started from
-// maintainer seed scores; they are left in place but no longer read.
-const RATINGS_PREFIX = `${PREFIX}v2:`;
+// v3: every run is rated on its own, starting at INITIAL_RATING. v2 rated
+// model + harness pairs and v1 started from maintainer seed scores; both are
+// left in place but no longer read.
+const RATINGS_PREFIX = `${PREFIX}v3:`;
 const RATINGS_KEY = `${RATINGS_PREFIX}ratings`;
 const VOTES_KEY = `${RATINGS_PREFIX}votes`;
 const LOG_KEY = `${RATINGS_PREFIX}log`;
@@ -46,7 +47,7 @@ const LOG_LIMIT = 50_000;
 
 // Runs inside Redis so concurrent votes never read a stale rating.
 // KEYS: ratings hash, votes hash, log list.
-// ARGV: entryA, entryB, initial rating (twice), scoreA (1, 0.5, 0), k, log entry, cap.
+// ARGV: runA, runB, initial rating (twice), scoreA (1, 0.5, 0), k, log entry, cap.
 const VOTE_SCRIPT = `
 local ra = tonumber(redis.call('HGET', KEYS[1], ARGV[1]) or ARGV[3])
 local rb = tonumber(redis.call('HGET', KEYS[1], ARGV[2]) or ARGV[4])
@@ -68,8 +69,8 @@ function scoreFor(outcome: Outcome) {
 
 function logEntry(vote: VoteInput) {
   return JSON.stringify({
-    a: vote.entryA,
-    b: vote.entryB,
+    a: vote.runA,
+    b: vote.runB,
     o: vote.outcome,
     t: Date.now(),
   });
@@ -132,8 +133,8 @@ class RedisStore implements VoteStore {
         RATINGS_KEY,
         VOTES_KEY,
         LOG_KEY,
-        vote.entryA,
-        vote.entryB,
+        vote.runA,
+        vote.runB,
         INITIAL_RATING,
         INITIAL_RATING,
         scoreFor(vote.outcome),
@@ -182,17 +183,17 @@ export class MemoryStore implements VoteStore {
   }
 
   async recordVote(vote: VoteInput) {
-    const a = this.ratings.get(vote.entryA) ?? {
+    const a = this.ratings.get(vote.runA) ?? {
       rating: INITIAL_RATING,
       votes: 0,
     };
-    const b = this.ratings.get(vote.entryB) ?? {
+    const b = this.ratings.get(vote.runB) ?? {
       rating: INITIAL_RATING,
       votes: 0,
     };
     const next = applyVote(a.rating, b.rating, vote.outcome);
-    this.ratings.set(vote.entryA, { rating: next.a, votes: a.votes + 1 });
-    this.ratings.set(vote.entryB, { rating: next.b, votes: b.votes + 1 });
+    this.ratings.set(vote.runA, { rating: next.a, votes: a.votes + 1 });
+    this.ratings.set(vote.runB, { rating: next.b, votes: b.votes + 1 });
     return {
       a: { before: a.rating, after: next.a },
       b: { before: b.rating, after: next.b },

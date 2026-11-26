@@ -25,11 +25,11 @@ import {
 import { copyText } from "../gallery/clipboard";
 import { ProviderMark } from "./ProviderMark";
 import {
-  ENTRIES,
+  BENCH_RUNS,
   HARNESSES,
   PROVIDERS,
   getEntryLabel,
-  type Entry,
+  type BenchRun,
   type ProviderKey,
 } from "./entries";
 import styles from "./BenchBoard.module.css";
@@ -41,30 +41,37 @@ export type ArenaStatus = "open" | "off" | "error";
 type Ratings = Readonly<Record<string, Rating>>;
 
 type Props = {
-  /** Published runs by ID; scored runs missing here are not linked. */
+  /** Published runs by ID; leaderboard runs missing here are not linked. */
   runs: Readonly<Record<string, RunLink>>;
-  /** Arena Elo by entry ID. Entries without votes sit at the initial rating. */
+  /** Arena Elo by run ID. Runs without votes sit at the initial rating. */
   ratings: Ratings;
   totalVotes: number;
   arenaStatus: ArenaStatus;
 };
 
+/** One leaderboard row: a run, the pair that built it, and its title. */
+type Row = BenchRun & { title: string; published: boolean };
+
 const PROVIDER_KEYS = [
-  ...new Set(ENTRIES.map((entry) => entry.provider)),
+  ...new Set(BENCH_RUNS.map((run) => run.provider)),
 ] as ProviderKey[];
 
-const ALL_IDS = ENTRIES.map((entry) => entry.id);
+const ALL_IDS = BENCH_RUNS.map((run) => run.id);
 
-function ratingOf(ratings: Ratings, entry: Entry): Rating {
-  return ratings[entry.id] ?? { rating: INITIAL_RATING, votes: 0 };
+function rowLabel(row: Row) {
+  return `${getEntryLabel(row)} · ${row.title}`;
 }
 
-/** Entries by Arena Elo, highest first; equal ratings sort by name. */
-function rankByElo(ratings: Ratings, entries: readonly Entry[]) {
-  return [...entries].sort(
+function ratingOf(ratings: Ratings, row: Row): Rating {
+  return ratings[row.id] ?? { rating: INITIAL_RATING, votes: 0 };
+}
+
+/** Runs by Arena Elo, highest first; equal ratings sort by name. */
+function rankByElo(ratings: Ratings, rows: readonly Row[]) {
+  return [...rows].sort(
     (a, b) =>
       ratingOf(ratings, b).rating - ratingOf(ratings, a).rating ||
-      getEntryLabel(a).localeCompare(getEntryLabel(b)),
+      rowLabel(a).localeCompare(rowLabel(b)),
   );
 }
 
@@ -80,15 +87,25 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
   );
   const [publicOnly, setPublicOnly] = useState(false);
 
+  const allRows = useMemo<readonly Row[]>(
+    () =>
+      BENCH_RUNS.map((run) => ({
+        ...run,
+        title: runs[run.id]?.title ?? run.id,
+        published: Boolean(runs[run.id]),
+      })),
+    [runs],
+  );
+
   const filtered = useMemo(
     () =>
-      ENTRIES.filter(
+      allRows.filter(
         (entry) =>
           (providers.size === 0 || providers.has(entry.provider)) &&
           (harnesses.size === 0 || harnesses.has(entry.harness)) &&
           (!publicOnly || entry.access === "public-api"),
       ),
-    [providers, harnesses, publicOnly],
+    [allRows, providers, harnesses, publicOnly],
   );
 
   const visible = useMemo(
@@ -122,14 +139,14 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
               <ArrowUpRight aria-hidden="true" className={styles.titleArrow} />
             </h1>
             <p>
-              Each entry is a model running inside a coding harness on one task:
+              Each run is a model working inside a coding harness on one task:
               build GTA as a browser game, from an empty repository to a
-              deployed build. Pairs are ranked by Arena Elo, set only by people{" "}
+              deployed build. Runs are ranked by Arena Elo, set only by people{" "}
               <Link href="/arena">playing two runs and voting</Link> for the
               better one.
             </p>
             <p className={styles.seedNote}>
-              Every pair starts at {INITIAL_RATING}.{" "}
+              Every run starts at {INITIAL_RATING}.{" "}
               {arenaStatus === "open"
                 ? `${totalVotes.toLocaleString("en-US")} vote${totalVotes === 1 ? "" : "s"} so far.`
                 : arenaStatus === "error"
@@ -159,6 +176,7 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
             </div>
             <div className={styles.selectorRow}>
               <EntryPicker
+                rows={allRows}
                 filtered={filtered}
                 selected={selected}
                 setSelected={setSelected}
@@ -194,12 +212,11 @@ export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
         <div className={styles.cardFoot}>
           <span>Arena Elo from head-to-head votes</span>
           <span>
-            Higher is better · {visible.length} of {ENTRIES.length} model +
-            harness pairs
+            Higher is better · {visible.length} of {allRows.length} runs
           </span>
         </div>
 
-        <ScoreTable entries={visible} runs={runs} ratings={ratings} />
+        <ScoreTable entries={visible} ratings={ratings} />
       </section>
     </>
   );
@@ -209,13 +226,13 @@ function BarChart({
   entries,
   ratings,
 }: {
-  entries: readonly Entry[];
+  entries: readonly Row[];
   ratings: Ratings;
 }) {
   if (entries.length === 0) {
     return (
       <p className={styles.emptyChart}>
-        No entries match. Widen the filters or select more entries.
+        No runs match. Widen the filters or select more runs.
       </p>
     );
   }
@@ -236,10 +253,7 @@ function BarChart({
             <span key={line} style={{ bottom: `${line * 100}%` }} />
           ))}
         </div>
-        <ol
-          className={styles.columns}
-          aria-label="Arena Elo by model and harness"
-        >
+        <ol className={styles.columns} aria-label="Arena Elo by run">
           {entries.map((entry) => {
             const rating = ratingOf(ratings, entry);
             const value = rating.rating;
@@ -249,7 +263,7 @@ function BarChart({
                 <a
                   href={`#row-${entry.id}`}
                   className={styles.barSlot}
-                  aria-label={`${getEntryLabel(entry)}: ${value} Elo, ${rating.votes} vote${rating.votes === 1 ? "" : "s"}`}
+                  aria-label={`${rowLabel(entry)}: ${value} Elo, ${rating.votes} vote${rating.votes === 1 ? "" : "s"}`}
                 >
                   <span
                     className={styles.bar}
@@ -265,8 +279,8 @@ function BarChart({
                     <span className={styles.barValue}>{value}</span>
                   </span>
                   <span className={styles.tip} role="tooltip">
-                    <strong>{entry.model}</strong>
-                    <em>{entry.harness}</em>
+                    <strong>{entry.title}</strong>
+                    <em>{getEntryLabel(entry)}</em>
                     <span className={styles.tipGrid}>
                       <span>Elo</span>
                       <b>
@@ -285,6 +299,8 @@ function BarChart({
                     {entry.model}
                     <br />
                     <span>{entry.harness}</span>
+                    <br />
+                    <em>{entry.title}</em>
                   </span>
                 </span>
               </li>
@@ -318,25 +334,25 @@ function usePopover() {
 }
 
 function EntryPicker({
+  rows,
   filtered,
   selected,
   setSelected,
 }: {
-  filtered: readonly Entry[];
+  rows: readonly Row[];
+  filtered: readonly Row[];
   selected: ReadonlySet<string>;
   setSelected: (next: ReadonlySet<string>) => void;
 }) {
   const { open, setOpen, ref } = usePopover();
   const [query, setQuery] = useState("");
   const shown = filtered.filter((entry) => selected.has(entry.id)).length;
-  const ranked = [...ENTRIES].sort((a, b) =>
-    getEntryLabel(a).localeCompare(getEntryLabel(b)),
+  const ranked = [...rows].sort((a, b) =>
+    rowLabel(a).localeCompare(rowLabel(b)),
   );
   const needle = query.trim().toLowerCase();
   const matches = needle
-    ? ranked.filter((entry) =>
-        getEntryLabel(entry).toLowerCase().includes(needle),
-      )
+    ? ranked.filter((entry) => rowLabel(entry).toLowerCase().includes(needle))
     : ranked;
 
   const toggle = (id: string) => {
@@ -356,21 +372,17 @@ function EntryPicker({
         onClick={() => setOpen(!open)}
       >
         <span>
-          {shown} of {ENTRIES.length} pairs
+          {shown} of {rows.length} runs
         </span>
         <CaretUpDown aria-hidden="true" />
       </button>
       {open ? (
-        <div
-          className={styles.popover}
-          role="dialog"
-          aria-label="Choose entries"
-        >
+        <div className={styles.popover} role="dialog" aria-label="Choose runs">
           <label className={styles.search}>
             <MagnifyingGlass aria-hidden="true" />
             <input
               type="search"
-              placeholder="Search model or harness"
+              placeholder="Search model, harness or run"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -395,7 +407,9 @@ function EntryPicker({
                   <ProviderMark provider={entry.provider} size={18} />
                   <span>
                     {entry.model}
-                    <small>{entry.harness}</small>
+                    <small>
+                      {entry.harness} · {entry.title}
+                    </small>
                   </span>
                 </label>
               </li>
@@ -536,11 +550,9 @@ type SortKey = "elo" | "label" | "votes";
 
 function ScoreTable({
   entries,
-  runs,
   ratings,
 }: {
-  entries: readonly Entry[];
-  runs: Readonly<Record<string, RunLink>>;
+  entries: readonly Row[];
   ratings: Ratings;
 }) {
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
@@ -551,8 +563,8 @@ function ScoreTable({
   const rankById = useMemo(() => ratingRanks(ALL_IDS, ratings), [ratings]);
 
   const rows = useMemo(() => {
-    const value = (entry: Entry): number | string => {
-      if (sort.key === "label") return getEntryLabel(entry).toLowerCase();
+    const value = (entry: Row): number | string => {
+      if (sort.key === "label") return rowLabel(entry).toLowerCase();
       if (sort.key === "votes") return ratingOf(ratings, entry).votes;
       return ratingOf(ratings, entry).rating;
     };
@@ -562,7 +574,7 @@ function ScoreTable({
       const order = left < right ? -1 : left > right ? 1 : 0;
       return (
         (sort.dir === "asc" ? order : -order) ||
-        getEntryLabel(a).localeCompare(getEntryLabel(b))
+        rowLabel(a).localeCompare(rowLabel(b))
       );
     });
   }, [entries, sort, ratings]);
@@ -610,7 +622,7 @@ function ScoreTable({
   return (
     <div className={styles.tableBlock} id="table">
       <p className={styles.tableNote}>
-        Rank is across all {ENTRIES.length} pairs; pairs with the same rating
+        Rank is across all {ALL_IDS.length} runs; runs with the same rating
         share a rank. Few votes means a rating can still move a lot.
       </p>
       <div className={styles.tableScroll}>
@@ -620,12 +632,9 @@ function ScoreTable({
               <th scope="col" className={styles.rankCell}>
                 #
               </th>
-              {header("label", "Model · Harness")}
+              {header("label", "Model · Harness · Run")}
               {header("elo", "Elo", "Arena Elo from head-to-head votes")}
               {header("votes", "Votes")}
-              <th scope="col" className={styles.runsCell}>
-                Runs
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -642,24 +651,23 @@ function ScoreTable({
                         ? " · No public API"
                         : ""}
                     </small>
+                    {entry.published ? (
+                      <Link
+                        href={`/runs/${entry.id}`}
+                        className={styles.runLink}
+                      >
+                        <Play aria-hidden="true" weight="fill" />
+                        {entry.title}
+                      </Link>
+                    ) : (
+                      <small>{entry.title}</small>
+                    )}
                   </span>
                 </th>
                 <td className={styles.num}>
                   <b>{ratingOf(ratings, entry).rating}</b>
                 </td>
                 <td className={styles.num}>{ratingOf(ratings, entry).votes}</td>
-                <td className={styles.runsCell}>
-                  {entry.runIds.filter((id) => runs[id]).length === 0
-                    ? "—"
-                    : entry.runIds
-                        .filter((id) => runs[id])
-                        .map((id) => (
-                          <Link key={id} href={`/runs/${id}`}>
-                            <Play aria-hidden="true" weight="fill" />
-                            {runs[id].title}
-                          </Link>
-                        ))}
-                </td>
               </tr>
             ))}
           </tbody>

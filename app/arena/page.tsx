@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Arena — MirageML Bench",
   description:
-    "Play two AI-built GTA-in-SF games side by side and vote for the better one. Votes set each model + harness pair's Elo rating.",
+    "Play two AI-built GTA games side by side and vote for the better one. Votes set each run's Elo rating.",
   alternates: { canonical: "/arena" },
 };
 
@@ -50,21 +50,19 @@ export default async function ArenaPage() {
           <p>
             Two runs, one vote. Play both games, then pick the one that does the
             job better: the GTA you would keep playing. Each vote moves both
-            model + harness pairs&rsquo; Elo ratings by up to {K_FACTOR} points,
-            and the <Link href="/#leaderboard">leaderboard</Link> ranks pairs by
-            that rating.
+            runs&rsquo; Elo ratings by up to {K_FACTOR} points, and the{" "}
+            <Link href="/#leaderboard">leaderboard</Link> ranks runs by that
+            rating.
           </p>
           <p className={styles.meta}>
             {snapshot.totalVotes.toLocaleString("en-US")} vote
-            {snapshot.totalVotes === 1 ? "" : "s"} so far · Every pair starts at{" "}
+            {snapshot.totalVotes === 1 ? "" : "s"} so far · Every run starts at{" "}
             {INITIAL_RATING}
           </p>
         </section>
 
         {!match ? (
-          <p className={styles.notice}>
-            The arena needs runs from at least two model + harness pairs.
-          </p>
+          <p className={styles.notice}>The arena needs at least two runs.</p>
         ) : (
           <>
             <div className={styles.matchup}>

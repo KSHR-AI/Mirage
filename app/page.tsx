@@ -4,7 +4,7 @@ import { INITIAL_RATING, K_FACTOR } from "./arena/elo";
 import { loadRatings } from "./arena/ratings";
 import { BenchBoard, type RunLink } from "./bench/BenchBoard";
 import { ProviderMark } from "./bench/ProviderMark";
-import { ENTRIES, getEntryForRun, getEntryLabel } from "./bench/entries";
+import { BENCH_RUNS, getEntryForRun, getEntryLabel } from "./bench/entries";
 import { SubmitDialog, SUBMIT_HASH } from "./gallery/SubmitDialog";
 import { GameCover } from "./gallery/RunParts";
 import { formatBuildDate, getModelLabel } from "./registry/evidence";
@@ -129,14 +129,15 @@ export default async function Page() {
           <div className={styles.sectionHead}>
             <h2 id="methodology-title">Methodology</h2>
             <p>
-              The leaderboard ranks {ENTRIES.length} model + harness pairs by
-              Arena Elo. In the <Link href="/arena">arena</Link>, a visitor
-              plays two runs from different pairs and votes for one, or calls a
-              tie. Each vote is a standard Elo update with K = {K_FACTOR}: the
-              winner takes points from the loser, more for an upset.
+              The leaderboard ranks all {BENCH_RUNS.length} runs by Arena Elo,
+              each labelled with the model and harness that built it. In the{" "}
+              <Link href="/arena">arena</Link>, a visitor plays two runs and
+              votes for one, or calls a tie. Each vote is a standard Elo update
+              with K = {K_FACTOR}: the winner takes points from the loser, more
+              for an upset.
             </p>
             <p>
-              Every pair starts at {INITIAL_RATING}. There are no maintainer
+              Every run starts at {INITIAL_RATING}. There are no maintainer
               scores: a rating moves only with votes, and the record for each
               run shows only what its submission states.
             </p>

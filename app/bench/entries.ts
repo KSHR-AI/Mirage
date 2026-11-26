@@ -1,9 +1,10 @@
 /**
- * MirageML Bench entries: the model + harness pairs on the leaderboard.
+ * MirageML Bench entries: the model + harness pairs behind the published runs.
  *
  * Every field here is a recorded fact taken from a published run in
- * `submissions/*.json`. There are no maintainer scores: a pair's standing comes
- * only from Arena votes (`app/arena`), and every pair starts at the same Elo.
+ * `submissions/*.json`. The leaderboard ranks runs, not pairs. There are no
+ * maintainer scores: a run's standing comes only from Arena votes
+ * (`app/arena`), and every run starts at the same Elo.
  */
 
 export type ProviderKey =
@@ -111,6 +112,18 @@ export const ENTRIES: readonly Entry[] = [
     runIds: ["not-gta-6-seaplane"],
   },
 ];
+
+/** One leaderboard row: a published run and the pair that built it. */
+export type BenchRun = Omit<Entry, "id" | "runIds"> & {
+  /** The run ID in `submissions/`; Arena Elo is keyed by it. */
+  id: string;
+  entryId: string;
+};
+
+export const BENCH_RUNS: readonly BenchRun[] = ENTRIES.flatMap(
+  ({ id: entryId, runIds, ...pair }) =>
+    runIds.map((id) => ({ ...pair, id, entryId })),
+);
 
 export function getEntry(id: string) {
   return ENTRIES.find((entry) => entry.id === id) ?? null;

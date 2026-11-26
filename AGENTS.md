@@ -44,8 +44,8 @@ seed, host, or template for a game.
   license clearance, or reproducibility from a working URL.
 - Show only measured or recorded data. Model + harness pairs live in
   `app/bench/entries.ts` as facts only (model, harness, provider, access,
-  runs). Never add maintainer scores or estimates. The leaderboard ranks pairs
-  by Arena Elo from votes alone (`app/arena`); every pair starts at 1500.
+  runs). Never add maintainer scores or estimates. The leaderboard ranks runs
+  by Arena Elo from votes alone (`app/arena`); every run starts at 1500.
 - Arena votes live in Upstash Redis (`KV_REST_API_URL`, `KV_REST_API_TOKEN`)
   and need `VOTE_SECRET` (32+ characters). Without them production turns
   voting off. Never store a raw IP or other voter identity, and never expose

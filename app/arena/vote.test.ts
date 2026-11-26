@@ -46,8 +46,8 @@ describe("castVote", () => {
     expect(result.a.after).toBeGreaterThan(INITIAL_RATING);
     expect(result.b.after).toBeLessThan(result.b.before);
     const ratings = await store.getRatings();
-    expect(ratings.get(result.a.entryId)?.votes).toBe(1);
-    expect(ratings.get(result.b.entryId)?.votes).toBe(1);
+    expect(ratings.get(result.a.runId)?.votes).toBe(1);
+    expect(ratings.get(result.b.runId)?.votes).toBe(1);
   });
 
   it("rejects unknown runs, a bad outcome and a forged token", async () => {
