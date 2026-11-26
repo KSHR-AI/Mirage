@@ -144,9 +144,9 @@ export type Entry = {
 
 export const ENTRIES: readonly Entry[] = [
   {
-    id: "gpt-6-2-astra--niteshift",
+    id: "gpt-6-2-astra--codex",
     model: "GPT-6.2-Astra",
-    harness: "Niteshift",
+    harness: "Codex",
     provider: "openai",
     access: "public-api",
     runIds: ["grand-theft-astra"],
