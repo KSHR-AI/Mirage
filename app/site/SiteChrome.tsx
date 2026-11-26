@@ -7,7 +7,7 @@ import styles from "./SiteChrome.module.css";
  * `onBoard` links to sections of the board. Elsewhere, Submit opens the agent
  * prompt on GitHub because the page has no submit section.
  */
-export type SiteSection = "leaderboard" | "arena" | "runs" | "methodology";
+export type SiteSection = "leaderboard" | "arena";
 
 export function SiteHeader({
   onBoard = false,
@@ -25,12 +25,6 @@ export function SiteHeader({
       href: onBoard ? "#leaderboard" : "/",
     },
     { key: "arena", label: "Arena", href: "/arena" },
-    { key: "runs", label: "Runs", href: onBoard ? "#runs" : "/#runs" },
-    {
-      key: "methodology",
-      label: "Methodology",
-      href: onBoard ? "#methodology" : "/#methodology",
-    },
   ];
 
   return (
