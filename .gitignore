@@ -14,3 +14,4 @@ research
 .env.*
 !.env.example
 .codex-artifacts
+.claude/launch.json
