@@ -1,0 +1,161 @@
+.section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  align-items: start;
+  gap: 28px 48px;
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  padding: clamp(20px, 3vw, 40px);
+  background: var(--surface);
+}
+
+.lead,
+.form {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lead h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+
+.lead p:not(.eyebrow) {
+  margin: 0;
+  color: var(--soft-ink);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.lead a,
+.fallback {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  color: var(--accent-ink);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.lead a:hover,
+.fallback:hover {
+  text-decoration: underline;
+}
+
+.lead svg,
+.fallback svg {
+  width: 14px;
+  height: 14px;
+}
+
+.form label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.field input {
+  min-width: 0;
+  height: 48px;
+  flex: 1 1 240px;
+  border: 1px solid rgba(20, 20, 20, 0.2);
+  border-radius: 10px;
+  padding: 0 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.field input[aria-invalid="true"] {
+  border-color: var(--amber);
+}
+
+.field button {
+  display: inline-flex;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 18px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 240ms ease;
+}
+
+.field button:hover {
+  background: var(--soft-ink);
+}
+
+.field button[data-copied] {
+  background: var(--mint);
+}
+
+.field svg {
+  width: 16px;
+  height: 16px;
+}
+
+.feedback {
+  min-height: 20px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.feedback[data-tone="warn"] {
+  color: var(--amber);
+}
+
+.feedback[data-tone="ok"] {
+  color: var(--mint);
+}
+
+.prompt {
+  overflow: auto;
+  max-height: 260px;
+  margin: 0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: var(--surface-raised);
+  color: var(--soft-ink);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

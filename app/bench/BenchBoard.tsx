@@ -1,727 +1,628 @@
 "use client";
 
 import {
-  ArrowDown,
   ArrowRight,
-  ArrowUp,
   ArrowUpRight,
-  CaretDown,
-  CaretUpDown,
-  Check,
-  LinkSimple,
-  MagnifyingGlass,
+  CaretUp,
   Play,
   Scales,
   Shuffle,
-  SlidersHorizontal,
-  Table,
 } from "@phosphor-icons/react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  INITIAL_RATING,
-  ratingRanks,
-  ratingSpread,
-  type Rating,
-} from "../arena/elo";
-import { copyText } from "../gallery/clipboard";
+import { useEffect, useRef, useState } from "react";
+import { INITIAL_RATING, ratingSpread } from "../arena/elo";
+import { EvidenceGlyph, ShareLinkButton } from "../gallery/RunParts";
+import { ControlList } from "../player/ControlList";
+import { InlinePlayer } from "../player/InlinePlayer";
+import type { EvidenceSignal } from "../registry/evidence";
 import { ProviderMark } from "./ProviderMark";
-import {
-  BENCH_RUNS,
-  HARNESSES,
-  PROVIDERS,
-  getEntryLabel,
-  getModelsLabel,
-  type BenchRun,
-  type ProviderKey,
-} from "./entries";
+import { PROVIDERS, type ProviderKey } from "./entries";
+import type { Highlight } from "./highlights";
 import styles from "./BenchBoard.module.css";
-
-export type RunLink = { id: string; title: string };
 
 export type ArenaStatus = "open" | "off" | "error";
 
-type Ratings = Readonly<Record<string, Rating>>;
-
-type Props = {
-  /** Published runs by ID; leaderboard runs missing here are not linked. */
-  runs: Readonly<Record<string, RunLink>>;
-  /** Arena Elo by run ID. Runs without votes sit at the initial rating. */
-  ratings: Ratings;
-  totalVotes: number;
-  arenaStatus: ArenaStatus;
+/** One leaderboard row: a run on the board and its Arena standing. */
+export type BoardRow = {
+  id: string;
+  title: string;
+  provider: ProviderKey;
+  models: string;
+  harness: string;
+  rating: number;
+  votes: number;
+  rank: number;
+  /** The record's build date, formatted, or null when it gives none. */
+  built: string | null;
+  /** False when the run has no published record to open. */
+  published: boolean;
 };
 
-/** One leaderboard row: a run, the pair that built it, and its title. */
-type Row = BenchRun & { title: string; published: boolean };
+/** One published run: what its card, player and record need. */
+export type BoardRun = {
+  id: string;
+  title: string;
+  tagline: string;
+  description: string;
+  /** The model as the record states it; share text names it. */
+  model: string;
+  /** The model + harness pair, when the run is on the leaderboard. */
+  pair: { label: string; provider: ProviderKey } | null;
+  modelLabel: string;
+  built: string | null;
+  coverUrl: string | null;
+  coverAlt: string;
+  entryUrl: string;
+  protocolVersion: number;
+  recordPath: string;
+  deployment: { provider: string; url: string };
+  source: { url: string; commit: string } | null;
+  harness: string | null;
+  signals: readonly EvidenceSignal[];
+  controls: readonly string[];
+};
 
-const PROVIDER_KEYS = [
-  ...new Set(BENCH_RUNS.map((run) => run.provider)),
-] as ProviderKey[];
+type Props = {
+  /** Leaderboard runs, highest Elo first. */
+  rows: readonly BoardRow[];
+  /** Published runs, in registry order. */
+  runs: readonly BoardRun[];
+  highlights: readonly Highlight[];
+  totalVotes: number;
+  arenaStatus: ArenaStatus;
+  /** Why no runs are listed, when the registry could not supply them. */
+  notice: string | null;
+};
 
-const ALL_IDS = BENCH_RUNS.map((run) => run.id);
+const RUN_HASH = "#run-";
 
-function rowLabel(row: Row) {
-  return `${getEntryLabel(row)} · ${row.title}`;
-}
+export function BenchBoard({
+  rows,
+  runs,
+  highlights,
+  totalVotes,
+  arenaStatus,
+  notice,
+}: Props) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [playing, setPlaying] = useState(false);
+  // The panel keeps its last run while it closes, so it never empties mid-way.
+  const [shownId, setShownId] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-function ratingOf(ratings: Ratings, row: Row): Rating {
-  return ratings[row.id] ?? { rating: INITIAL_RATING, votes: 0 };
-}
+  const run =
+    runs.find((candidate) => candidate.id === (openId ?? shownId)) ?? null;
+  const open = openId !== null && run !== null;
+  const row = run ? rows.find((candidate) => candidate.id === run.id) : null;
 
-/** Runs by Arena Elo, highest first; equal ratings sort by name. */
-function rankByElo(ratings: Ratings, rows: readonly Row[]) {
-  return [...rows].sort(
-    (a, b) =>
-      ratingOf(ratings, b).rating - ratingOf(ratings, a).rating ||
-      rowLabel(a).localeCompare(rowLabel(b)),
-  );
-}
+  function show(id: string, play: boolean) {
+    if (!runs.some((candidate) => candidate.id === id)) return;
+    setOpenId(id);
+    setShownId(id);
+    setPlaying(play);
+    window.history.replaceState(null, "", `${RUN_HASH}${id}`);
+    requestAnimationFrame(() =>
+      panelRef.current?.scrollIntoView({ block: "start" }),
+    );
+  }
 
-export function BenchBoard({ runs, ratings, totalVotes, arenaStatus }: Props) {
-  const [selected, setSelected] = useState<ReadonlySet<string>>(
-    () => new Set(ALL_IDS),
-  );
-  const [providers, setProviders] = useState<ReadonlySet<ProviderKey>>(
-    () => new Set(),
-  );
-  const [harnesses, setHarnesses] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  );
-  const [publicOnly, setPublicOnly] = useState(false);
+  function close() {
+    setOpenId(null);
+    setPlaying(false);
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + window.location.search,
+    );
+  }
 
-  const allRows = useMemo<readonly Row[]>(
-    () =>
-      BENCH_RUNS.map((run) => ({
-        ...run,
-        title: runs[run.id]?.title ?? run.id,
-        published: Boolean(runs[run.id]),
-      })),
-    [runs],
-  );
-
-  const filtered = useMemo(
-    () =>
-      allRows.filter(
-        (entry) =>
-          (providers.size === 0 || providers.has(entry.provider)) &&
-          (harnesses.size === 0 || harnesses.has(entry.harness)) &&
-          (!publicOnly || entry.access === "public-api"),
-      ),
-    [allRows, providers, harnesses, publicOnly],
-  );
-
-  const visible = useMemo(
-    () =>
-      rankByElo(
-        ratings,
-        filtered.filter((entry) => selected.has(entry.id)),
-      ),
-    [filtered, selected, ratings],
-  );
-
-  const filterCount = providers.size + harnesses.size + (publicOnly ? 1 : 0);
-
-  const resetFilters = () => {
-    setProviders(new Set());
-    setHarnesses(new Set());
-    setPublicOnly(false);
-  };
+  // A link to #run-ID opens that run's panel, on load or from another page.
+  useEffect(() => {
+    const reveal = () => {
+      const { hash } = window.location;
+      if (!hash.startsWith(RUN_HASH)) return;
+      const id = decodeURIComponent(hash.slice(RUN_HASH.length));
+      if (!runs.some((candidate) => candidate.id === id)) return;
+      setOpenId(id);
+      setShownId(id);
+      requestAnimationFrame(() =>
+        panelRef.current?.scrollIntoView({ block: "start" }),
+      );
+    };
+    reveal();
+    window.addEventListener("hashchange", reveal);
+    return () => window.removeEventListener("hashchange", reveal);
+  }, [runs]);
 
   return (
     <>
-      <section
-        className={styles.card}
-        id="leaderboard"
-        aria-labelledby="index-title"
-      >
-        <div className={styles.cardHead}>
-          <div className={styles.intro}>
-            <h1 id="index-title">
-              MirageML Bench Leaderboard
-              <ArrowUpRight aria-hidden="true" className={styles.titleArrow} />
-            </h1>
-            <p>
-              Each run is a model working inside a coding harness on one task:
-              build GTA as a browser game, from an empty repository to a
-              deployed build. Runs are ranked by Arena Elo, set only by people{" "}
-              <Link href="/arena">playing two runs and voting</Link> for the
-              better one.
-            </p>
-            <p className={styles.seedNote}>
-              Every run starts at {INITIAL_RATING}.{" "}
-              {arenaStatus === "open"
-                ? `${totalVotes.toLocaleString("en-US")} vote${totalVotes === 1 ? "" : "s"} so far.`
-                : arenaStatus === "error"
-                  ? "The vote store is not responding right now."
-                  : "Voting is not open yet."}
-            </p>
-            <div className={styles.arenaCta}>
-              <Link href="/arena" className={styles.arenaButton}>
-                <Scales aria-hidden="true" weight="bold" />
-                Vote in the Arena
-                <ArrowRight aria-hidden="true" weight="bold" />
-              </Link>
-              <Link href="/play" className={styles.randomButton}>
+      <section className={styles.board} aria-labelledby="board-title">
+        <div className={styles.intro}>
+          <p className={styles.eyebrow}>MirageML Bench Leaderboard</p>
+          <h1 id="board-title">Can an LLM solve GTA?</h1>
+          <p className={styles.lede}>
+            Each run is a model working inside a coding harness on one task:
+            build GTA as a browser game, from an empty repository to a deployed
+            build. Runs are ranked by Arena Elo, set only by people{" "}
+            <Link href="/arena">playing two runs and voting</Link> for the
+            better one.
+          </p>
+          <p className={styles.seedNote}>
+            Every run starts at {INITIAL_RATING}.{" "}
+            {arenaStatus === "open"
+              ? `${totalVotes.toLocaleString("en-US")} vote${totalVotes === 1 ? "" : "s"} so far.`
+              : arenaStatus === "error"
+                ? "The vote store is not responding right now."
+                : "Voting is not open yet."}
+          </p>
+          <div className={styles.cta}>
+            <Link href="/arena" className={styles.primaryButton}>
+              <Scales aria-hidden="true" weight="bold" />
+              Vote in the Arena
+              <ArrowRight aria-hidden="true" weight="bold" />
+            </Link>
+            {runs.length > 0 ? (
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() =>
+                  show(runs[Math.floor(Math.random() * runs.length)].id, true)
+                }
+              >
                 <Shuffle aria-hidden="true" weight="bold" />
                 Play a random run
-              </Link>
-              <span>Play two anonymous runs, pick the better one.</span>
-            </div>
+              </button>
+            ) : null}
+            <span>Play two anonymous runs, pick the better one.</span>
           </div>
+        </div>
 
-          <div className={styles.controls}>
-            <div className={styles.iconRow}>
-              <CopyLinkButton />
-              <a
-                className={styles.iconButton}
-                href="#table"
-                aria-label="Show the ranking table"
+        <div className={styles.sheet}>
+          <div className={styles.cardHead}>
+            <h2>Leaderboard</h2>
+            <span>Arena Elo</span>
+          </div>
+          {highlights.length > 0 ? (
+            <dl className={styles.highlights}>
+              {highlights.map((highlight) => (
+                <div key={highlight.label}>
+                  <dt>{highlight.label}</dt>
+                  <dd className={styles.highlightTitle}>
+                    {highlight.provider ? (
+                      <ProviderMark provider={highlight.provider} size={22} />
+                    ) : null}
+                    {highlight.title}
+                  </dd>
+                  <dd className={styles.highlightNote}>{highlight.note}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+
+          <BarChart
+            rows={rows}
+            openId={openId}
+            onOpen={(id) => show(id, false)}
+          />
+          <RankingTable
+            rows={rows}
+            openId={openId}
+            onOpen={(id) => show(id, false)}
+          />
+          <div className={styles.foot}>
+            <span>
+              Arena Elo from head-to-head votes. The spread narrows as votes
+              arrive; it is a display aid, not a statistical interval.
+            </span>
+            <span>
+              Higher is better · {rows.length} run{rows.length === 1 ? "" : "s"}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.runs} id="runs" aria-labelledby="runs-title">
+        <div className={styles.runsHead}>
+          <h2 id="runs-title">Playable runs</h2>
+          <p>
+            Each published run is a deployed game, listed as soon as it is
+            accepted. Play it right here in the sandboxed player, or open its
+            record.
+          </p>
+          <p className={styles.phoneNote}>
+            Most runs expect a keyboard and mouse. Browse here, then copy the
+            link to play on a computer.
+          </p>
+        </div>
+
+        <div
+          ref={panelRef}
+          className={styles.panelSlot}
+          data-open={open ? "true" : undefined}
+        >
+          <div>
+            {run ? (
+              <RunPanel
+                key={run.id}
+                run={run}
+                row={row ?? null}
+                total={rows.length}
+                playing={open && playing}
+                onPlay={() => setPlaying(true)}
+                onStop={() => setPlaying(false)}
+                onClose={close}
+              />
+            ) : null}
+          </div>
+        </div>
+
+        {notice ? <p className={styles.notice}>{notice}</p> : null}
+        <ol className={styles.grid}>
+          {runs.map((game) => (
+            <li
+              key={game.id}
+              className={styles.card}
+              data-open={open && openId === game.id ? "true" : undefined}
+            >
+              <button
+                type="button"
+                className={styles.cardCover}
+                onClick={() => show(game.id, false)}
+                aria-label={`Open the record for ${game.title}`}
               >
-                <Table aria-hidden="true" />
-              </a>
-            </div>
-            <div className={styles.selectorRow}>
-              <EntryPicker
-                rows={allRows}
-                filtered={filtered}
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <FilterMenu
-                count={filterCount}
-                providers={providers}
-                setProviders={setProviders}
-                harnesses={harnesses}
-                setHarnesses={setHarnesses}
-                publicOnly={publicOnly}
-                setPublicOnly={setPublicOnly}
-                reset={resetFilters}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.legendRow}>
-          <span className={styles.brand}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon.png" alt="" />
-            MirageML Bench
-          </span>
-        </div>
-
-        <BarChart entries={visible} ratings={ratings} />
-
-        <div className={styles.cardFoot}>
-          <span>Arena Elo from head-to-head votes</span>
-          <span>
-            Higher is better · {visible.length} of {allRows.length} runs
-          </span>
-        </div>
-
-        <ScoreTable entries={visible} ratings={ratings} />
+                {game.coverUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={game.coverUrl}
+                    alt={game.coverAlt}
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span>{game.id}</span>
+                )}
+              </button>
+              <div className={styles.cardBody}>
+                <h3>{game.title}</h3>
+                <p className={styles.pair}>
+                  {game.pair ? (
+                    <ProviderMark provider={game.pair.provider} size={16} />
+                  ) : null}
+                  {game.pair?.label ?? game.modelLabel}
+                </p>
+                <p className={styles.tagline}>{game.tagline}</p>
+                <div className={styles.cardActions}>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => show(game.id, true)}
+                    aria-label={`Play ${game.title}`}
+                  >
+                    <Play aria-hidden="true" weight="fill" />
+                    Play
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.button}
+                    onClick={() => show(game.id, false)}
+                    aria-label={`Details for ${game.title}`}
+                  >
+                    Details
+                    <ArrowRight aria-hidden="true" weight="bold" />
+                  </button>
+                  {game.built ? <span>{game.built}</span> : null}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
       </section>
     </>
   );
 }
 
 function BarChart({
-  entries,
-  ratings,
+  rows,
+  openId,
+  onOpen,
 }: {
-  entries: readonly Row[];
-  ratings: Ratings;
+  rows: readonly BoardRow[];
+  openId: string | null;
+  onOpen: (id: string) => void;
 }) {
-  if (entries.length === 0) {
-    return (
-      <p className={styles.emptyChart}>
-        No runs match. Widen the filters or select more runs.
-      </p>
-    );
-  }
-
-  const values = entries.map((entry) => ratingOf(ratings, entry).rating);
+  if (rows.length === 0) return null;
+  const values = rows.map((row) => row.rating);
   // Elo has no natural zero, so bars start from a floor below the lowest.
   const floor = Math.floor((Math.min(...values) - 100) / 100) * 100;
   const ceiling = Math.ceil((Math.max(...values) + 50) / 100) * 100;
+  const span = ceiling - floor;
+  const ticks = Array.from(
+    { length: span / 100 + 1 },
+    (_, index) => floor + index * 100,
+  );
 
   return (
     <div className={styles.chartScroll}>
-      <div
-        className={styles.chart}
-        style={{ "--columns": entries.length } as React.CSSProperties}
-      >
-        <div className={styles.grid} aria-hidden="true">
-          {[1, 0.75, 0.5, 0.25].map((line) => (
-            <span key={line} style={{ bottom: `${line * 100}%` }} />
+      <div className={styles.chart}>
+        <div className={styles.plot}>
+          {ticks.map((tick) => (
+            <span
+              key={tick}
+              className={styles.tick}
+              data-base={tick === floor ? "true" : undefined}
+              style={{ bottom: `${((tick - floor) / span) * 100}%` }}
+              aria-hidden="true"
+            >
+              <i>{tick.toLocaleString("en-US")}</i>
+            </span>
           ))}
-        </div>
-        <ol className={styles.columns} aria-label="Arena Elo by run">
-          {entries.map((entry) => {
-            const rating = ratingOf(ratings, entry);
-            const value = rating.rating;
-            const provider = PROVIDERS[entry.provider];
-            return (
-              <li key={entry.id} className={styles.column}>
-                <a
-                  href={`#row-${entry.id}`}
+          <ol className={styles.columns} aria-label="Arena Elo by run">
+            {rows.map((row) => (
+              <li key={row.id}>
+                <button
+                  type="button"
                   className={styles.barSlot}
-                  aria-label={`${rowLabel(entry)}: ${value} Elo, ${rating.votes} vote${rating.votes === 1 ? "" : "s"}`}
+                  onClick={() => onOpen(row.id)}
+                  disabled={!row.published}
+                  data-open={openId === row.id ? "true" : undefined}
+                  aria-label={`${row.title}: ${row.rating} Elo, ${row.votes} vote${row.votes === 1 ? "" : "s"}. Open it below.`}
                 >
+                  <span className={styles.barValue}>
+                    {row.rating.toLocaleString("en-US")}
+                  </span>
                   <span
                     className={styles.bar}
-                    data-access={entry.access}
-                    data-long-values
-                    style={
-                      {
-                        "--pct": `${((value - floor) / (ceiling - floor)) * 100}%`,
-                        "--bar": provider.color,
-                      } as React.CSSProperties
-                    }
-                  >
-                    <span className={styles.barValue}>{value}</span>
-                  </span>
-                  <span className={styles.tip} role="tooltip">
-                    <strong>{entry.title}</strong>
-                    <em>{getEntryLabel(entry)}</em>
-                    <span className={styles.tipGrid}>
-                      <span>Elo</span>
-                      <b>
-                        {rating.rating} ± {ratingSpread(rating.votes)}
-                      </b>
-                      <span>Votes</span>
-                      <b>{rating.votes}</b>
-                    </span>
-                  </span>
-                </a>
-                <span className={styles.logo}>
-                  <ProviderMark provider={entry.provider} size={20} />
-                </span>
-                <span className={styles.labelSlot}>
-                  <span className={styles.label}>
-                    {getModelsLabel(entry)}
-                    <br />
-                    <span>{entry.harness}</span>
-                    <br />
-                    <em>{entry.title}</em>
-                  </span>
-                </span>
+                    style={{
+                      height: `${((row.rating - floor) / span) * 100}%`,
+                      background: PROVIDERS[row.provider].color,
+                    }}
+                  />
+                </button>
               </li>
-            );
-          })}
+            ))}
+          </ol>
+        </div>
+        <ol className={styles.labels} aria-hidden="true">
+          {rows.map((row) => (
+            <li key={row.id}>
+              <ProviderMark provider={row.provider} size={18} />
+              <span>{row.models}</span>
+              <small>{row.harness}</small>
+              <b>{row.title}</b>
+            </li>
+          ))}
         </ol>
       </div>
     </div>
   );
 }
 
-function usePopover() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (event: PointerEvent) => {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-  return { open, setOpen, ref };
-}
-
-function EntryPicker({
+function RankingTable({
   rows,
-  filtered,
-  selected,
-  setSelected,
+  openId,
+  onOpen,
 }: {
-  rows: readonly Row[];
-  filtered: readonly Row[];
-  selected: ReadonlySet<string>;
-  setSelected: (next: ReadonlySet<string>) => void;
+  rows: readonly BoardRow[];
+  openId: string | null;
+  onOpen: (id: string) => void;
 }) {
-  const { open, setOpen, ref } = usePopover();
-  const [query, setQuery] = useState("");
-  const shown = filtered.filter((entry) => selected.has(entry.id)).length;
-  const ranked = [...rows].sort((a, b) =>
-    rowLabel(a).localeCompare(rowLabel(b)),
-  );
-  const needle = query.trim().toLowerCase();
-  const matches = needle
-    ? ranked.filter((entry) => rowLabel(entry).toLowerCase().includes(needle))
-    : ranked;
-
-  const toggle = (id: string) => {
-    const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelected(next);
-  };
+  if (rows.length === 0) return null;
+  const spreads = rows.map((row) => ratingSpread(row.votes));
+  const low = Math.min(...rows.map((row, i) => row.rating - spreads[i]));
+  const high = Math.max(...rows.map((row, i) => row.rating + spreads[i]));
+  const at = (value: number) => `${((value - low) / (high - low)) * 100}%`;
+  // Runs with the same rating share a rank; no one of them is marked first.
+  const shared = (rank: number) =>
+    rows.filter((row) => row.rank === rank).length > 1;
 
   return (
-    <div className={styles.popoverHost} ref={ref}>
-      <button
-        type="button"
-        className={styles.selector}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={() => setOpen(!open)}
-      >
-        <span>
-          {shown} of {rows.length} runs
-        </span>
-        <CaretUpDown aria-hidden="true" />
-      </button>
-      {open ? (
-        <div className={styles.popover} role="dialog" aria-label="Choose runs">
-          <label className={styles.search}>
-            <MagnifyingGlass aria-hidden="true" />
-            <input
-              type="search"
-              placeholder="Search model, harness or run"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-          <div className={styles.presets}>
-            <button type="button" onClick={() => setSelected(new Set(ALL_IDS))}>
-              All
-            </button>
-            <button type="button" onClick={() => setSelected(new Set())}>
-              None
-            </button>
-          </div>
-          <ul className={styles.optionList}>
-            {matches.map((entry) => (
-              <li key={entry.id}>
-                <label className={styles.option}>
-                  <input
-                    type="checkbox"
-                    checked={selected.has(entry.id)}
-                    onChange={() => toggle(entry.id)}
-                  />
-                  <ProviderMark provider={entry.provider} size={18} />
+    <div className={styles.tableScroll}>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th scope="col" className={styles.rankCell}>
+              <span className={styles.srOnly}>Rank</span>
+            </th>
+            <th scope="col">Run ranking</th>
+            <th scope="col">Elo</th>
+            <th scope="col" className={styles.wide}>
+              Spread
+            </th>
+            <th scope="col" className={styles.wide}>
+              Votes
+            </th>
+            <th scope="col" className={styles.wide}>
+              Built
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={row.id} data-open={openId === row.id ? "true" : undefined}>
+              <td className={styles.rankCell}>
+                {shared(row.rank) ? (
+                  <span aria-label={`Tied for rank ${row.rank}`}>
+                    ={row.rank}
+                  </span>
+                ) : (
+                  <span data-rank={Math.min(row.rank, 4)}>{row.rank}</span>
+                )}
+              </td>
+              <th scope="row">
+                <span className={styles.name}>
+                  <ProviderMark provider={row.provider} size={18} />
                   <span>
-                    {getModelsLabel(entry)}
+                    {row.published ? (
+                      <button type="button" onClick={() => onOpen(row.id)}>
+                        {row.title}
+                      </button>
+                    ) : (
+                      <b>{row.title}</b>
+                    )}
                     <small>
-                      {entry.harness} · {entry.title}
+                      {row.models} · {row.harness}
                     </small>
                   </span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+                </span>
+              </th>
+              <td className={styles.num}>
+                {row.rating.toLocaleString("en-US")}
+              </td>
+              <td className={styles.wide}>
+                <span className={styles.spread}>
+                  <span
+                    className={styles.track}
+                    role="img"
+                    aria-label={`${row.rating} plus or minus ${spreads[i]}`}
+                  >
+                    <i
+                      style={{
+                        width: at(row.rating),
+                        background: PROVIDERS[row.provider].color,
+                      }}
+                    />
+                    <u
+                      style={{
+                        left: at(row.rating - spreads[i]),
+                        right: `calc(100% - ${at(row.rating + spreads[i])})`,
+                      }}
+                    />
+                  </span>
+                  <small>± {spreads[i]}</small>
+                </span>
+              </td>
+              <td className={`${styles.num} ${styles.wide}`}>{row.votes}</td>
+              <td className={`${styles.num} ${styles.wide}`}>
+                {row.built ?? "Not recorded"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-function FilterMenu(props: {
-  count: number;
-  providers: ReadonlySet<ProviderKey>;
-  setProviders: (next: ReadonlySet<ProviderKey>) => void;
-  harnesses: ReadonlySet<string>;
-  setHarnesses: (next: ReadonlySet<string>) => void;
-  publicOnly: boolean;
-  setPublicOnly: (next: boolean) => void;
-  reset: () => void;
+function RunPanel({
+  run,
+  row,
+  total,
+  playing,
+  onPlay,
+  onStop,
+  onClose,
+}: {
+  run: BoardRun;
+  row: BoardRow | null;
+  total: number;
+  playing: boolean;
+  onPlay: () => void;
+  onStop: () => void;
+  onClose: () => void;
 }) {
-  const { open, setOpen, ref } = usePopover();
-
-  function toggle<T>(
-    set: ReadonlySet<T>,
-    value: T,
-    apply: (next: ReadonlySet<T>) => void,
-  ) {
-    const next = new Set(set);
-    if (next.has(value)) next.delete(value);
-    else next.add(value);
-    apply(next);
-  }
-
   return (
-    <div className={styles.popoverHost} ref={ref}>
-      <button
-        type="button"
-        className={styles.iconButton}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-label={props.count ? `Filters (${props.count} active)` : "Filters"}
-        onClick={() => setOpen(!open)}
-      >
-        <SlidersHorizontal aria-hidden="true" />
-        {props.count ? (
-          <span className={styles.badge}>{props.count}</span>
-        ) : null}
-      </button>
-      {open ? (
-        <div
-          className={`${styles.popover} ${styles.filterPopover}`}
-          role="dialog"
-          aria-label="Filters"
-        >
-          <fieldset>
-            <legend>Availability</legend>
-            <label className={styles.check}>
-              <input
-                type="checkbox"
-                checked={props.publicOnly}
-                onChange={(event) => props.setPublicOnly(event.target.checked)}
-              />
-              Publicly available API only
-            </label>
-          </fieldset>
-          <fieldset>
-            <legend>Model provider</legend>
-            <div className={styles.chips}>
-              {PROVIDER_KEYS.map((key) => (
-                <label key={key} className={styles.chip}>
-                  <input
-                    type="checkbox"
-                    checked={props.providers.has(key)}
-                    onChange={() =>
-                      toggle(props.providers, key, props.setProviders)
-                    }
-                  />
-                  <ProviderMark provider={key} size={16} />
-                  {PROVIDERS[key].name}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <fieldset>
-            <legend>Harness</legend>
-            <div className={styles.chips}>
-              {HARNESSES.map((harness) => (
-                <label key={harness} className={styles.chip}>
-                  <input
-                    type="checkbox"
-                    checked={props.harnesses.has(harness)}
-                    onChange={() =>
-                      toggle(props.harnesses, harness, props.setHarnesses)
-                    }
-                  />
-                  {harness}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <button type="button" className={styles.reset} onClick={props.reset}>
-            Clear filters
+    <article className={styles.panel} aria-labelledby="panel-title">
+      <header className={styles.panelHead}>
+        <div>
+          <p className={styles.runId}>Run · {run.id}</p>
+          <h3 id="panel-title">{run.title}</h3>
+          <p className={styles.pair}>
+            {run.pair ? (
+              <ProviderMark provider={run.pair.provider} size={16} />
+            ) : null}
+            {run.pair?.label ?? run.modelLabel}
+          </p>
+        </div>
+        <div className={styles.panelMeta}>
+          {row ? (
+            <p>
+              <b>{row.rating.toLocaleString("en-US")}</b> ±{" "}
+              {ratingSpread(row.votes)} · rank {row.rank} of {total} ·{" "}
+              {row.votes} vote{row.votes === 1 ? "" : "s"}
+            </p>
+          ) : null}
+          <button type="button" className={styles.button} onClick={onClose}>
+            Close
+            <CaretUp aria-hidden="true" weight="bold" />
           </button>
         </div>
-      ) : null}
-    </div>
-  );
-}
+      </header>
 
-function CopyLinkButton() {
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), 2000);
-    return () => clearTimeout(timer);
-  }, [copied]);
-  return (
-    <button
-      type="button"
-      className={styles.iconButton}
-      aria-label={copied ? "Link copied" : "Copy link to leaderboard"}
-      onClick={async () => {
-        const url = new URL("/#leaderboard", window.location.origin).toString();
-        setCopied(await copyText(url));
-      }}
-    >
-      {copied ? (
-        <Check aria-hidden="true" />
-      ) : (
-        <LinkSimple aria-hidden="true" />
-      )}
-    </button>
-  );
-}
-
-type SortKey = "elo" | "label" | "votes";
-
-function ScoreTable({
-  entries,
-  ratings,
-}: {
-  entries: readonly Row[];
-  ratings: Ratings;
-}) {
-  const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
-    key: "elo",
-    dir: "desc",
-  });
-
-  const rankById = useMemo(() => ratingRanks(ALL_IDS, ratings), [ratings]);
-
-  // Collapsed by default; a link to the table or one of its rows opens it.
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    const reveal = () => {
-      const { hash } = window.location;
-      if (hash !== "#table" && !hash.startsWith("#row-")) return;
-      setOpen(true);
-      requestAnimationFrame(() =>
-        document.getElementById(hash.slice(1))?.scrollIntoView({
-          block: hash === "#table" ? "start" : "center",
-        }),
-      );
-    };
-    reveal();
-    window.addEventListener("hashchange", reveal);
-    return () => window.removeEventListener("hashchange", reveal);
-  }, []);
-
-  const rows = useMemo(() => {
-    const value = (entry: Row): number | string => {
-      if (sort.key === "label") return rowLabel(entry).toLowerCase();
-      if (sort.key === "votes") return ratingOf(ratings, entry).votes;
-      return ratingOf(ratings, entry).rating;
-    };
-    return [...entries].sort((a, b) => {
-      const left = value(a);
-      const right = value(b);
-      const order = left < right ? -1 : left > right ? 1 : 0;
-      return (
-        (sort.dir === "asc" ? order : -order) ||
-        rowLabel(a).localeCompare(rowLabel(b))
-      );
-    });
-  }, [entries, sort, ratings]);
-
-  const header = (key: SortKey, label: string, title?: string) => {
-    const active = sort.key === key;
-    return (
-      <th
-        key={key}
-        scope="col"
-        aria-sort={
-          active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"
-        }
-        data-key={key}
-      >
-        <button
-          type="button"
-          title={title}
-          onClick={() =>
-            setSort({
-              key,
-              dir: active
-                ? sort.dir === "asc"
-                  ? "desc"
-                  : "asc"
-                : key === "label"
-                  ? "asc"
-                  : "desc",
-            })
-          }
-        >
-          {label}
-          {active ? (
-            sort.dir === "asc" ? (
-              <ArrowUp aria-hidden="true" />
-            ) : (
-              <ArrowDown aria-hidden="true" />
-            )
+      <div className={styles.panelBody}>
+        <div className={styles.panelPlay}>
+          <InlinePlayer
+            game={run}
+            playing={playing}
+            onPlay={onPlay}
+            onStop={onStop}
+            startLabel="Click to play"
+            actions={
+              <>
+                <a href={run.deployment.url} target="_blank" rel="noreferrer">
+                  Deployment
+                  <ArrowUpRight aria-hidden="true" />
+                </a>
+                {run.source ? (
+                  <a href={run.source.url} target="_blank" rel="noreferrer">
+                    Source
+                    <ArrowUpRight aria-hidden="true" />
+                  </a>
+                ) : null}
+                <ShareLinkButton game={run} />
+                <Link href={run.recordPath}>
+                  Full record
+                  <ArrowRight aria-hidden="true" />
+                </Link>
+              </>
+            }
+          />
+          <p className={styles.sandboxNote}>
+            Sandboxed frame · scripts and pointer lock only
+          </p>
+          {run.controls.length > 0 ? (
+            <div>
+              <h4>Controls</h4>
+              <ControlList controls={run.controls} />
+            </div>
           ) : null}
-        </button>
-      </th>
-    );
-  };
+        </div>
 
-  return (
-    <details
-      className={styles.tableBlock}
-      id="table"
-      open={open}
-      onToggle={(event) => setOpen(event.currentTarget.open)}
-    >
-      <summary className={styles.tableSummary}>
-        <CaretDown aria-hidden="true" weight="bold" />
-        Ranking table
-        <span>
-          {entries.length} run{entries.length === 1 ? "" : "s"} · rank, Elo,
-          votes
-        </span>
-      </summary>
-      <p className={styles.tableNote}>
-        Rank is across all {ALL_IDS.length} runs; runs with the same rating
-        share a rank. Few votes means a rating can still move a lot.
-      </p>
-      <div className={styles.tableScroll}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th scope="col" className={styles.rankCell}>
-                #
-              </th>
-              {header("label", "Model · Harness · Run")}
-              {header("elo", "Elo", "Arena Elo from head-to-head votes")}
-              {header("votes", "Votes")}
-              <th scope="col" className={styles.playCell}>
-                <span className={styles.srOnly}>Play</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((entry) => (
-              <tr key={entry.id} id={`row-${entry.id}`}>
-                <td className={styles.rankCell}>{rankById.get(entry.id)}</td>
-                <th scope="row" className={styles.nameCell}>
-                  <ProviderMark provider={entry.provider} size={20} />
-                  <span>
-                    {getModelsLabel(entry)}
-                    <small>
-                      {entry.harness}
-                      {entry.access === "no-public-api"
-                        ? " · No public API"
-                        : ""}
-                    </small>
-                    {entry.published ? (
-                      <Link
-                        href={`/runs/${entry.id}`}
-                        className={styles.runLink}
-                      >
-                        <Play aria-hidden="true" weight="fill" />
-                        {entry.title}
-                      </Link>
-                    ) : (
-                      <small>{entry.title}</small>
-                    )}
-                  </span>
-                </th>
-                <td className={styles.num}>
-                  <b>{ratingOf(ratings, entry).rating}</b>
-                </td>
-                <td className={styles.num}>{ratingOf(ratings, entry).votes}</td>
-                <td className={styles.playCell}>
-                  {entry.published ? (
-                    <Link
-                      href={`/play/${entry.id}`}
-                      className={styles.playButton}
-                      aria-label={`Play ${entry.title}`}
-                    >
-                      <Play aria-hidden="true" weight="fill" />
-                      <span>Play</span>
-                    </Link>
-                  ) : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className={styles.panelRecord}>
+          <p className={styles.panelTagline}>{run.tagline}</p>
+          <p className={styles.prose}>{run.description}</p>
+          <dl className={styles.facts}>
+            <div>
+              <dt>Model</dt>
+              <dd>{run.modelLabel}</dd>
+            </div>
+            <div>
+              <dt>Harness</dt>
+              <dd>{run.harness ?? "Not recorded"}</dd>
+            </div>
+            <div>
+              <dt>Built</dt>
+              <dd>{run.built ?? "Not recorded"}</dd>
+            </div>
+            <div>
+              <dt>Deployment</dt>
+              <dd>{run.deployment.provider}</dd>
+            </div>
+          </dl>
+          <div>
+            <h4>Evidence</h4>
+            <ul className={styles.signals}>
+              {run.signals.map((signal) => (
+                <li key={signal.key}>
+                  <EvidenceGlyph state={signal.state} />
+                  <span>{signal.label}</span>
+                  <b>{signal.value}</b>
+                  {signal.note ? <small>{signal.note}</small> : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
-    </details>
+    </article>
   );
 }

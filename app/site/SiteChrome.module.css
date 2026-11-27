@@ -3,17 +3,17 @@
   z-index: 20;
   top: 0;
   border-bottom: 1px solid var(--rule);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(14px) saturate(1.2);
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter: blur(14px);
   font-family: var(--font-body);
 }
 
 .headerInner {
   display: flex;
   max-width: var(--page-width);
-  min-height: 60px;
+  min-height: 64px;
   align-items: center;
-  gap: 14px;
+  gap: 8px 24px;
   margin: 0 auto;
   padding: 0 var(--page-gutter);
 }
@@ -27,14 +27,14 @@
 }
 
 .wordmark img {
-  width: 22px;
-  height: 25px;
+  width: 23px;
+  height: 26px;
   object-fit: contain;
 }
 
 .wordmark span {
   font-family: var(--font-serif);
-  font-size: 21px;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1;
@@ -45,56 +45,60 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 2px;
-}
-
-.sections {
-  margin-left: 12px;
+  gap: 4px;
 }
 
 .actions {
+  gap: 8px;
   margin-left: auto;
 }
 
 .sections a,
 .actions a {
   display: inline-flex;
-  min-height: 36px;
+  min-height: 44px;
   align-items: center;
-  gap: 7px;
-  border-radius: 8px;
-  padding: 0 11px;
-  color: var(--soft-ink);
-  font-size: 14px;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 0 16px;
+  color: var(--ink);
+  font-size: 15px;
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
   transition:
-    color 140ms ease,
-    background-color 140ms ease,
-    border-color 140ms ease;
+    color 200ms ease,
+    background-color 200ms ease;
+}
+
+.actions a.iconLink {
+  padding: 0 14px;
+  color: var(--soft-ink);
 }
 
 .sections a:hover,
-.actions a:hover {
-  background: var(--surface-raised);
+.actions a.iconLink:hover {
+  background: var(--tint);
   color: var(--ink);
 }
 
 .sections a[aria-current="page"] {
-  background: var(--surface-raised);
-  color: var(--ink);
+  background: #eae9e4;
   font-weight: 600;
 }
 
 .voteBadge {
-  border-radius: 999px;
-  padding: 2px 7px;
+  border-radius: 7px;
+  padding: 2px 8px;
   background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 11px;
+  color: var(--accent-ink);
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
+}
+
+.sections a[aria-current="page"] .voteBadge {
+  background: var(--surface);
 }
 
 .actions svg {
@@ -103,8 +107,7 @@
 }
 
 .actions a.submit {
-  margin-left: 8px;
-  border: 1px solid var(--ink);
+  padding: 0 18px;
   background: var(--ink);
   color: var(--surface);
   font-weight: 600;
@@ -112,13 +115,11 @@
 
 .actions a.submit:hover {
   background: var(--soft-ink);
-  color: var(--surface);
 }
 
 .footer {
   margin-top: 72px;
   border-top: 1px solid var(--rule);
-  background: var(--surface);
   font-family: var(--font-body);
 }
 
@@ -127,36 +128,41 @@
   max-width: var(--page-width);
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 12px 32px;
   margin: 0 auto;
-  padding: 26px var(--page-gutter) 34px;
+  padding: 20px var(--page-gutter) 28px;
 }
 
 .footer p {
   max-width: 640px;
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.55;
 }
 
 .footer nav {
   display: flex;
-  gap: 20px;
+  gap: 4px;
 }
 
 .footer a {
   display: inline-flex;
+  min-height: 44px;
   align-items: center;
   gap: 7px;
+  border-radius: 10px;
+  padding: 0 12px;
   color: var(--soft-ink);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   text-decoration: none;
+  transition: background-color 200ms ease;
 }
 
 .footer a:hover {
-  color: var(--accent);
+  background: var(--tint);
+  color: var(--ink);
 }
 
 .footer svg {
@@ -165,7 +171,7 @@
 }
 
 /* Narrow screens move the section links to a second, scrollable row. */
-@media (max-width: 960px) {
+@media (max-width: 760px) {
   .headerInner {
     flex-wrap: wrap;
     row-gap: 0;
@@ -184,19 +190,13 @@
   .sections::-webkit-scrollbar {
     display: none;
   }
-}
 
-@media (max-width: 760px) {
   .iconLink span {
     display: none;
   }
 
-  .actions a {
-    padding: 0 9px;
-  }
-
-  .actions a.submit {
-    margin-left: 4px;
+  .actions a.iconLink {
+    padding: 0 12px;
   }
 
   .footerInner {
@@ -205,8 +205,10 @@
   }
 }
 
+/* GitHub stays in the footer; the top row keeps the wordmark and Submit. */
 @media (max-width: 480px) {
-  .submitLong {
+  .submitLong,
+  .actions a.iconLink {
     display: none;
   }
 }

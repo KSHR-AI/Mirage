@@ -1,0 +1,158 @@
+.player {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.stage {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  background: #0c0c0d;
+}
+
+.cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.82);
+  transform: scale(1.03);
+  transition:
+    filter 520ms ease,
+    transform 640ms var(--ease);
+}
+
+.stage[data-playing] .cover {
+  filter: brightness(0.35) blur(6px);
+  transform: scale(1);
+}
+
+.frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #0c0c0d;
+  opacity: 0;
+  transition: opacity 320ms ease;
+}
+
+.frame[data-loaded] {
+  opacity: 1;
+}
+
+.loading {
+  position: absolute;
+  inset: auto 0 16px;
+  margin: 0;
+  color: #e4e4e8;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+}
+
+.start {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  width: 100%;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  transition:
+    opacity 280ms ease,
+    visibility 0s linear 0s;
+}
+
+.start span {
+  display: inline-flex;
+  height: 52px;
+  align-items: center;
+  gap: 10px;
+  border-radius: 26px;
+  padding: 0 24px 0 20px;
+  background: var(--surface);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 380ms var(--ease);
+}
+
+.start:hover span {
+  transform: scale(1.04);
+}
+
+.start svg {
+  width: 14px;
+  height: 14px;
+}
+
+.stage[data-playing] .start {
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity 280ms ease,
+    visibility 0s linear 280ms;
+}
+
+.stage[data-playing] .start span {
+  transform: scale(0.92);
+}
+
+/* The row of controls opens under the frame instead of covering the game. */
+.tools {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 380ms var(--ease);
+}
+
+.tools[data-open] {
+  grid-template-rows: 1fr;
+}
+
+.tools > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.toolRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 14px;
+}
+
+.toolRow button,
+.toolRow a {
+  display: inline-flex;
+  height: 44px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 10px;
+  padding: 0 14px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 200ms ease;
+}
+
+.toolRow button:hover,
+.toolRow a:hover {
+  background: var(--tint);
+}
+
+.toolRow svg {
+  width: 15px;
+  height: 15px;
+}

@@ -9,7 +9,6 @@ import { SiteFooter, SiteHeader } from "../site/SiteChrome";
 import { ArenaMatch, type ArenaSide } from "./ArenaMatch";
 import { INITIAL_RATING, K_FACTOR } from "./elo";
 import {
-  arenaPlayPath,
   findMatch,
   getContenders,
   matchPath,
@@ -18,7 +17,10 @@ import {
 } from "./match";
 import { loadRatings } from "./ratings";
 import type { Contender } from "./match";
-import { getPresentationCoverUrl } from "../registry/urls";
+import {
+  getDeploymentEntryUrl,
+  getPresentationCoverUrl,
+} from "../registry/urls";
 import { getVoteSecret, MIN_VIEW_MS } from "./security";
 import pageStyles from "../bench/Page.module.css";
 import styles from "./Arena.module.css";
@@ -70,25 +72,27 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
       <main className={pageStyles.main}>
         <section className={styles.intro} aria-labelledby="arena-title">
           <div>
-            <h1 id="arena-title">Arena</h1>
+            <p className={styles.eyebrow}>MirageML Bench Arena</p>
+            <h1 id="arena-title">Which GTA would you keep playing?</h1>
             <p>
-              Play both runs, then vote for the better one: the GTA you would
-              keep playing. Who built each run is shown after you vote. Each
-              vote moves both runs&rsquo; Elo by up to {K_FACTOR} points on the{" "}
-              <Link href="/#leaderboard">leaderboard</Link>.
-            </p>
-            <p className={styles.meta}>
-              {snapshot.totalVotes.toLocaleString("en-US")} vote
-              {snapshot.totalVotes === 1 ? "" : "s"} so far · Every run starts
-              at {INITIAL_RATING}
+              Play both runs, then vote for the better one. Who built each run
+              is shown after you vote. Each vote moves both runs&rsquo; Elo by
+              up to {K_FACTOR} points on the <Link href="/">leaderboard</Link>.
             </p>
           </div>
-          {match ? (
-            <Link href="/arena" className={styles.skipButton}>
-              <SkipForward aria-hidden="true" weight="bold" />
-              Skip this pair
-            </Link>
-          ) : null}
+          <div className={styles.introSide}>
+            <p className={styles.meta}>
+              {snapshot.totalVotes.toLocaleString("en-US")} vote
+              {snapshot.totalVotes === 1 ? "" : "s"} so far. Every run starts at{" "}
+              {INITIAL_RATING}.
+            </p>
+            {match ? (
+              <Link href="/arena" className={styles.skipButton}>
+                Skip this pair
+                <SkipForward aria-hidden="true" weight="bold" />
+              </Link>
+            ) : null}
+          </div>
         </section>
 
         {!match ? (
@@ -96,7 +100,7 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
         ) : (
           <ArenaMatch
             key={`${match[0].game.id}|${match[1].game.id}|${token ?? ""}`}
-            sides={[toSide(match[0], match), toSide(match[1], match)]}
+            sides={[toSide(match[0]), toSide(match[1])]}
             token={token}
             minViewMs={MIN_VIEW_MS}
             closedNotice={
@@ -113,16 +117,14 @@ export default async function ArenaPage({ searchParams }: ArenaPageProps) {
 }
 
 /** What the client needs to show one side; who built it shows after a vote. */
-function toSide(
-  { game, entry }: Contender,
-  match: readonly [Contender, Contender],
-): ArenaSide {
+function toSide({ game, entry }: Contender): ArenaSide {
   return {
     runId: game.id,
     title: game.title,
     label: getEntryLabel(entry),
     provider: entry.provider,
-    playHref: arenaPlayPath(game, match),
+    entryUrl: getDeploymentEntryUrl(game),
+    protocolVersion: game.presentation.protocolVersion,
     coverUrl: getPresentationCoverUrl(game),
     controls: game.presentation.controls,
   };

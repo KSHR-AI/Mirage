@@ -1,10 +1,9 @@
 "use client";
 
-import { ArrowRight, Check, Equals, Play, Trophy } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Fragment,
   useCallback,
   useEffect,
   useState,
@@ -14,6 +13,7 @@ import {
 import { ProviderMark } from "../bench/ProviderMark";
 import type { ProviderKey } from "../bench/entries";
 import { ControlList } from "../player/ControlList";
+import { InlinePlayer } from "../player/InlinePlayer";
 import type { Outcome } from "./elo";
 import styles from "./Arena.module.css";
 
@@ -22,8 +22,9 @@ export type ArenaSide = {
   title: string;
   label: string;
   provider: ProviderKey;
-  /** The run's play page, whose back link returns to this matchup. */
-  playHref: string;
+  /** The deployment's entry URL; the run plays in its card. */
+  entryUrl: string;
+  protocolVersion: number;
   coverUrl: string | null;
   controls: readonly string[];
 };
@@ -56,10 +57,11 @@ const ERRORS: Record<string, { message: string; final: boolean }> = {
 };
 
 const NAMES = ["A", "B"] as const;
+type Name = (typeof NAMES)[number];
 const SHORT_CONTROLS = 3;
 
-// Which runs of a pair were opened, kept for the tab's session so that coming
-// back from the player still counts them as played.
+// Which runs of a pair were started, kept for the tab's session so that a
+// reload of the same matchup still counts them as played.
 const PLAYED_EVENT = "mirage:arena-played";
 
 function playedKey(a: string, b: string) {
@@ -81,7 +83,7 @@ function markPlayed(key: string, name: string) {
       window.sessionStorage.setItem(key, current + name);
     }
   } catch {
-    // Without storage the run still opens; it just will not count as played.
+    // Without storage the run still plays; it just will not count as played.
   }
   window.dispatchEvent(new Event(PLAYED_EVENT));
 }
@@ -99,13 +101,13 @@ function subscribePlayed(onChange: () => void) {
 
 function formatDelta(result: Result) {
   const delta = Math.round(result.after) - Math.round(result.before);
-  return `${delta >= 0 ? "+" : "−"}${Math.abs(delta)}`;
+  return `${delta > 0 ? "+" : delta < 0 ? "−" : "±"}${Math.abs(delta)}`;
 }
 
 /**
- * Both runs of a matchup, each opened in the player in this tab, and the vote,
- * which opens once each has been played. `token` is null while voting is
- * closed.
+ * Both runs of a matchup, each playing in its own card, and the vote, which
+ * opens once each has been played. After a vote the same cards show who built
+ * each run. `token` is null while voting is closed.
  */
 export function ArenaMatch({
   sides,
@@ -123,6 +125,7 @@ export function ArenaMatch({
   const getPlayed = useCallback(() => readPlayed(key), [key]);
   const stored = useSyncExternalStore(subscribePlayed, getPlayed, () => "");
   const played = [stored.includes("A"), stored.includes("B")] as const;
+  const [playing, setPlaying] = useState<Name | null>(null);
   const [state, setState] = useState<State>({ kind: "idle" });
   const [ready, setReady] = useState(false);
   const [refreshing, startRefresh] = useTransition();
@@ -135,6 +138,7 @@ export function ArenaMatch({
 
   async function vote(outcome: Outcome) {
     if (!token) return;
+    setPlaying(null);
     setState({ kind: "sending", outcome });
     try {
       const response = await fetch("/api/arena/vote", {
@@ -177,6 +181,7 @@ export function ArenaMatch({
     startRefresh(() => router.replace("/arena"));
   }
 
+  const done = state.kind === "done" ? state : null;
   const bothPlayed = played[0] && played[1];
   const locked =
     !token ||
@@ -184,171 +189,139 @@ export function ArenaMatch({
     state.kind === "done" ||
     (state.kind === "error" && state.final);
   const canVote = !locked && bothPlayed && ready;
+  const moved = done
+    ? Math.round(done.a.after) !== Math.round(done.a.before)
+    : false;
+
+  const status = !token
+    ? closedNotice
+    : state.kind === "sending"
+      ? "Recording your vote…"
+      : !played[0] && !played[1]
+        ? "Play both runs to unlock voting."
+        : !played[0]
+          ? "Play Run A to unlock voting."
+          : !played[1]
+            ? "Play Run B to unlock voting."
+            : !ready
+              ? "Voting opens in a moment."
+              : "Voting is open.";
 
   return (
     <>
       <div className={styles.matchup}>
-        {sides.map((side, i) => (
-          <ArenaCard
-            key={side.runId}
-            side={side}
-            name={NAMES[i]}
-            played={played[i]}
-            onPlay={() => markPlayed(key, NAMES[i])}
-          />
-        ))}
+        {sides.map((side, i) => {
+          const name = NAMES[i];
+          return (
+            <ArenaCard
+              key={side.runId}
+              side={side}
+              name={name}
+              played={played[i]}
+              playing={playing === name}
+              onPlay={() => {
+                markPlayed(key, name);
+                setPlaying(name);
+              }}
+              onStop={() => setPlaying(null)}
+              result={done ? (i === 0 ? done.a : done.b) : null}
+              picked={done?.outcome === (i === 0 ? "a" : "b")}
+            />
+          );
+        })}
       </div>
 
-      {state.kind === "done" ? (
-        <section className={styles.reveal} aria-labelledby="arena-vote-title">
-          <div className={styles.revealHead}>
-            <div>
-              <h2 id="arena-vote-title">
-                {state.outcome === "tie"
-                  ? "You called it a tie."
-                  : `You voted for Run ${state.outcome === "a" ? "A" : "B"}.`}{" "}
-                Here is who built each run.
-              </h2>
-              <p>Both ratings moved with your vote.</p>
-            </div>
-            <div className={styles.revealActions}>
-              <Link href="/#leaderboard" className={styles.secondaryButton}>
-                See the leaderboard
-              </Link>
-              <button
-                type="button"
-                className={styles.nextButton}
-                onClick={next}
-                disabled={refreshing}
-              >
-                {refreshing ? "Loading…" : "Next pair"}
-                <ArrowRight aria-hidden="true" weight="bold" />
-              </button>
-            </div>
-          </div>
-          <ul className={styles.revealList}>
-            {sides.map((side, i) => {
-              const result = i === 0 ? state.a : state.b;
-              const delta = formatDelta(result);
-              const won = state.outcome === (i === 0 ? "a" : "b");
-              return (
-                <li key={side.runId} data-won={won ? "true" : undefined}>
-                  <span className={styles.revealTag}>{NAMES[i]}</span>
-                  {side.coverUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      className={styles.revealCover}
-                      src={side.coverUrl}
-                      alt=""
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : null}
-                  <span className={styles.revealLabel}>
-                    <strong>{side.title}</strong>
-                    <span className={styles.revealBy}>
-                      <ProviderMark provider={side.provider} size={16} />
-                      <span>
-                        {side.label.split(/(?<= \+| ·) /).map((part, j) => (
-                          <Fragment key={part}>
-                            {j > 0 ? " " : null}
-                            <span className={styles.revealPart}>{part}</span>
-                          </Fragment>
-                        ))}
-                      </span>
-                    </span>
-                  </span>
-                  <span className={styles.revealElo}>
-                    {Math.round(result.after)}
-                    <span
-                      className={
-                        delta.startsWith("+")
-                          ? styles.deltaUp
-                          : styles.deltaDown
-                      }
-                    >
-                      {delta}
-                    </span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ) : (
-        <section className={styles.vote} aria-labelledby="arena-vote-title">
-          <div className={styles.voteHead}>
-            <h2 id="arena-vote-title">Which run is better?</h2>
-            <div className={styles.progress} aria-live="polite">
-              {!token ? (
-                <span>{closedNotice}</span>
-              ) : (
-                <>
-                  {sides.map((side, i) => (
-                    <span
-                      key={side.runId}
-                      data-done={played[i] ? "true" : undefined}
-                    >
-                      {played[i] ? (
-                        <Check aria-hidden="true" weight="bold" />
-                      ) : (
-                        <i aria-hidden="true" />
-                      )}
-                      {played[i] ? `Played ${NAMES[i]}` : `Play ${NAMES[i]}`}
-                    </span>
-                  ))}
-                  <span>
-                    {state.kind === "sending"
-                      ? "Recording your vote…"
-                      : !bothPlayed
-                        ? "to unlock voting"
-                        : !ready
-                          ? "Voting opens in a moment"
-                          : "Voting is open"}
-                  </span>
-                </>
-              )}
-            </div>
+      <section
+        className={styles.vote}
+        data-done={done ? "true" : undefined}
+        aria-labelledby="arena-vote-title"
+      >
+        <div className={styles.ask} aria-hidden={done ? true : undefined}>
+          <div>
+            <h2 id={done ? undefined : "arena-vote-title"}>
+              Which run is better?
+            </h2>
+            <p aria-live="polite">{status}</p>
           </div>
           <div className={styles.voteButtons} role="group" aria-label="Vote">
             <button
               type="button"
-              className={styles.voteButton}
+              className={styles.pick}
               onClick={() => void vote("a")}
               disabled={!canVote}
             >
-              <Trophy aria-hidden="true" weight="bold" />A is better
+              A is better
             </button>
             <button
               type="button"
-              className={styles.voteButton}
+              className={styles.tie}
               onClick={() => void vote("tie")}
               disabled={!canVote}
             >
-              <Equals aria-hidden="true" weight="bold" />
               Tie
             </button>
             <button
               type="button"
-              className={styles.voteButton}
+              className={styles.pick}
               onClick={() => void vote("b")}
               disabled={!canVote}
             >
-              <Trophy aria-hidden="true" weight="bold" />B is better
+              B is better
             </button>
           </div>
-          {state.kind === "error" ? (
-            <p className={styles.voteError} role="alert">
-              {state.message}
-              {state.final ? (
-                <button type="button" onClick={next} disabled={refreshing}>
-                  Next pair
-                  <ArrowRight aria-hidden="true" weight="bold" />
-                </button>
-              ) : null}
+        </div>
+
+        <div className={styles.outcome} aria-hidden={done ? undefined : true}>
+          <div>
+            <h2 id={done ? "arena-vote-title" : undefined}>
+              {done?.outcome === "tie"
+                ? "You called it a tie."
+                : `You voted for Run ${done?.outcome === "b" ? "B" : "A"}.`}{" "}
+              Here is who built each run.
+            </h2>
+            <p>
+              {moved
+                ? "Both ratings moved with your vote."
+                : "A tie between equally rated runs moves neither rating."}
             </p>
+          </div>
+          <div className={styles.voteButtons}>
+            <Link
+              href="/"
+              className={styles.tie}
+              tabIndex={done ? undefined : -1}
+            >
+              See the leaderboard
+            </Link>
+            <button
+              type="button"
+              className={styles.next}
+              onClick={next}
+              disabled={!done || refreshing}
+            >
+              {refreshing ? "Loading…" : "Next pair"}
+              <ArrowRight aria-hidden="true" weight="bold" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {state.kind === "error" ? (
+        <p className={styles.voteError} role="alert">
+          {state.message}
+          {state.final ? (
+            <button type="button" onClick={next} disabled={refreshing}>
+              Next pair
+              <ArrowRight aria-hidden="true" weight="bold" />
+            </button>
           ) : null}
-        </section>
-      )}
+        </p>
+      ) : null}
+
+      <p className={styles.sandboxNote}>
+        Each game runs in a sandboxed frame on this page: scripts and pointer
+        lock only.
+      </p>
     </>
   );
 }
@@ -357,72 +330,106 @@ function ArenaCard({
   side,
   name,
   played,
+  playing,
   onPlay,
+  onStop,
+  result,
+  picked,
 }: {
   side: ArenaSide;
-  name: string;
+  name: Name;
   played: boolean;
+  playing: boolean;
   onPlay: () => void;
+  onStop: () => void;
+  /** The run's rating change, once the vote is in. */
+  result: Result | null;
+  picked: boolean;
 }) {
   const [allControls, setAllControls] = useState(false);
   const extra = side.controls.length - SHORT_CONTROLS;
+  const delta = result ? formatDelta(result) : "";
 
   return (
-    <section className={styles.side} aria-label={`Run ${name}`}>
-      <div className={styles.sideHead}>
-        <h2>
-          Run {name}
-          <span>{side.title}</span>
-        </h2>
-        <span
-          className={styles.sideStatus}
-          data-state={played ? "played" : undefined}
-        >
-          {played ? (
-            <>
-              <Check aria-hidden="true" weight="bold" />
-              Played
-            </>
-          ) : (
-            "Not played yet"
-          )}
-        </span>
-      </div>
-
-      <Link href={side.playHref} className={styles.start} onClick={onPlay}>
-        {side.coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={side.coverUrl} alt="" referrerPolicy="no-referrer" />
-        ) : null}
-        <span className={styles.startLabel}>
-          <span className={styles.startIcon}>
-            <Play aria-hidden="true" weight="fill" />
-          </span>
-          <strong>
-            {played ? `Play Run ${name} again` : `Play Run ${name}`}
-          </strong>
-          <span>Opens the game here. Come back to vote.</span>
-        </span>
-      </Link>
-
-      <div className={styles.sideControls}>
-        <ControlList
-          compact
-          controls={
-            allControls ? side.controls : side.controls.slice(0, SHORT_CONTROLS)
-          }
+    <section
+      className={styles.side}
+      data-playing={playing ? "true" : undefined}
+      data-revealed={result ? "true" : undefined}
+      data-picked={picked ? "true" : undefined}
+      aria-label={`Run ${name}`}
+    >
+      <div className={styles.stage}>
+        <InlinePlayer
+          game={side}
+          playing={playing}
+          onPlay={onPlay}
+          onStop={onStop}
+          startLabel={played ? `Play Run ${name} again` : `Play Run ${name}`}
         />
-        {extra > 0 ? (
-          <button
-            type="button"
-            className={styles.moreControls}
-            onClick={() => setAllControls((value) => !value)}
-            aria-expanded={allControls}
-          >
-            {allControls ? "Fewer controls" : `All controls (+${extra})`}
-          </button>
-        ) : null}
       </div>
+
+      <div className={styles.sideHead}>
+        <div className={styles.sideMeta}>
+          <p>Run {name}</p>
+          <p
+            className={styles.sideStatus}
+            data-state={playing ? "playing" : played ? "played" : undefined}
+          >
+            <i aria-hidden="true" />
+            {playing ? "Playing now" : played ? "Played" : "Not played yet"}
+          </p>
+        </div>
+        <h2>{side.title}</h2>
+        <div className={styles.builder}>
+          <span aria-hidden={result ? true : undefined}>
+            Builder hidden until you vote
+          </span>
+          {result ? (
+            <span>
+              <ProviderMark provider={side.provider} size={16} />
+              {side.label}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className={styles.elo}>
+        <div>
+          {result ? (
+            <p>
+              <span>
+                <s>{Math.round(result.before).toLocaleString("en-US")}</s> →{" "}
+                {Math.round(result.after).toLocaleString("en-US")}
+              </span>
+              <b data-dir={delta[0]}>{delta}</b>
+              <small>Arena Elo</small>
+              {picked ? <strong>Your pick</strong> : null}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      {side.controls.length > 0 ? (
+        <div className={styles.sideControls}>
+          <h3>Controls</h3>
+          <ControlList
+            controls={
+              allControls
+                ? side.controls
+                : side.controls.slice(0, SHORT_CONTROLS)
+            }
+          />
+          {extra > 0 ? (
+            <button
+              type="button"
+              onClick={() => setAllControls((value) => !value)}
+              aria-expanded={allControls}
+            >
+              {allControls ? "Fewer controls" : `All controls (+${extra})`}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

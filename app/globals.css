@@ -1,15 +1,17 @@
 :root {
   color-scheme: light;
-  --bg: #f4f4f2;
+  --bg: #f7f7f5;
   --surface: #ffffff;
   --surface-raised: #f7f7f5;
+  --tint: #efefec;
   --ink: #141414;
   --soft-ink: #3c3c40;
   --muted: #6e6e76;
-  --rule: rgba(20, 20, 20, 0.08);
+  --rule: rgba(20, 20, 20, 0.1);
   --rule-strong: rgba(20, 20, 20, 0.16);
   --accent: #6b5ce7;
-  --accent-soft: rgba(107, 92, 231, 0.1);
+  --accent-ink: #4f41c9;
+  --accent-soft: #efedfc;
   --lime: #4d7c0f;
   --lime-ink: #ffffff;
   --amber: #b45309;
@@ -20,7 +22,8 @@
   --font-mono:
     "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --page-width: 1320px;
-  --page-gutter: clamp(14px, 3.4vw, 44px);
+  --page-gutter: clamp(16px, 2.6vw, 36px);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 * {
@@ -29,12 +32,12 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 76px;
+  scroll-padding-top: 84px;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 760px) {
   html {
-    scroll-padding-top: 124px;
+    scroll-padding-top: 132px;
   }
 }
 
@@ -50,9 +53,7 @@ body {
 }
 
 html:has([data-fullscreen-game]),
-body:has([data-fullscreen-game]),
-html:has([data-detail-open="true"]),
-html:has(dialog[open]) {
+body:has([data-fullscreen-game]) {
   overflow: hidden;
 }
 
@@ -76,5 +77,12 @@ button:not(:disabled) {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
   }
 }

@@ -1,16 +1,29 @@
-import { ArrowRight, Play } from "@phosphor-icons/react/ssr";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { INITIAL_RATING, K_FACTOR } from "./arena/elo";
+import { INITIAL_RATING, K_FACTOR, ratingRanks } from "./arena/elo";
 import { loadRatings } from "./arena/ratings";
-import { BenchBoard, type RunLink } from "./bench/BenchBoard";
-import { ProviderMark } from "./bench/ProviderMark";
-import { getEntryForRun, getEntryLabel } from "./bench/entries";
-import { GameCover } from "./gallery/RunParts";
-import { SUBMIT_HASH } from "./gallery/SubmitDialog";
-import { formatBuildDate, getModelLabel } from "./registry/evidence";
+import { BenchBoard, type BoardRow, type BoardRun } from "./bench/BenchBoard";
+import {
+  BENCH_RUNS,
+  getEntryForRun,
+  getEntryLabel,
+  getModelsLabel,
+} from "./bench/entries";
+import { getHighlights, type HighlightRow } from "./bench/highlights";
+import { SubmitSection } from "./gallery/SubmitSection";
+import {
+  formatBuildDate,
+  getEvidenceSignals,
+  getModelLabel,
+  getRecordedHarness,
+} from "./registry/evidence";
 import { loadPublishedRegistry } from "./registry/load";
-import { getCanonicalPlayPath } from "./registry/urls";
+import { loadSubmitPrompt } from "./registry/load-submit-prompt";
+import { getRecordPath } from "./registry/share";
+import {
+  getDeploymentEntryUrl,
+  getPresentationCoverUrl,
+  getSourceRevisionUrl,
+} from "./registry/urls";
 import { SiteFooter, SiteHeader } from "./site/SiteChrome";
 import styles from "./bench/Page.module.css";
 
@@ -21,112 +34,102 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const [registry, arena] = await Promise.all([
+  const [registry, arena, submitPrompt] = await Promise.all([
     loadPublishedRegistry(),
     loadRatings(),
+    loadSubmitPrompt(),
   ]);
 
-  const runLinks: Record<string, RunLink> = {};
-  for (const game of registry.games) {
-    runLinks[game.id] = { id: game.id, title: game.title };
-  }
+  const games = new Map(registry.games.map((game) => [game.id, game]));
+  const ranks = ratingRanks(
+    BENCH_RUNS.map((run) => run.id),
+    arena.ratings,
+  );
+
+  // Every leaderboard run, highest Elo first; equal ratings sort by name.
+  const ranked = BENCH_RUNS.map((run) => {
+    const game = games.get(run.id);
+    const standing = arena.ratings[run.id] ?? {
+      rating: INITIAL_RATING,
+      votes: 0,
+    };
+    const row: BoardRow = {
+      id: run.id,
+      title: game?.title ?? run.id,
+      provider: run.provider,
+      models: getModelsLabel(run),
+      harness: run.harness,
+      rating: standing.rating,
+      votes: standing.votes,
+      rank: ranks.get(run.id) ?? 1,
+      built: game?.builtOn ? formatBuildDate(game.builtOn) : null,
+      published: Boolean(game),
+    };
+    const highlight: HighlightRow = {
+      ...row,
+      entryId: run.entryId,
+      builtOn: game?.builtOn ?? null,
+    };
+    return { row, highlight };
+  }).sort(
+    (a, b) =>
+      b.row.rating - a.row.rating ||
+      `${a.row.models} · ${a.row.harness} · ${a.row.title}`.localeCompare(
+        `${b.row.models} · ${b.row.harness} · ${b.row.title}`,
+      ),
+  );
 
   // Every published run is listed, in registry order.
-  const listedRuns = registry.games.map((game) => ({
-    game,
-    entry: getEntryForRun(game.id),
-  }));
+  const runs: BoardRun[] = registry.games.map((game) => {
+    const entry = getEntryForRun(game.id);
+    return {
+      id: game.id,
+      title: game.title,
+      tagline: game.tagline,
+      description: game.description,
+      model: game.model,
+      pair: entry
+        ? { label: getEntryLabel(entry), provider: entry.provider }
+        : null,
+      modelLabel: getModelLabel(game),
+      built: game.builtOn ? formatBuildDate(game.builtOn) : null,
+      coverUrl: getPresentationCoverUrl(game),
+      coverAlt: game.presentation.coverAlt,
+      entryUrl: getDeploymentEntryUrl(game),
+      protocolVersion: game.presentation.protocolVersion,
+      recordPath: getRecordPath(game),
+      deployment: {
+        provider: game.deployment.provider,
+        url: game.deployment.url,
+      },
+      source: game.source
+        ? {
+            url: getSourceRevisionUrl(game.source),
+            commit: game.source.commit,
+          }
+        : null,
+      harness: getRecordedHarness(game),
+      signals: getEvidenceSignals(game),
+      controls: game.presentation.controls,
+    };
+  });
 
   return (
     <div className={styles.page}>
-      <SiteHeader onBoard current="leaderboard" />
+      <SiteHeader current="leaderboard" />
       <main className={styles.main}>
         <BenchBoard
-          runs={runLinks}
-          ratings={arena.ratings}
+          rows={ranked.map((entry) => entry.row)}
+          runs={runs}
+          highlights={getHighlights(
+            ranked.map((entry) => entry.highlight),
+            arena.totalVotes,
+            formatBuildDate,
+          )}
           totalVotes={arena.totalVotes}
           arenaStatus={arena.status}
+          notice={registry.kind === "ready" ? null : registry.message}
         />
-
-        <section
-          className={styles.section}
-          id="runs"
-          aria-labelledby="runs-title"
-        >
-          <div className={styles.sectionHead}>
-            <h2 id="runs-title">Playable runs</h2>
-            <p>
-              Each published run is a deployed game, listed as soon as it is
-              accepted. Play it in the sandboxed player, or open its record.
-            </p>
-            <p className={styles.phoneNote}>
-              Most runs expect a keyboard and mouse. Browse here, then copy the
-              link to play on a computer.
-            </p>
-          </div>
-
-          {registry.kind === "ready" ? (
-            <ol className={styles.runGrid}>
-              {listedRuns.map(({ game, entry }) => {
-                return (
-                  <li key={game.id} className={styles.runCard}>
-                    <Link href={`/runs/${game.id}`} className={styles.runCover}>
-                      <GameCover game={game} />
-                    </Link>
-                    <div className={styles.runBody}>
-                      <div className={styles.runTitleRow}>
-                        <div>
-                          <h3>
-                            <Link href={`/runs/${game.id}`}>{game.title}</Link>
-                          </h3>
-                          {entry ? (
-                            <p className={styles.runPair}>
-                              <ProviderMark
-                                provider={entry.provider}
-                                size={16}
-                              />
-                              {getEntryLabel(entry)}
-                            </p>
-                          ) : (
-                            <p className={styles.runPair}>
-                              {getModelLabel(game)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      {game.tagline ? (
-                        <p className={styles.runVerdict}>{game.tagline}</p>
-                      ) : null}
-                      <div className={styles.runActions}>
-                        <Link
-                          href={getCanonicalPlayPath(game)}
-                          className={styles.primaryButton}
-                        >
-                          <Play aria-hidden="true" weight="fill" />
-                          Play
-                        </Link>
-                        <Link
-                          href={`/runs/${game.id}`}
-                          className={styles.textButton}
-                        >
-                          Details
-                          <ArrowRight aria-hidden="true" />
-                        </Link>
-                        {game.builtOn ? (
-                          <span className={styles.runDate}>
-                            {formatBuildDate(game.builtOn)}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          ) : (
-            <p className={styles.notice}>{registry.message}</p>
-          )}
-        </section>
 
         <section
           className={styles.section}
@@ -135,36 +138,45 @@ export default async function Page() {
         >
           <div className={styles.sectionHead}>
             <h2 id="methodology-title">Methodology</h2>
-            <p>
-              The leaderboard ranks every published run by Arena Elo, each
-              labelled with the model and harness that built it. In the{" "}
-              <Link href="/arena">arena</Link>, a visitor plays two runs and
-              votes for one, or calls a tie. Each vote is a standard Elo update
-              with K = {K_FACTOR}: the winner takes points from the loser, more
-              for an upset.
-            </p>
-            <p>
-              Every run starts at {INITIAL_RATING}. There are no maintainer
-              scores: a rating moves only with votes, and the record for each
-              run shows only what its submission states.
-            </p>
           </div>
-          <div className={styles.callout}>
+          <div className={styles.method}>
+            <div>
+              <h3>01 · Play</h3>
+              <p>
+                In the arena, a visitor plays two runs and votes for one, or
+                calls a tie. Who built each run stays hidden until the vote is
+                in.
+              </p>
+            </div>
+            <div>
+              <h3>02 · Vote</h3>
+              <p>
+                Each vote is a standard Elo update with K = {K_FACTOR}: the
+                winner takes points from the loser, more for an upset. Every run
+                starts at {INITIAL_RATING}.
+              </p>
+            </div>
+            <div>
+              <h3>03 · Nothing else</h3>
+              <p>
+                There are no maintainer scores. A rating moves only with votes,
+                and the record for each run shows only what its submission
+                states.
+              </p>
+            </div>
             <div>
               <h3>Why model + harness?</h3>
               <p>
                 The same model scores differently in different agents: tools,
                 context management, and browser access change what ships. Every
-                run names both, so one model can appear several times: once per
-                run, in each harness it was tried in.
+                run names both, so one model can appear once per run, in each
+                harness it was tried in.
               </p>
             </div>
-            <a className={styles.primaryButton} href={SUBMIT_HASH}>
-              Submit a run
-              <ArrowRight aria-hidden="true" />
-            </a>
           </div>
         </section>
+
+        <SubmitSection prompt={submitPrompt} />
       </main>
       <SiteFooter />
     </div>

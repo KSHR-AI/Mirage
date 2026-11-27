@@ -5,9 +5,8 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
-import { AGENT_PROMPT_URL } from "../site/links";
+import { AGENT_PROMPT_URL, SUBMIT_PATH } from "../site/links";
 import { SiteFooter, SiteHeader } from "../site/SiteChrome";
-import { SUBMIT_HASH } from "./SubmitDialog";
 import styles from "./RegistryNotice.module.css";
 
 export type RegistryNoticeKind = "empty" | "unavailable";
@@ -50,10 +49,10 @@ export function RegistryNotice({
           <div className={styles.actions}>
             {isEmpty ? (
               <>
-                <a className={styles.primary} href={SUBMIT_HASH}>
+                <Link className={styles.primary} href={SUBMIT_PATH}>
                   Submit the first run
                   <ArrowRight aria-hidden="true" weight="bold" />
-                </a>
+                </Link>
                 <a
                   className={styles.secondary}
                   href={AGENT_PROMPT_URL}

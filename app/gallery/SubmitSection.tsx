@@ -1,53 +1,25 @@
 "use client";
 
-import { ArrowUpRight, Check, Copy, X } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowUpRight, Check, Copy } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
 import { fillSubmitPrompt } from "../registry/submit-prompt";
 import { AGENT_PROMPT_URL, SUBMIT_PROMPT_URL } from "../site/links";
 import { copyText } from "./clipboard";
-import styles from "./SubmitDialog.module.css";
-
-/** Any link to this fragment opens the dialog, on this page or from another. */
-export const SUBMIT_HASH = "#submit";
+import styles from "./SubmitSection.module.css";
 
 type Feedback = { tone: "ok" | "warn"; text: string } | null;
 
 /** Builds the agent prompt around a contributor's link; nothing is sent. */
-export function SubmitDialog({ prompt }: { prompt: string | null }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+export function SubmitSection({ prompt }: { prompt: string | null }) {
   const [link, setLink] = useState("");
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    const openForHash = () => {
-      const dialog = dialogRef.current;
-      if (dialog && !dialog.open && window.location.hash === SUBMIT_HASH) {
-        dialog.showModal();
-        dialog.querySelector("input")?.focus();
-      }
-    };
-    openForHash();
-    window.addEventListener("hashchange", openForHash);
-    return () => window.removeEventListener("hashchange", openForHash);
-  }, []);
 
   useEffect(() => {
     if (!copied) return;
     const timer = setTimeout(() => setCopied(false), 2400);
     return () => clearTimeout(timer);
   }, [copied]);
-
-  // Clearing the fragment lets the same link open the dialog again.
-  const handleClose = () => {
-    if (window.location.hash === SUBMIT_HASH) {
-      window.history.replaceState(
-        null,
-        "",
-        window.location.pathname + window.location.search,
-      );
-    }
-  };
 
   const filled = prompt && link.trim() ? fillSubmitPrompt(prompt, link) : null;
   const invalid = link.trim() !== "" && filled === null;
@@ -78,35 +50,25 @@ export function SubmitDialog({ prompt }: { prompt: string | null }) {
   };
 
   return (
-    <dialog
-      ref={dialogRef}
-      className={styles.dialog}
+    <section
+      className={styles.section}
+      id="submit"
       aria-labelledby="submit-title"
-      onClose={handleClose}
-      onClick={(event) => {
-        // The dialog's own box is all padding-free content, so a click that
-        // lands on the element itself landed on the backdrop.
-        if (event.target === event.currentTarget) event.currentTarget.close();
-      }}
     >
-      <div className={styles.body}>
-        <header className={styles.head}>
-          <p className={styles.eyebrow}>Submit a run</p>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={() => dialogRef.current?.close()}
-          >
-            <X aria-hidden="true" weight="bold" />
-          </button>
-        </header>
-
+      <div className={styles.lead}>
+        <p className={styles.eyebrow}>Submit a run</p>
         <h2 id="submit-title">Hand your agent a link</h2>
-        <p className={styles.lede}>
+        <p>
           Paste the link to your hosted game. A coding agent with a browser
           plays it and opens the pull request.
         </p>
+        <a href={AGENT_PROMPT_URL} target="_blank" rel="noreferrer">
+          No game yet? Get the prompt that builds one
+          <ArrowUpRight aria-hidden="true" weight="bold" />
+        </a>
+      </div>
 
+      <div className={styles.form}>
         {prompt ? (
           <>
             <label htmlFor="play-url">Your game link</label>
@@ -132,7 +94,11 @@ export function SubmitDialog({ prompt }: { prompt: string | null }) {
                   }
                 }}
               />
-              <button type="button" onClick={() => void copy()}>
+              <button
+                type="button"
+                data-copied={copied ? "true" : undefined}
+                onClick={() => void copy()}
+              >
                 {copied ? (
                   <Check aria-hidden="true" weight="bold" />
                 ) : (
@@ -168,17 +134,7 @@ export function SubmitDialog({ prompt }: { prompt: string | null }) {
             <ArrowUpRight aria-hidden="true" weight="bold" />
           </a>
         )}
-
-        <a
-          className={styles.aside}
-          href={AGENT_PROMPT_URL}
-          target="_blank"
-          rel="noreferrer"
-        >
-          No game yet? Get the prompt that builds one
-          <ArrowUpRight aria-hidden="true" weight="bold" />
-        </a>
       </div>
-    </dialog>
+    </section>
   );
 }
